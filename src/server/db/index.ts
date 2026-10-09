@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { localDevStore } from "./local-store";
 
 const globalForPrisma = globalThis as unknown as { prisma?: any };
 
@@ -51,14 +52,55 @@ class LocalDevMockDb {
   };
 
   api_keys = {
-    findMany: async () => [],
-    findFirst: async () => null,
-    create: async ({ data }: any) => ({
-      id: "mock-key",
-      created_at: new Date(),
-      ...data,
-    }),
-    delete: async () => ({}),
+    findMany: async ({ where }: any = {}) => {
+      return localDevStore.getApiKeys(where?.user_id ? (k) => k.user_id === where.user_id : undefined);
+    },
+    findFirst: async ({ where }: any = {}) => {
+      return localDevStore.findApiKey((k) => (!where?.user_id || k.user_id === where.user_id) && (!where?.id || k.id === where.id));
+    },
+    findUnique: async ({ where }: any = {}) => {
+      return localDevStore.findApiKey((k) => k.id === where.id);
+    },
+    create: async ({ data }: any) => {
+      return localDevStore.saveApiKey(data);
+    },
+    delete: async ({ where }: any) => {
+      localDevStore.deleteApiKey(where.id);
+      return { id: where.id };
+    },
+  };
+
+  social_accounts = {
+    findMany: async ({ where }: any = {}) => {
+      return localDevStore.getSocialAccounts(
+        (a) => (!where?.user_id || a.user_id === where.user_id) && (!where?.provider || a.provider === where.provider)
+      );
+    },
+    findFirst: async ({ where }: any = {}) => {
+      return localDevStore.findSocialAccount(
+        (a) =>
+          (!where?.user_id || a.user_id === where.user_id) &&
+          (!where?.provider || a.provider === where.provider) &&
+          (!where?.id || a.id === where.id) &&
+          (!where?.external_id || a.external_id === where.external_id)
+      );
+    },
+    findUnique: async ({ where }: any = {}) => {
+      return localDevStore.findSocialAccount((a) => a.id === where.id);
+    },
+    create: async ({ data }: any) => {
+      return localDevStore.saveSocialAccount(data);
+    },
+    update: async ({ where, data }: any) => {
+      return localDevStore.saveSocialAccount({ ...where, ...data });
+    },
+    delete: async ({ where }: any) => {
+      localDevStore.deleteSocialAccount(where.id);
+      return { id: where.id };
+    },
+    count: async ({ where }: any = {}) => {
+      return localDevStore.getSocialAccounts(where?.user_id ? (a) => a.user_id === where.user_id : undefined).length;
+    },
   };
 
   lead_searches = {
@@ -84,13 +126,133 @@ class LocalDevMockDb {
   };
 
   social_campaigns = {
-    findMany: async () => [],
-    count: async () => 0,
+    findMany: async ({ where, include }: any = {}) => {
+      const items = localDevStore.getCampaigns(
+        (c) => (!where?.user_id || c.user_id === where.user_id) && (!where?.status || c.status === where.status)
+      );
+      if (include?.social_account) {
+        return items.map((c) => ({
+          ...c,
+          social_account: localDevStore.findSocialAccount((a) => a.id === c.social_account_id),
+        }));
+      }
+      return items;
+    },
+    findFirst: async ({ where, include }: any = {}) => {
+      const c = localDevStore.findCampaign(
+        (c) => (!where?.user_id || c.user_id === where.user_id) && (!where?.id || c.id === where.id)
+      );
+      if (c && include?.social_account) {
+        return {
+          ...c,
+          social_account: localDevStore.findSocialAccount((a) => a.id === c.social_account_id),
+        };
+      }
+      return c;
+    },
+    findUnique: async ({ where, include }: any = {}) => {
+      const c = localDevStore.findCampaign((c) => c.id === where.id);
+      if (c && include?.social_account) {
+        return {
+          ...c,
+          social_account: localDevStore.findSocialAccount((a) => a.id === c.social_account_id),
+        };
+      }
+      return c;
+    },
+    create: async ({ data }: any) => {
+      return localDevStore.saveCampaign(data);
+    },
+    update: async ({ where, data }: any) => {
+      const existing = localDevStore.findCampaign((c) => c.id === where.id);
+      return localDevStore.saveCampaign({ ...existing, ...data });
+    },
+    delete: async ({ where }: any) => {
+      localDevStore.deleteCampaign(where.id);
+      return { id: where.id };
+    },
+    count: async ({ where }: any = {}) => {
+      return localDevStore.getCampaigns(where?.user_id ? (c) => c.user_id === where.user_id : undefined).length;
+    },
   };
 
   post_runs = {
-    findMany: async () => [],
-    count: async () => 0,
+    findMany: async ({ where, include, take }: any = {}) => {
+      let items = localDevStore.getPostRuns(
+        (p) => (!where?.user_id || p.user_id === where.user_id) && (!where?.status || p.status === where.status)
+      );
+      if (take) items = items.slice(0, take);
+      if (include?.campaign) {
+        return items.map((p) => {
+          const camp = localDevStore.findCampaign((c) => c.id === p.campaign_id);
+          return {
+            ...p,
+            campaign: camp
+              ? {
+                  ...camp,
+                  social_account: localDevStore.findSocialAccount((a) => a.id === camp.social_account_id),
+                }
+              : null,
+          };
+        });
+      }
+      return items;
+    },
+    findFirst: async ({ where, include }: any = {}) => {
+      const p = localDevStore.findPostRun((item) => (!where?.id || item.id === where.id));
+      if (p && include?.campaign) {
+        const camp = localDevStore.findCampaign((c) => c.id === p.campaign_id);
+        return {
+          ...p,
+          campaign: camp
+            ? {
+                ...camp,
+                social_account: localDevStore.findSocialAccount((a) => a.id === camp.social_account_id),
+              }
+            : null,
+        };
+      }
+      return p;
+    },
+    findUnique: async ({ where, include }: any = {}) => {
+      const p = localDevStore.findPostRun((item) => item.id === where.id);
+      if (p && include?.campaign) {
+        const camp = localDevStore.findCampaign((c) => c.id === p.campaign_id);
+        return {
+          ...p,
+          campaign: camp
+            ? {
+                ...camp,
+                social_account: localDevStore.findSocialAccount((a) => a.id === camp.social_account_id),
+              }
+            : null,
+        };
+      }
+      return p;
+    },
+    create: async ({ data }: any) => {
+      return localDevStore.savePostRun(data);
+    },
+    update: async ({ where, data }: any) => {
+      const existing = localDevStore.findPostRun((p) => p.id === where.id);
+      return localDevStore.savePostRun({ ...existing, ...data });
+    },
+    upsert: async ({ where, create, update }: any) => {
+      const existing = localDevStore.findPostRun(
+        (p) => p.campaign_id === where.campaign_id_scheduled_for?.campaign_id
+      );
+      if (existing) {
+        return localDevStore.savePostRun({ ...existing, ...update });
+      }
+      return localDevStore.savePostRun(create);
+    },
+    delete: async ({ where }: any) => {
+      localDevStore.deletePostRun(where.id);
+      return { id: where.id };
+    },
+    count: async ({ where }: any = {}) => {
+      return localDevStore.getPostRuns(where?.user_id ? (p) => p.user_id === where.user_id : undefined).length;
+    },
   };
 
   $queryRaw = async () => [{ 1: 1 }];
