@@ -1,0 +1,80 @@
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    command: caddy reverse-proxy --from ${APP_DOMAIN} --to web:3000
+    ports: ["80:80", "443:443"]
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+  web:
+    image: ${DOCKER_IMAGE:-ghcr.io/autohub/autohub:latest}
+    restart: unless-stopped
+    environment: &app_env
+      NODE_ENV: production
+      SERVICE_ROLE: web
+      APP_URL: https://${APP_DOMAIN}
+      DATABASE_URL: postgresql://autohub:${POSTGRES_PASSWORD}@db:5432/autohub
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-invite}
+      TZ: UTC
+    volumes:
+      - appdata:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      retries: 5
+
+  worker:
+    image: ${DOCKER_IMAGE:-ghcr.io/autohub/autohub:latest}
+    restart: unless-stopped
+    command: ["node", "-e", "require('./src/server/worker').startPlannerWorker(); require('./src/server/worker').startSocialPublishWorker();"]
+    environment: *app_env
+    volumes:
+      - appdata:/data
+    depends_on:
+      web:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: autohub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: autohub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autohub"]
+      interval: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 10
+
+volumes:
+  caddy_data:
+  caddy_config:
+  appdata:
+  pgdata:
+  redisdata:

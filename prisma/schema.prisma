@@ -1,0 +1,818 @@
+// AutoHub database schema (spec section 9). Source of truth: PostgreSQL.
+// Field names intentionally mirror column names from the spec (snake_case).
+// `*_enc` fields hold AES-256-GCM payloads (v1:iv:ciphertext:tag).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── Enums ─────────────
+enum UserRole {
+  user
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+  pending_delete
+}
+
+enum ApiKeyProvider {
+  openai
+  google_places
+}
+
+enum ApiKeyStatus {
+  active
+  invalid
+  disabled
+}
+
+enum SocialProviderId {
+  facebook
+  instagram
+  linkedin
+}
+
+enum SocialAccountStatus {
+  active
+  needs_reconnect
+  disabled
+}
+
+enum GoogleConnStatus {
+  active
+  needs_reconnect
+}
+
+enum EmailKind {
+  business
+  personal
+}
+
+enum EmailProviderId {
+  smtp
+  gmail_api
+}
+
+enum EmailAccountStatus {
+  active
+  paused
+  needs_attention
+  disabled
+}
+
+enum CampaignStatus {
+  active
+  paused
+  error
+  ended
+}
+
+enum ApprovalMode {
+  auto
+  approve
+}
+
+enum ApprovalTimeoutAction {
+  skip
+  publish
+}
+
+enum CaptionLength {
+  short
+  medium
+  long
+}
+
+enum PostRunStatus {
+  scheduled
+  generating
+  pending_approval
+  publishing
+  published
+  failed
+  skipped
+  needs_review
+  rejected
+}
+
+enum AssetKind {
+  reference
+  generated
+  other
+}
+
+enum LeadSource {
+  google_maps
+  meta_ads
+  linkedin
+}
+
+enum SearchStatus {
+  queued
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum EmailStatus {
+  valid
+  risky
+  invalid
+  unknown
+}
+
+enum EmailType {
+  personal
+  role
+  generic
+}
+
+enum LeadStatus {
+  new
+  contacted
+  replied
+  bounced
+  unsubscribed
+  do_not_contact
+}
+
+enum ExportType {
+  csv
+  sheet
+}
+
+enum ExportMode {
+  append
+  replace
+}
+
+enum JobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+enum SuppressionReason {
+  unsubscribed
+  bounced
+  complaint
+  manual
+}
+
+enum OutreachMode {
+  ai
+  custom
+}
+
+enum OutreachStatus {
+  draft
+  scheduled
+  running
+  paused
+  completed
+  cancelled
+}
+
+enum RecipientSource {
+  leads
+  sheet
+}
+
+enum RecipientStatus {
+  queued
+  sending
+  sent
+  failed
+  failed_generation
+  bounced
+  replied
+  unsubscribed
+  needs_review
+  skipped
+}
+
+enum MessageDirection {
+  out
+  in
+}
+
+enum MessageKind {
+  initial
+  followup
+  reply
+  bounce
+  auto_reply
+}
+
+enum MessageStatus {
+  sent
+  failed
+  received
+}
+
+enum SequenceStatus {
+  draft
+  active
+  paused
+}
+
+enum SequenceSourceType {
+  campaign
+  leads
+  sheet
+}
+
+// ───────────── Users & auth ─────────────
+model workspaces {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  name       String   @default("Default")
+  is_default Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamptz
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model users {
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                 String       @unique
+  email_verified_at     DateTime?    @db.Timestamptz
+  password_hash         String?
+  name                  String?
+  business_name         String?
+  business_category     String?
+  country               String?
+  role                  UserRole     @default(user)
+  status                UserStatus   @default(active)
+  timezone              String       @default("UTC")
+  sender_legal_name     String?
+  sender_address        String?
+  goals                 String[]
+  onboarded_at          DateTime?    @db.Timestamptz
+  last_login_at         DateTime?    @db.Timestamptz
+  deletion_requested_at DateTime?    @db.Timestamptz
+  created_at            DateTime     @default(now()) @db.Timestamptz
+  updated_at            DateTime     @updatedAt @db.Timestamptz
+
+  workspaces            workspaces[]
+  sessions              sessions[]
+  oauth_accounts        oauth_accounts[]
+  user_settings         user_settings?
+  api_keys              api_keys[]
+  social_accounts       social_accounts[]
+  google_connections    google_connections[]
+  email_accounts        email_accounts[]
+  social_campaigns      social_campaigns[]
+  post_runs             post_runs[]
+  assets                assets[]
+  lead_searches         lead_searches[]
+  leads                 leads[]
+  export_jobs           export_jobs[]
+  suppressions          suppressions[]
+  outreach_campaigns    outreach_campaigns[]
+  campaign_recipients   campaign_recipients[]
+  email_messages        email_messages[]
+  followup_sequences    followup_sequences[]
+  notifications         notifications[]
+  activity_logs         activity_logs[]
+}
+
+model sessions {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  token_hash String   @unique
+  user_agent String?
+  ip         String?
+  expires_at DateTime @db.Timestamptz
+  created_at DateTime @default(now()) @db.Timestamptz
+  user       users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([expires_at])
+}
+
+/// OAuth login links (e.g. Continue with Google)
+model oauth_accounts {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String   @db.Uuid
+  provider            String
+  provider_account_id String
+  created_at          DateTime @default(now()) @db.Timestamptz
+  user                users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([provider, provider_account_id])
+}
+
+/// Email verification, password reset and invite tokens (single-use, hashed)
+model verification_tokens {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identifier String
+  purpose    String
+  token_hash String    @unique
+  expires_at DateTime  @db.Timestamptz
+  used_at    DateTime? @db.Timestamptz
+  created_at DateTime  @default(now()) @db.Timestamptz
+
+  @@index([identifier, purpose])
+}
+
+model user_settings {
+  user_id             String @id @db.Uuid
+  notification_prefs  Json   @default("{}")
+  ui_prefs            Json   @default("{}")
+  limits_override     Json   @default("{}")
+  user                users  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model system_settings {
+  key        String   @id
+  value_enc  String
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz
+}
+
+// ───────────── Connections & credentials ─────────────
+model api_keys {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String         @db.Uuid
+  provider       ApiKeyProvider @default(openai)
+  label          String
+  key_enc        String
+  key_last4      String         @db.VarChar(4)
+  last_tested_at DateTime?      @db.Timestamptz
+  last_test_ok   Boolean?
+  status         ApiKeyStatus   @default(active)
+  created_at     DateTime       @default(now()) @db.Timestamptz
+  user           users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  social_campaigns   social_campaigns[]
+  outreach_campaigns outreach_campaigns[]
+  followup_sequences followup_sequences[]
+
+  @@index([user_id])
+}
+
+model social_accounts {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String              @db.Uuid
+  provider           SocialProviderId
+  external_id        String
+  parent_external_id String?
+  display_name       String?
+  picture_url        String?
+  access_token_enc   String?
+  refresh_token_enc  String?
+  token_expires_at   DateTime?           @db.Timestamptz
+  scopes             String[]
+  status             SocialAccountStatus @default(active)
+  last_error         String?
+  created_at         DateTime            @default(now()) @db.Timestamptz
+  updated_at         DateTime            @updatedAt @db.Timestamptz
+  user               users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  campaigns          social_campaigns[]
+
+  @@unique([user_id, provider, external_id])
+}
+
+model google_connections {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String           @db.Uuid
+  google_email      String
+  access_token_enc  String?
+  refresh_token_enc String?
+  expires_at        DateTime?        @db.Timestamptz
+  scopes            String[]
+  status            GoogleConnStatus @default(active)
+  created_at        DateTime         @default(now()) @db.Timestamptz
+  user              users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  email_accounts    email_accounts[]
+  export_jobs       export_jobs[]
+
+  @@unique([user_id, google_email])
+}
+
+model email_accounts {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String             @db.Uuid
+  kind                EmailKind          @default(business)
+  provider            EmailProviderId    @default(smtp)
+  label               String
+  from_name           String?
+  from_email          String
+  reply_to            String?
+  signature           String?
+  smtp_host           String?
+  smtp_port           Int?
+  smtp_security       String?
+  smtp_username       String?
+  smtp_password_enc   String?
+  imap_host           String?
+  imap_port           Int?
+  imap_security       String?
+  imap_username       String?
+  imap_password_enc   String?
+  google_connection_id String?           @db.Uuid
+  hourly_limit        Int                @default(25)
+  daily_limit         Int                @default(150)
+  status              EmailAccountStatus @default(active)
+  last_error          String?
+  last_polled_at      DateTime?          @db.Timestamptz
+  last_imap_uid       Int?
+  next_allowed_at     DateTime?          @db.Timestamptz
+  created_at          DateTime           @default(now()) @db.Timestamptz
+  user                users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  google_connection   google_connections? @relation(fields: [google_connection_id], references: [id])
+
+  campaign_accounts   outreach_campaign_accounts[]
+  recipients          campaign_recipients[]
+  messages            email_messages[]
+  sequences           followup_sequences[]
+
+  @@unique([user_id, from_email])
+  // Hard cap: never above 25/hour (spec 5.6). Enforced again in SQL migration CHECK.
+}
+
+// ───────────── Social module ─────────────
+model social_campaigns {
+  id                        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                   String                @db.Uuid
+  workspace_id              String?               @db.Uuid
+  social_account_id         String                @db.Uuid
+  openai_key_id             String?               @db.Uuid
+  name                      String
+  status                    CampaignStatus        @default(active)
+  business_category         String?
+  business_name             String?
+  business_description      String?
+  target_audience           String?
+  brand_voice               String?
+  language                  String                @default("English")
+  prompt                    String?
+  image_style               String?
+  caption_length            CaptionLength         @default(medium)
+  emojis                    Boolean               @default(true)
+  hashtags_count            Int                   @default(5)
+  cta_text                  String?
+  text_model                String?
+  image_model               String?
+  post_times                String[]
+  days_of_week              Int[]
+  timezone                  String
+  start_date                DateTime?             @db.Date
+  end_date                  DateTime?             @db.Date
+  approval_mode             ApprovalMode          @default(auto)
+  approval_timeout_hours    Int                   @default(24)
+  approval_timeout_action   ApprovalTimeoutAction @default(skip)
+  last_error                String?
+  created_at                DateTime              @default(now()) @db.Timestamptz
+  updated_at                DateTime              @updatedAt @db.Timestamptz
+
+  user                      users                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  social_account            social_accounts       @relation(fields: [social_account_id], references: [id], onDelete: Cascade)
+  openai_key                api_keys?             @relation(fields: [openai_key_id], references: [id])
+  reference_assets          campaign_reference_assets[]
+  post_runs                 post_runs[]
+
+  @@index([user_id, status])
+}
+
+model assets {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  kind         AssetKind
+  path         String
+  mime         String
+  size_bytes   Int
+  width        Int?
+  height       Int?
+  public_token String?   @unique
+  deleted_at   DateTime? @db.Timestamptz
+  created_at   DateTime  @default(now()) @db.Timestamptz
+  user         users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  campaign_links campaign_reference_assets[]
+  post_runs      post_runs[]
+
+  @@index([user_id])
+}
+
+model campaign_reference_assets {
+  campaign_id String           @db.Uuid
+  asset_id    String           @db.Uuid
+  position    Int
+  campaign    social_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  asset       assets           @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@id([campaign_id, asset_id])
+}
+
+model post_runs {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String        @db.Uuid
+  campaign_id      String        @db.Uuid
+  scheduled_for    DateTime      @db.Timestamptz
+  status           PostRunStatus @default(scheduled)
+  caption          String?
+  hashtags         String[]
+  image_prompt     String?
+  image_asset_id   String?       @db.Uuid
+  external_post_id String?
+  external_url     String?
+  attempts         Int           @default(0)
+  error_code       String?
+  error_message    String?
+  model_info       Json?
+  approved_at      DateTime?     @db.Timestamptz
+  started_at       DateTime?     @db.Timestamptz
+  finished_at      DateTime?     @db.Timestamptz
+  created_at       DateTime      @default(now()) @db.Timestamptz
+  updated_at       DateTime      @updatedAt @db.Timestamptz
+
+  user             users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  campaign         social_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  image_asset      assets?          @relation(fields: [image_asset_id], references: [id])
+
+  @@unique([campaign_id, scheduled_for])
+  @@index([status, scheduled_for])
+  @@index([user_id, created_at(sort: Desc)])
+}
+
+// ───────────── Lead module ─────────────
+model lead_searches {
+  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String       @db.Uuid
+  source            LeadSource
+  provider_used     String?
+  params            Json
+  status            SearchStatus @default(queued)
+  found_count       Int          @default(0)
+  enriched_count    Int          @default(0)
+  duplicates_skipped Int         @default(0)
+  est_cost_cents    Int?
+  error             String?
+  started_at        DateTime?    @db.Timestamptz
+  finished_at       DateTime?    @db.Timestamptz
+  created_at        DateTime     @default(now()) @db.Timestamptz
+  user              users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  leads             leads[]
+  export_jobs       export_jobs[]
+
+  @@index([user_id, created_at(sort: Desc)])
+}
+
+model leads {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String       @db.Uuid
+  search_id     String?      @db.Uuid
+  dedupe_key    String
+  company_name  String
+  email         String?
+  email_status  EmailStatus?
+  email_type    EmailType?
+  phone         String?
+  phone_raw     String?
+  website       String?
+  address       String?
+  city          String?
+  state         String?
+  country       String?
+  postal_code   String?
+  lat           Float?
+  lng           Float?
+  business_type String?
+  rating        Decimal?     @db.Decimal(2, 1)
+  reviews_count Int?
+  source        String
+  source_url    String?
+  source_ref    String?
+  facebook_url  String?
+  instagram_url String?
+  linkedin_url  String?
+  notes         String?
+  tags          String[]
+  status        LeadStatus   @default(new)
+  extra         Json?
+  collected_at  DateTime     @default(now()) @db.Timestamptz
+
+  user          users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  search        lead_searches? @relation(fields: [search_id], references: [id], onDelete: SetNull)
+  recipients    campaign_recipients[]
+
+  @@unique([user_id, dedupe_key])
+  @@index([user_id, search_id])
+  @@index([user_id, email])
+  @@index([user_id, status])
+}
+
+model export_jobs {
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String              @db.Uuid
+  search_id            String?             @db.Uuid
+  google_connection_id String?             @db.Uuid
+  type                 ExportType
+  options              Json?
+  spreadsheet_id       String?
+  sheet_title          String?
+  mode                 ExportMode?
+  status               JobStatus           @default(queued)
+  rows_total           Int                 @default(0)
+  rows_done            Int                 @default(0)
+  result_url           String?
+  error                String?
+  created_at           DateTime            @default(now()) @db.Timestamptz
+  user                 users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  search               lead_searches?      @relation(fields: [search_id], references: [id], onDelete: SetNull)
+  google_connection    google_connections? @relation(fields: [google_connection_id], references: [id], onDelete: SetNull)
+}
+
+model suppressions {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String            @db.Uuid
+  email              String
+  reason             SuppressionReason
+  source_campaign_id String?           @db.Uuid
+  created_at         DateTime          @default(now()) @db.Timestamptz
+  user               users             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, email])
+}
+
+// ───────────── Outreach & followup ─────────────
+model outreach_campaigns {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String          @db.Uuid
+  workspace_id     String?         @db.Uuid
+  name             String
+  mode             OutreachMode
+  status           OutreachStatus  @default(draft)
+  recipient_source RecipientSource @default(leads)
+  source_ref       Json?
+  subject_template String?
+  body_template    String?
+  ai_config        Json?
+  openai_key_id    String?         @db.Uuid
+  text_model       String?
+  send_window      Json?
+  timezone         String
+  jitter_min_sec   Int             @default(60)
+  jitter_max_sec   Int             @default(180)
+  start_at         DateTime?       @db.Timestamptz
+  launched_at      DateTime?       @db.Timestamptz
+  completed_at     DateTime?       @db.Timestamptz
+  created_at       DateTime        @default(now()) @db.Timestamptz
+  updated_at       DateTime        @updatedAt @db.Timestamptz
+
+  user             users           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  openai_key       api_keys?       @relation(fields: [openai_key_id], references: [id])
+  accounts         outreach_campaign_accounts[]
+  recipients       campaign_recipients[]
+  sequences        followup_sequences[]
+
+  @@index([user_id, status])
+}
+
+model outreach_campaign_accounts {
+  campaign_id      String             @db.Uuid
+  email_account_id String             @db.Uuid
+  campaign         outreach_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  email_account    email_accounts     @relation(fields: [email_account_id], references: [id], onDelete: Cascade)
+
+  @@id([campaign_id, email_account_id])
+}
+
+model campaign_recipients {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String          @db.Uuid
+  campaign_id         String          @db.Uuid
+  lead_id             String?         @db.Uuid
+  email               String
+  name                String?
+  company             String?
+  vars                Json?
+  assigned_account_id String?         @db.Uuid
+  status              RecipientStatus @default(queued)
+  generated_subject   String?
+  generated_body      String?
+  thread_message_id   String?
+  current_step        Int             @default(0)
+  next_followup_at    DateTime?       @db.Timestamptz
+  sent_at             DateTime?       @db.Timestamptz
+  last_sent_at        DateTime?       @db.Timestamptz
+  replied_at          DateTime?       @db.Timestamptz
+  sending_started_at  DateTime?       @db.Timestamptz
+  attempts            Int             @default(0)
+  error               String?
+  unsubscribe_token   String          @unique
+  created_at          DateTime        @default(now()) @db.Timestamptz
+
+  user                users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  campaign            outreach_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  lead                leads?             @relation(fields: [lead_id], references: [id], onDelete: SetNull)
+  assigned_account    email_accounts?    @relation(fields: [assigned_account_id], references: [id])
+  messages            email_messages[]
+
+  @@unique([campaign_id, email])
+  @@unique([campaign_id, lead_id])
+  @@index([campaign_id, status])
+  @@index([assigned_account_id, status])
+  @@index([next_followup_at])
+}
+
+model email_messages {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String           @db.Uuid
+  recipient_id     String?          @db.Uuid
+  email_account_id String           @db.Uuid
+  direction        MessageDirection
+  kind             MessageKind
+  step_no          Int              @default(0)
+  message_id       String
+  in_reply_to      String?
+  subject          String?
+  snippet          String?          @db.VarChar(200)
+  status           MessageStatus
+  sent_at          DateTime?        @db.Timestamptz
+  error            String?
+  created_at       DateTime         @default(now()) @db.Timestamptz
+
+  user             users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  recipient        campaign_recipients? @relation(fields: [recipient_id], references: [id], onDelete: Cascade)
+  email_account    email_accounts       @relation(fields: [email_account_id], references: [id], onDelete: Cascade)
+
+  @@unique([email_account_id, message_id])
+  @@index([email_account_id, sent_at])
+}
+
+model followup_sequences {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String             @db.Uuid
+  name             String
+  status           SequenceStatus     @default(draft)
+  campaign_id      String?            @db.Uuid
+  source_type      SequenceSourceType @default(campaign)
+  source_ref       Json?
+  email_account_id String?            @db.Uuid
+  openai_key_id    String?            @db.Uuid
+  created_at       DateTime           @default(now()) @db.Timestamptz
+
+  user             users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  campaign         outreach_campaigns? @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  email_account    email_accounts?     @relation(fields: [email_account_id], references: [id])
+  openai_key       api_keys?           @relation(fields: [openai_key_id], references: [id])
+  steps            followup_steps[]
+}
+
+model followup_steps {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sequence_id      String       @db.Uuid
+  step_no          Int
+  delay_days       Int
+  mode             OutreachMode
+  subject_template String?
+  body_template    String?
+  ai_instruction   String?
+  sequence         followup_sequences @relation(fields: [sequence_id], references: [id], onDelete: Cascade)
+
+  @@unique([sequence_id, step_no])
+}
+
+// ───────────── System ─────────────
+model notifications {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String    @db.Uuid
+  type        String
+  title       String
+  body        String?
+  entity_type String?
+  entity_id   String?
+  read_at     DateTime? @db.Timestamptz
+  emailed_at  DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+  user        users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, read_at])
+}
+
+model activity_logs {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String   @db.Uuid
+  type        String
+  entity_type String?
+  entity_id   String?
+  message     String
+  meta        Json?
+  created_at  DateTime @default(now()) @db.Timestamptz
+  user        users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at(sort: Desc)])
+}

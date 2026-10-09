@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --color-bg: hsl(232 40% 6%);
+  --color-surface: hsl(232 32% 10%);
+  --color-surface-2: hsl(232 28% 14%);
+  --color-border: hsl(232 22% 22%);
+  --color-fg: hsl(225 30% 96%);
+  --color-muted: hsl(228 14% 66%);
+  --color-brand: hsl(258 90% 66%);
+  --color-brand-2: hsl(199 95% 60%);
+  --color-accent-pink: hsl(328 86% 64%);
+  --color-accent-green: hsl(152 70% 52%);
+  --color-accent-amber: hsl(38 95% 60%);
+  --color-danger: hsl(0 84% 66%);
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+}
+
+body {
+  background-image:
+    radial-gradient(60rem 40rem at 10% -10%, hsl(258 90% 66% / 0.18), transparent 60%),
+    radial-gradient(50rem 40rem at 100% 0%, hsl(199 95% 60% / 0.12), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 110%, hsl(328 86% 64% / 0.1), transparent 60%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+::selection {
+  background: hsl(258 90% 66% / 0.4);
+}
+
+.glass {
+  background: linear-gradient(145deg, hsl(232 32% 14% / 0.7), hsl(232 32% 9% / 0.7));
+  border: 1px solid hsl(232 30% 28% / 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 40px -12px hsl(0 0% 0% / 0.6), inset 0 1px 0 hsl(0 0% 100% / 0.04);
+}
+
+.gradient-text {
+  background: linear-gradient(120deg, var(--color-brand), var(--color-brand-2) 60%, var(--color-accent-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 0.8rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  cursor: pointer;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(120deg, var(--color-brand), var(--color-brand-2));
+  color: white;
+  box-shadow: 0 8px 24px -8px hsl(258 90% 66% / 0.7);
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-ghost {
+  background: hsl(232 28% 16% / 0.8);
+  border: 1px solid var(--color-border);
+  color: var(--color-fg);
+}
+.btn-ghost:hover { border-color: var(--color-brand); }
+
+.input {
+  width: 100%;
+  padding: 0.75rem 0.95rem;
+  border-radius: 0.8rem;
+  background: hsl(232 32% 8%);
+  border: 1px solid var(--color-border);
+  color: var(--color-fg);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px hsl(258 90% 66% / 0.25);
+}
+.label { font-size: 0.82rem; color: var(--color-muted); margin-bottom: 0.35rem; display: block; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+  border: 1px solid var(--color-border); color: var(--color-muted);
+}
+
+.hub-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.4rem;
+  padding: 1.6rem;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.hub-card:hover {
+  transform: translateY(-6px);
+  border-color: hsl(258 90% 66% / 0.6);
+  box-shadow: 0 24px 60px -20px hsl(258 90% 66% / 0.45);
+}
+.hub-card::before {
+  content: "";
+  position: absolute; inset: -40% -20% auto auto;
+  width: 14rem; height: 14rem; border-radius: 50%;
+  background: var(--glow, hsl(258 90% 66% / 0.25));
+  filter: blur(50px);
+  transition: opacity 0.3s;
+  opacity: 0.7;
+}
+.hub-card:hover::before { opacity: 1; }
+
+.skeleton {
+  background: linear-gradient(90deg, hsl(232 28% 14%), hsl(232 28% 20%), hsl(232 28% 14%));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 0.7rem;
+}
+
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes float-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.float-in { animation: float-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
