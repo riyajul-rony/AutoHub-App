@@ -4,7 +4,7 @@ import { formatTsv, formatCsvWithBom } from "./formatters";
 describe("Leads export formatters", () => {
   const sample = [
     {
-      company_name: "রহিম ডেন্টাল কেয়ার (Rahim Dental)",
+      company_name: "Rahim Dental Care",
       email: "info@rahim.bd",
       email_type: "role",
       phone: "+8801711234567",
@@ -17,7 +17,7 @@ describe("Leads export formatters", () => {
 
   it("exports TSV with tab delimiters", () => {
     const tsv = formatTsv(sample);
-    expect(tsv).toContain("রহিম ডেন্টাল কেয়ার");
+    expect(tsv).toContain("Rahim Dental Care");
     expect(tsv.split("\n")[0]).toContain("Company\tEmail");
     expect(tsv).toContain("\tinfo@rahim.bd\t");
   });
@@ -25,7 +25,7 @@ describe("Leads export formatters", () => {
   it("exports CSV with UTF-8 BOM byte marker at start", () => {
     const csv = formatCsvWithBom(sample);
     expect(csv.startsWith("\uFEFF")).toBe(true);
-    expect(csv).toContain('"রহিম ডেন্টাল কেয়ার (Rahim Dental)"');
+    expect(csv).toContain('"Rahim Dental Care"');
     expect(csv).toContain('"info@rahim.bd"');
   });
 });

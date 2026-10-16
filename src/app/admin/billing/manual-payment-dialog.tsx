@@ -214,7 +214,7 @@ export function ManualPaymentDialog({ users, plans }: ManualPaymentDialogProps) 
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                   >
                     <option value="USD">USD ($)</option>
-                    <option value="BDT">BDT (৳)</option>
+                    <option value="BDT">BDT (Tk)</option>
                     <option value="EUR">EUR (€)</option>
                     <option value="GBP">GBP (£)</option>
                   </select>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   ArrowRight,
@@ -275,18 +276,19 @@ export function OutreachWizard() {
           return (
             <button
               key={s.step}
+              type="button"
               onClick={() => setCurrentStep(s.step)}
-              className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-medium transition text-left ${
+              className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-medium transition text-left cursor-pointer ${
                 isActive
-                  ? "bg-primary text-primaryText shadow-xs"
+                  ? "bg-primary text-primary-foreground border-primary shadow-xs"
                   : isDone
-                  ? "bg-bgSubtle border-border text-fg"
-                  : "bg-surface border-border text-muted hover:text-fg hover:bg-surfaceHover"
+                  ? "bg-bg-subtle border-border text-text hover:bg-surface-hover"
+                  : "bg-surface border-border text-text-muted hover:text-text hover:bg-surface-hover"
               }`}
             >
-              <Icon size={16} />
+              <Icon size={16} className="shrink-0" />
               <div className="truncate">
-                <span className={`block text-[10px] ${isActive ? "text-primaryText/70" : "text-muted"}`}>{s.step}. Step</span>
+                <span className={`block text-[10px] ${isActive ? "text-primary-foreground/75" : "text-text-muted"}`}>{s.step}. Step</span>
                 <span className="font-semibold">{s.title}</span>
               </div>
             </button>
@@ -433,14 +435,15 @@ export function OutreachWizard() {
           </div>
 
           <div className="flex justify-end">
-            <button
+            <Button
               type="button"
               disabled={recipients.length === 0}
               onClick={() => setCurrentStep(2)}
-              className="btn btn-primary"
+              variant="primary"
+              rightIcon={<ArrowRight size={16} />}
             >
-              Continue to Senders <ArrowRight size={16} />
-            </button>
+              Continue to Senders
+            </Button>
           </div>
         </div>
       )}
@@ -531,17 +534,23 @@ export function OutreachWizard() {
           )}
 
           <div className="flex justify-between">
-            <button type="button" onClick={() => setCurrentStep(1)} className="btn btn-ghost">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <button
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCurrentStep(1)}
+              leftIcon={<ArrowLeft size={16} />}
+            >
+              Back
+            </Button>
+            <Button
               type="button"
               disabled={selectedAccountIds.length === 0}
               onClick={() => setCurrentStep(3)}
-              className="btn btn-primary"
+              variant="primary"
+              rightIcon={<ArrowRight size={16} />}
             >
-              Continue to Message <ArrowRight size={16} />
-            </button>
+              Continue to Message
+            </Button>
           </div>
         </div>
       )}
@@ -695,12 +704,22 @@ export function OutreachWizard() {
           </div>
 
           <div className="flex justify-between">
-            <button type="button" onClick={() => setCurrentStep(2)} className="btn btn-ghost">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <button type="button" onClick={() => setCurrentStep(4)} className="btn btn-primary">
-              Continue to Safety & Schedule <ArrowRight size={16} />
-            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCurrentStep(2)}
+              leftIcon={<ArrowLeft size={16} />}
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setCurrentStep(4)}
+              variant="primary"
+              rightIcon={<ArrowRight size={16} />}
+            >
+              Continue to Safety &amp; Schedule
+            </Button>
           </div>
         </div>
       )}
@@ -825,12 +844,22 @@ export function OutreachWizard() {
           </div>
 
           <div className="flex justify-between">
-            <button type="button" onClick={() => setCurrentStep(3)} className="btn btn-ghost">
-              <ArrowLeft size={16} /> Back
-            </button>
-            <button type="button" onClick={() => setCurrentStep(5)} className="btn btn-primary">
-              Review Campaign <ArrowRight size={16} />
-            </button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCurrentStep(3)}
+              leftIcon={<ArrowLeft size={16} />}
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setCurrentStep(5)}
+              variant="primary"
+              rightIcon={<ArrowRight size={16} />}
+            >
+              Review Campaign
+            </Button>
           </div>
         </div>
       )}
@@ -892,32 +921,38 @@ export function OutreachWizard() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/60">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setCurrentStep(4)}
               disabled={submitting}
-              className="btn btn-ghost w-full sm:w-auto"
+              leftIcon={<ArrowLeft size={16} />}
+              className="w-full sm:w-auto"
             >
-              <ArrowLeft size={16} /> Edit Settings
-            </button>
+              Edit Settings
+            </Button>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
+              <Button
                 type="button"
-                onClick={() => handleLaunch(false)}
+                variant="outline"
                 disabled={submitting}
-                className="btn btn-ghost flex-1 sm:flex-none text-xs"
+                onClick={() => handleLaunch(false)}
+                className="flex-1 sm:flex-none"
               >
                 Save as Draft
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="primary"
+                disabled={submitting || recipients.length === 0 || selectedAccountIds.length === 0}
+                loading={submitting}
                 onClick={() => handleLaunch(true)}
-                disabled={submitting}
-                className="btn btn-primary flex-1 sm:flex-none text-xs"
+                rightIcon={<Sparkles size={16} />}
+                className="flex-1 sm:flex-none"
               >
-                {submitting ? "Launching..." : "🚀 Launch Campaign Now"}
-              </button>
+                Launch Campaign Now
+              </Button>
             </div>
           </div>
         </div>

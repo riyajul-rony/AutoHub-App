@@ -3,15 +3,30 @@
 @theme {
   --color-bg: var(--bg);
   --color-bg-subtle: var(--bg-subtle);
+  --color-bgSubtle: var(--bg-subtle);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
+  --color-surfaceHover: var(--surface-hover);
+  --color-surface-2: var(--bg-subtle);
+  --color-surface-3: var(--surface-hover);
   --color-border: var(--border);
   --color-border-input: var(--border-input);
+  --color-borderInput: var(--border-input);
+  --color-border-strong: var(--border-strong);
+  --color-borderStrong: var(--border-strong);
   --color-text: var(--text);
-  --color-text-muted: var(--text-muted);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-text-muted: var(--muted-foreground);
   --color-text-subtle: var(--text-subtle);
+  --color-textSubtle: var(--text-subtle);
   --color-primary: var(--primary);
-  --color-primary-text: var(--primary-text);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-text: var(--primary-foreground);
+  --color-primaryText: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
   --color-accent-subtle: var(--accent-subtle);
   --color-accent-text: var(--accent-text);
@@ -21,6 +36,8 @@
   --color-warning-bg: var(--warning-bg);
   --color-danger: var(--danger);
   --color-danger-bg: var(--danger-bg);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #FFFFFF;
   --color-focus-ring: var(--focus-ring);
 
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -36,30 +53,36 @@ html[data-theme="light"] {
   --surface: #FFFFFF;
   --surface-hover: #F4F4F5;
   --border: #E4E4E7;
-  --border-input: #8A8A93;
+  --border-input: #A1A1AA;
+  --border-strong: #A1A1AA;
   --text: #09090B;
+  --muted: #F4F4F5;
+  --muted-foreground: #52525B;
   --text-muted: #52525B;
   --text-subtle: #71717A;
   --primary: #18181B;
+  --primary-foreground: #FFFFFF;
   --primary-text: #FFFFFF;
-  --accent: #4F46E5;
-  --accent-subtle: #EEF2FF;
-  --accent-text: #4338CA;
+  --secondary: #F4F4F5;
+  --secondary-foreground: #18181B;
+  --accent: #18181B;
+  --accent-subtle: #F4F4F5;
+  --accent-text: #18181B;
   --success: #15803D;
   --success-bg: #F0FDF4;
   --warning: #B45309;
   --warning-bg: #FFFBEB;
   --danger: #B91C1C;
   --danger-bg: #FEF2F2;
-  --focus-ring: #4F46E5;
+  --focus-ring: #18181B;
 
-  /* Legacy variable mappings to maintain continuity until full page refactoring */
+  /* Continuity aliases */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--bg-subtle);
   --color-border: var(--border);
   --color-fg: var(--text);
-  --color-muted: var(--text-muted);
+  --color-muted: var(--muted-foreground);
   --color-brand: var(--primary);
   --color-brand-2: var(--accent);
 }
@@ -71,30 +94,36 @@ html[data-theme="dark"] {
   --surface: #18181B;
   --surface-hover: #27272A;
   --border: #27272A;
-  --border-input: #71717A;
+  --border-input: #52525B;
+  --border-strong: #3F3F46;
   --text: #FAFAFA;
+  --muted: #27272A;
+  --muted-foreground: #A1A1AA;
   --text-muted: #A1A1AA;
   --text-subtle: #8F8F99;
   --primary: #FAFAFA;
+  --primary-foreground: #09090B;
   --primary-text: #09090B;
-  --accent: #818CF8;
+  --secondary: #27272A;
+  --secondary-foreground: #FAFAFA;
+  --accent: #FAFAFA;
   --accent-subtle: #1E1B4B;
-  --accent-text: #A5B4FC;
+  --accent-text: #FAFAFA;
   --success: #4ADE80;
   --success-bg: #052E16;
   --warning: #FBBF24;
   --warning-bg: #451A03;
-  --danger: #F87171;
+  --danger: #EF4444;
   --danger-bg: #450A0A;
-  --focus-ring: #818CF8;
+  --focus-ring: #FAFAFA;
 
-  /* Legacy variable mappings */
+  /* Continuity aliases */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--bg-subtle);
   --color-border: var(--border);
   --color-fg: var(--text);
-  --color-muted: var(--text-muted);
+  --color-muted: var(--muted-foreground);
   --color-brand: var(--primary);
   --color-brand-2: var(--accent);
 }
@@ -240,7 +269,7 @@ textarea {
   transform: translateY(1px);
 }
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
@@ -248,33 +277,51 @@ textarea {
 /* Button Variants */
 .btn-primary {
   background-color: var(--primary);
-  color: var(--primary-text);
+  color: var(--primary-foreground);
   border-color: var(--primary);
 }
 .btn-primary:hover:not(:disabled) {
   opacity: 0.92;
 }
 
-.btn-secondary,
-.btn-ghost {
+.btn-secondary {
   background-color: var(--surface);
   color: var(--text);
   border-color: var(--border);
 }
-.btn-secondary:hover:not(:disabled),
-.btn-ghost:hover:not(:disabled) {
+.btn-secondary:hover:not(:disabled) {
   background-color: var(--surface-hover);
-  border-color: var(--border);
+  border-color: var(--border-strong);
 }
 
-.btn-danger {
-  background-color: var(--danger-bg);
-  color: var(--danger);
-  border-color: var(--danger-bg);
+.btn-outline {
+  background-color: transparent;
+  color: var(--text);
+  border-color: var(--border);
 }
-.btn-danger:hover:not(:disabled) {
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text);
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--surface-hover);
+}
+
+.btn-destructive,
+.btn-danger {
   background-color: var(--danger);
   color: #FFFFFF;
+  border-color: var(--danger);
+}
+.btn-destructive:hover:not(:disabled),
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
 }
 
 /* Clean Badge */

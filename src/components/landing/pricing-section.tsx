@@ -189,10 +189,10 @@ export function PricingSection() {
                   >
                     <Button
                       variant={plan.popular ? "primary" : "secondary"}
-                      className="w-full flex items-center justify-center gap-1.5"
+                      className="w-full"
+                      rightIcon={<ArrowRight size={14} />}
                     >
-                      <span>{plan.cta}</span>
-                      <ArrowRight size={14} />
+                      {plan.cta}
                     </Button>
                   </Link>
                 </div>

@@ -53,9 +53,13 @@ export function LandingHeader() {
             </Button>
           </Link>
           <Link href="/signup">
-            <Button variant="primary" size="sm" className="text-xs">
-              <span>Get Started</span>
-              <ArrowRight size={13} className="ml-1" />
+            <Button
+              variant="primary"
+              size="sm"
+              className="text-xs"
+              rightIcon={<ArrowRight size={13} />}
+            >
+              Get Started
             </Button>
           </Link>
         </div>

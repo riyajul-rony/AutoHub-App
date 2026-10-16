@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   if (!brightDataKey) {
     return NextResponse.json(
       {
-        error: "আগে Settings-এ Bright Data API key দাও। Leads search করতে আপনার ব্যক্তিগত Bright Data API key প্রয়োজন।",
+        error: "Bright Data API key required. Please configure your personal Bright Data API key in Settings before searching leads.",
       },
       { status: 400 }
     );

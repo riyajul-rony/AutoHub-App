@@ -129,7 +129,7 @@ export default async function LeadsOverviewPage({
             </div>
             <div>
               <h3 className="font-semibold text-sm text-fg">
-                Settings-এ Bright Data API key দিন
+                Configure Bright Data API Key in Settings
               </h3>
               <p className="mt-0.5 text-xs text-muted leading-relaxed">
                 Lead Generation relies on your personal Bright Data account. Please configure and test your Bright Data API key before running searches.

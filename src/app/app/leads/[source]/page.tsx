@@ -40,7 +40,7 @@ export default async function LeadSearchSourcePage({
             </div>
             <div>
               <h2 className="text-base font-bold text-fg">
-                আগে Settings-এ Bright Data API key দিন
+                Bright Data API Key Required in Settings
               </h2>
               <p className="mt-1 text-xs text-muted leading-relaxed max-w-2xl">
                 AutoHub uses your personal Bright Data account to extract leads from {sourceName}.

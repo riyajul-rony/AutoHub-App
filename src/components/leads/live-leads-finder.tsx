@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useRef, useMemo } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Search,
   Globe,
@@ -686,7 +687,7 @@ export function LiveLeadsFinder({ source = "google_maps" }: { source?: string })
                 <h3 className="text-sm font-bold text-fg">
                   {brightDataStatus?.connected
                     ? `Bright Data API Connected (••••${brightDataStatus.key_last4})`
-                    : "আগে Settings-এ Bright Data API key দাও"}
+                    : "Bright Data API Key Required in Settings"}
                 </h3>
                 {brightDataStatus?.connected ? (
                   <span className="badge border-accent-green/40 text-accent-green text-[10px] px-2 py-0.5 font-medium">
@@ -901,34 +902,31 @@ export function LiveLeadsFinder({ source = "google_maps" }: { source?: string })
             </div>
 
             <div className="sm:col-span-5 flex items-center gap-2">
-              <button
+              <Button
                 type="submit"
                 id="extract-leads-button"
                 onClick={(e) => handleSearch(e)}
                 disabled={loading}
-                className="flex-1 h-12 px-6 rounded-xl text-base font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 shadow-[0_0_28px_rgba(79,70,229,0.6)] hover:shadow-[0_0_38px_rgba(99,102,241,0.85)] border border-indigo-400/50 hover:border-indigo-300 flex items-center justify-center gap-2.5 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                loading={loading}
+                variant="primary"
+                size="lg"
+                leftIcon={<Sparkles size={18} className="shrink-0" />}
+                className="flex-1 h-12 text-sm font-semibold tracking-wide"
               >
-                {loading ? (
-                  <>
-                    <Search size={19} className="animate-spin text-cyan-300" />
-                    <span className="tracking-wide">Extracting Leads...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={19} className="text-amber-300 animate-pulse" />
-                    <span className="tracking-wide">Extract Leads</span>
-                  </>
-                )}
-              </button>
+                {loading ? "Extracting Leads..." : "Extract Leads"}
+              </Button>
               {loading && (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="lg"
                   onClick={handleCancel}
-                  className="h-12 px-4 rounded-xl text-xs font-semibold bg-rose-500/20 border border-rose-500/50 text-rose-300 hover:bg-rose-600 hover:text-white transition-all flex items-center gap-1.5 shrink-0"
+                  leftIcon={<X size={16} />}
+                  className="h-12 text-xs font-medium shrink-0"
                   title="Cancel active extraction"
                 >
-                  <X size={16} /> Cancel
-                </button>
+                  Cancel
+                </Button>
               )}
             </div>
           </div>
@@ -936,16 +934,16 @@ export function LiveLeadsFinder({ source = "google_maps" }: { source?: string })
 
         {/* Live Active Progress Indicator */}
         {loading && (
-          <div className="mt-4 rounded-2xl border border-indigo-500/40 bg-indigo-950/30 p-4 space-y-2.5 animate-pulse">
-            <div className="flex items-center justify-between text-xs text-indigo-200">
+          <div className="mt-4 rounded-xl border border-border bg-surface p-4 space-y-2.5">
+            <div className="flex items-center justify-between text-xs text-text">
               <div className="flex items-center gap-2">
-                <Search size={14} className="animate-spin text-indigo-400" />
+                <Search size={14} className="animate-spin text-text-muted" />
                 <span className="font-semibold">{statusMessage || "Extraction in progress..."}</span>
               </div>
-              <span className="text-[10px] text-muted">This may take 10-25s depending on web crawling depth</span>
+              <span className="text-[10px] text-text-muted">This may take 10-25s depending on web crawling depth</span>
             </div>
-            <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 via-indigo-400 to-violet-500 h-1.5 rounded-full w-full animate-pulse" />
+            <div className="w-full bg-bg-subtle border border-border rounded-full h-1.5 overflow-hidden">
+              <div className="bg-primary h-1.5 rounded-full w-full animate-pulse" />
             </div>
           </div>
         )}
@@ -994,59 +992,64 @@ export function LiveLeadsFinder({ source = "google_maps" }: { source?: string })
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleDeepWebScrape}
               disabled={leads.length === 0 || scraping}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500 hover:text-white shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              loading={scraping}
+              leftIcon={<Globe size={14} className={scraping ? "animate-spin" : ""} />}
               title="Crawl all websites to scrape genuine emails, phones & social media accounts"
             >
-              <Globe size={14} className={scraping ? "animate-spin" : ""} />
               {scraping ? "Web Scraping..." : "Web Scrape All Sites"}
-            </button>
+            </Button>
 
             {scraping && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={handleCancel}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/40 hover:bg-rose-600 hover:text-white shadow-sm transition-all flex items-center gap-1"
+                leftIcon={<X size={14} />}
                 title="Cancel web scraping"
               >
-                <X size={14} /> Cancel
-              </button>
+                Cancel
+              </Button>
             )}
 
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleCopyTsv}
               disabled={filteredLeads.length === 0}
-              className="px-3.5 py-2 rounded-xl text-xs font-medium bg-surface-2 text-fg border border-border/80 hover:bg-surface-3 hover:border-fg/30 shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              leftIcon={copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
               title="Copy filtered leads (all 18 columns) to clipboard"
             >
-              {copied ? <Check size={14} className="text-accent-green" /> : <Copy size={14} />}
               {copied ? "Copied TSV!" : "Copy TSV"}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleDownloadCsv}
               disabled={filteredLeads.length === 0}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-violet-500/15 text-violet-300 border border-violet-500/40 hover:bg-violet-600 hover:text-white shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+              leftIcon={<Download size={14} />}
               title="Download CSV spreadsheet of filtered leads"
             >
-              <Download size={14} /> Download CSV
-            </button>
+              Download CSV
+            </Button>
 
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleExportGoogleSheets}
               disabled={filteredLeads.length === 0 || exportingSheets}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-600 hover:text-white hover:border-emerald-400 shadow-md shadow-emerald-950/40 transition-all flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer active:scale-95"
+              loading={exportingSheets}
+              leftIcon={<GoogleSheetsIcon className="w-3.5 h-3.5 shrink-0" />}
               title="Export filtered leads directly to Google Sheets"
             >
-              {exportingSheets ? (
-                <FileSpreadsheet size={15} className="animate-spin text-emerald-400" />
-              ) : (
-                <GoogleSheetsIcon className="w-4 h-4 shrink-0" />
-              )}
               {exportingSheets ? "Exporting to Sheets..." : "Export to Google Sheet"}
-            </button>
+            </Button>
 
             {/* 18-Field Data Presence Filter Dropdown */}
             <div className="relative" ref={filterDropdownRef}>

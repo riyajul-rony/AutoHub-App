@@ -61,7 +61,7 @@ describe("POST /api/v1/leads/search (Phase 3 Route & Isolation)", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error).toContain("আগে Settings-এ Bright Data API key দাও");
+    expect(body.error).toContain("Bright Data API key required");
   });
 
   it("returns 422 if keyword or location are missing", async () => {

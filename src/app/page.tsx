@@ -64,9 +64,13 @@ export default function HomePage() {
             {/* Dual CTAs */}
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
               <Link href="/signup" className="w-full sm:w-auto">
-                <Button variant="primary" size="lg" className="w-full sm:w-auto text-sm px-6 py-2.5">
-                  <span>Start 14-Day Free Trial</span>
-                  <ArrowRight size={15} className="ml-1.5" />
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full sm:w-auto text-sm px-6 py-2.5"
+                  rightIcon={<ArrowRight size={15} />}
+                >
+                  Start 14-Day Free Trial
                 </Button>
               </Link>
               <a href="#features" className="w-full sm:w-auto">
@@ -416,9 +420,13 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <Link href="/signup" className="w-full sm:w-auto">
-                <Button variant="primary" size="lg" className="w-full sm:w-auto text-sm px-7 py-3">
-                  <span>Get Started Free</span>
-                  <ArrowRight size={15} className="ml-1.5" />
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="w-full sm:w-auto text-sm px-7 py-3"
+                  rightIcon={<ArrowRight size={15} />}
+                >
+                  Get Started Free
                 </Button>
               </Link>
               <Link href="/login" className="w-full sm:w-auto">
