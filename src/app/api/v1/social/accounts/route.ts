@@ -2,16 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { db, scoped } from "@/server/db";
 import { encrypt } from "@/server/crypto";
+import { assertLimit } from "@/server/billing/limits";
 
 export async function GET() {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -34,14 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -63,11 +50,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "External ID (Page ID / Account ID) and Display Name are required." }, { status: 400 });
   }
 
+  // Check limits if adding a brand new social account
+  const existing = await db.social_accounts.findFirst({
+    where: {
+      user_id: session.user.id,
+      provider: provider as any,
+      external_id: String(external_id).trim(),
+    },
+  });
+
+  if (!existing) {
+    try {
+      await assertLimit(session.user.id, "max_social_accounts", 1);
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 429 });
+    }
+  }
+
   const cleanToken = access_token ? String(access_token).trim() : `token_${Date.now()}`;
   const encryptedToken = encrypt(cleanToken);
 
-  const saved = await db.social_accounts.create({
-    data: {
+  const saved = await db.social_accounts.upsert({
+    where: {
+      user_id_provider_external_id: {
+        user_id: session.user.id,
+        provider: provider as any,
+        external_id: String(external_id).trim(),
+      },
+    },
+    create: {
       user_id: session.user.id,
       provider: provider as any,
       external_id: String(external_id).trim(),
@@ -76,6 +87,14 @@ export async function POST(req: NextRequest) {
       access_token_enc: encryptedToken,
       scopes: ["publish_posts"],
       status: "active",
+    },
+    update: {
+      display_name: String(display_name).trim(),
+      picture_url: picture_url || null,
+      access_token_enc: encryptedToken,
+      status: "active",
+      last_error: null,
+      updated_at: new Date(),
     },
   });
 

@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { db, scoped } from "@/server/db";
+import { assertLimit } from "@/server/billing/limits";
 
 export async function GET(req: NextRequest) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -31,14 +25,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -69,6 +56,31 @@ export async function POST(req: NextRequest) {
 
   if (!name || !social_account_id) {
     return NextResponse.json({ error: "Campaign Name and Connected Social Account are required." }, { status: 400 });
+  }
+
+  // Enforce plan quota for active campaigns
+  try {
+    await assertLimit(session.user.id, "max_campaigns", 1);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 429 });
+  }
+
+  // Multi-tenant check: ensure social account belongs to current user
+  const account = await db.social_accounts.findFirst({
+    where: scoped(session.user.id, { id: social_account_id }),
+  });
+  if (!account) {
+    return NextResponse.json({ error: "Social account not found or does not belong to you." }, { status: 400 });
+  }
+
+  // Multi-tenant check: ensure OpenAI key belongs to current user if specified
+  if (openai_key_id) {
+    const key = await db.api_keys.findFirst({
+      where: scoped(session.user.id, { id: openai_key_id }),
+    });
+    if (!key) {
+      return NextResponse.json({ error: "OpenAI API key not found or does not belong to you." }, { status: 400 });
+    }
   }
 
   const newCampaign = await db.social_campaigns.create({

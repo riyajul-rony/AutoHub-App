@@ -3,19 +3,13 @@ import { getSessionUser } from "@/server/auth/session";
 import { db, scoped } from "@/server/db";
 import { getSocialProvider } from "@/server/providers/social/registry";
 import { decrypt } from "@/server/crypto";
+import { trackUsageIncrement } from "@/server/billing/usage-tracker";
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -24,27 +18,42 @@ export async function POST(
 
   const postRun = await db.post_runs.findFirst({
     where: scoped(session.user.id, { id }),
-    include: { campaign: true },
+    include: {
+      campaign: {
+        include: { social_account: true },
+      },
+    },
   });
 
   if (!postRun) {
     return NextResponse.json({ error: "Post run not found" }, { status: 404 });
   }
 
-  // Find social account
+  // Find social account belonging strictly to current tenant
   let socialAccount = postRun.campaign?.social_account;
+  if (!socialAccount && postRun.campaign?.social_account_id) {
+    socialAccount = await db.social_accounts.findFirst({
+      where: scoped(session.user.id, { id: postRun.campaign.social_account_id }),
+    });
+  }
   if (!socialAccount) {
-    // If standalone or mock, find any connected account
     socialAccount = await db.social_accounts.findFirst({
       where: scoped(session.user.id),
     });
   }
 
-  const providerId = socialAccount?.provider || "facebook";
-  const externalId = socialAccount?.external_id || "demo_page_id";
+  if (!socialAccount) {
+    return NextResponse.json(
+      { error: "No connected social account found. Please connect your Facebook, Instagram, or LinkedIn account first." },
+      { status: 400 }
+    );
+  }
+
+  const providerId = socialAccount.provider || "facebook";
+  const externalId = socialAccount.external_id || "demo_page_id";
   let token = "mock_access_token";
 
-  if (socialAccount?.access_token_enc) {
+  if (socialAccount.access_token_enc) {
     try {
       token = decrypt(socialAccount.access_token_enc);
     } catch {
@@ -71,6 +80,8 @@ export async function POST(
         finished_at: new Date(),
       },
     });
+
+    trackUsageIncrement(session.user.id, "monthly_social_posts", 1).catch(() => null);
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Sparkles,
   CheckCircle2,
@@ -10,10 +9,10 @@ import {
   Trash2,
   Send,
   Clock,
-  Filter,
   RefreshCw,
-  Image as ImageIcon
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface PostRun {
   id: string;
@@ -102,15 +101,16 @@ export function PostHistoryManager() {
       const res = await fetch("/api/v1/social/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ action: "generate_mock_post" }),
       });
       const data = await res.json();
-      if (data.data) {
-        setNotification({ type: "success", text: "New AI post draft generated and added to the review queue!" });
-        await fetchPosts();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to generate mock post");
       }
-    } catch {
-      setNotification({ type: "error", text: "Failed to generate test post" });
+      setNotification({ type: "success", text: "New AI post draft generated and queued for approval!" });
+      await fetchPosts();
+    } catch (err: any) {
+      setNotification({ type: "error", text: err.message || "Generation failed" });
     } finally {
       setGenerating(false);
     }
@@ -123,10 +123,9 @@ export function PostHistoryManager() {
 
   return (
     <div className="space-y-6">
-      {/* Top Controls Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass p-4 rounded-3xl border border-border">
-        {/* Status Filter Badges */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+      {/* Top Filter and Actions Bar */}
+      <div className="rounded-xl border border-border bg-surface p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto">
           {[
             { id: "all", label: "All Posts" },
             { id: "pending_approval", label: "Pending Approval" },
@@ -136,56 +135,52 @@ export function PostHistoryManager() {
             <button
               key={tab.id}
               onClick={() => setFilterStatus(tab.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
                 filterStatus === tab.id
-                  ? "bg-brand text-white shadow-md shadow-brand/20"
-                  : "bg-surface-2 text-muted hover:text-white hover:bg-surface-2/80"
+                  ? "bg-primary text-primaryText shadow-sm"
+                  : "bg-bgSubtle text-muted hover:text-fg hover:bg-surfaceHover border border-border"
               }`}
             >
-              {tab.label} (
-              {tab.id === "all"
-                ? posts.length
-                : posts.filter((p) => p.status === tab.id).length}
-              )
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Generate Now Button */}
-        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <button
+        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end">
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={fetchPosts}
-            className="btn btn-ghost !p-2 text-xs border border-border"
-            title="Refresh List"
-          >
-            <RefreshCw size={14} />
-          </button>
-          <button
+            title="Refresh list"
+            icon={<RefreshCw size={13} className={loading ? "animate-spin" : ""} />}
+          />
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleGenerateSamplePost}
             disabled={generating}
-            className="btn btn-primary text-xs flex items-center gap-1.5 shadow-lg shadow-brand/20 font-bold !py-2 !px-4"
+            icon={<Sparkles size={13} className={generating ? "animate-spin" : ""} />}
           >
-            <Sparkles size={14} className={generating ? "animate-spin" : ""} />
             {generating ? "Crafting AI Post..." : "Generate AI Post Now"}
-          </button>
+          </Button>
         </div>
       </div>
 
       {notification && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center justify-between animate-in fade-in duration-200 ${
+          className={`p-3.5 rounded-lg border text-xs flex items-center justify-between animate-in fade-in duration-200 ${
             notification.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+              ? "bg-successBg border-success/30 text-success"
+              : "bg-dangerBg border-danger/30 text-danger"
           }`}
         >
           <span className="flex items-center gap-2">
-            {notification.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            {notification.type === "success" ? <CheckCircle2 size={15} /> : <AlertCircle size={15} />}
             {notification.text}
           </span>
           <button
             onClick={() => setNotification(null)}
-            className="text-muted hover:text-white text-xs underline ml-2"
+            className="hover:underline text-xs ml-2"
           >
             Dismiss
           </button>
@@ -194,28 +189,30 @@ export function PostHistoryManager() {
 
       {/* Posts List */}
       {loading ? (
-        <div className="glass rounded-3xl p-12 text-center text-xs text-muted">
+        <div className="rounded-xl border border-border bg-surface p-12 text-center text-xs text-muted">
           Loading social post runs...
         </div>
       ) : filteredPosts.length === 0 ? (
-        <div className="glass rounded-3xl p-12 text-center space-y-4 border border-border">
-          <Clock size={32} className="mx-auto text-muted/40" />
+        <div className="rounded-xl border border-border bg-surface p-12 text-center space-y-3">
+          <Clock size={28} className="mx-auto text-muted" />
           <div>
-            <h3 className="text-base font-bold text-white">No Posts in this Queue</h3>
+            <h3 className="text-sm font-semibold text-fg">No Posts in this Queue</h3>
             <p className="text-xs text-muted max-w-sm mx-auto mt-1 leading-relaxed">
               When your campaigns run or when you click &quot;Generate AI Post Now&quot;, drafts will appear here for review and one-click publishing.
             </p>
           </div>
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={handleGenerateSamplePost}
             disabled={generating}
-            className="btn btn-primary text-xs inline-flex items-center gap-2"
+            icon={<Sparkles size={13} />}
           >
-            <Sparkles size={14} /> Generate First Test Post
-          </button>
+            Generate First Test Post
+          </Button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredPosts.map((p) => {
             const providerName = (
               p.campaign?.social_account?.provider || "Facebook"
@@ -224,12 +221,12 @@ export function PostHistoryManager() {
             return (
               <div
                 key={p.id}
-                className="glass rounded-3xl p-6 border border-border flex flex-col md:flex-row items-start justify-between gap-6 hover:border-brand/30 transition duration-150"
+                className="rounded-xl border border-border bg-surface p-5 flex flex-col md:flex-row items-start justify-between gap-5 hover:border-borderStrong transition-colors duration-150"
               >
                 {/* Left Side: Details & Preview */}
-                <div className="flex flex-col sm:flex-row items-start gap-5 flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row items-start gap-4 flex-1 min-w-0">
                   {p.external_url && (
-                    <div className="w-24 h-24 rounded-2xl overflow-hidden shrink-0 border border-border bg-surface-2 relative group">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-border bg-bgSubtle relative">
                       <img
                         src={p.external_url}
                         alt="Post Visual"
@@ -238,24 +235,24 @@ export function PostHistoryManager() {
                     </div>
                   )}
 
-                  <div className="space-y-2.5 flex-1 min-w-0">
+                  <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="badge font-bold text-[10px] tracking-wide">
+                      <Badge variant="neutral" size="sm" className="font-mono text-[10px]">
                         {providerName}
-                      </span>
+                      </Badge>
 
                       {p.status === "published" ? (
-                        <span className="badge border-emerald-500/40 text-emerald-400 bg-emerald-500/10 flex items-center gap-1 text-xs">
-                          <CheckCircle2 size={12} /> Published
-                        </span>
+                        <Badge variant="success" size="sm" className="flex items-center gap-1">
+                          <CheckCircle2 size={11} /> Published
+                        </Badge>
                       ) : p.status === "failed" ? (
-                        <span className="badge border-rose-500/40 text-rose-400 bg-rose-500/10 flex items-center gap-1 text-xs">
-                          <AlertCircle size={12} /> Failed
-                        </span>
+                        <Badge variant="danger" size="sm" className="flex items-center gap-1">
+                          <AlertCircle size={11} /> Failed
+                        </Badge>
                       ) : (
-                        <span className="badge border-amber-500/40 text-amber-400 bg-amber-500/10 flex items-center gap-1 text-xs">
-                          <Clock size={12} /> Pending Approval
-                        </span>
+                        <Badge variant="warning" size="sm" className="flex items-center gap-1">
+                          <Clock size={11} /> Pending Approval
+                        </Badge>
                       )}
 
                       <span className="text-[11px] text-muted">
@@ -269,7 +266,7 @@ export function PostHistoryManager() {
 
                       {p.campaign?.name && (
                         <span className="text-[11px] text-muted">
-                          • Campaign: <strong>{p.campaign.name}</strong>
+                          • Campaign: <strong className="text-fg">{p.campaign.name}</strong>
                         </span>
                       )}
                     </div>
@@ -279,13 +276,13 @@ export function PostHistoryManager() {
                     </p>
 
                     {p.hashtags && p.hashtags.length > 0 && (
-                      <p className="text-brand-2 text-xs font-medium">
+                      <p className="text-xs text-muted font-medium">
                         {p.hashtags.join(" ")}
                       </p>
                     )}
 
                     {p.error_message && (
-                      <p className="text-rose-400 text-xs">
+                      <p className="text-danger text-xs font-mono">
                         Error: {p.error_message}
                       </p>
                     )}
@@ -293,25 +290,25 @@ export function PostHistoryManager() {
                 </div>
 
                 {/* Right Side: Action Controls */}
-                <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
                   {p.status === "pending_approval" || p.status === "failed" ? (
                     <>
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => handleReject(p.id)}
-                        className="btn btn-ghost border border-border text-xs !p-2 text-muted hover:text-rose-300"
                         title="Reject / Delete Draft"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-
-                      <button
+                        icon={<Trash2 size={13} />}
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
                         onClick={() => handleApproveAndPost(p.id)}
                         disabled={publishingId === p.id}
-                        className="btn btn-primary text-xs flex items-center gap-1.5 shadow-lg shadow-brand/20 font-bold !py-2 !px-4"
+                        icon={<Send size={13} className={publishingId === p.id ? "animate-pulse" : ""} />}
                       >
-                        <Send size={13} className={publishingId === p.id ? "animate-pulse" : ""} />
-                        {publishingId === p.id ? "Publishing Now..." : "Approve & Post"}
-                      </button>
+                        {publishingId === p.id ? "Publishing..." : p.status === "failed" ? "Retry Publish" : "Approve & Post"}
+                      </Button>
                     </>
                   ) : p.status === "published" ? (
                     <div className="flex items-center gap-2">
@@ -320,18 +317,19 @@ export function PostHistoryManager() {
                           href={p.external_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="btn btn-ghost border border-border text-xs flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300"
                         >
-                          <ExternalLink size={13} /> View Live Post
+                          <Button variant="secondary" size="sm" icon={<ExternalLink size={12} />}>
+                            View Live Post
+                          </Button>
                         </a>
                       )}
-                      <button
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => handleReject(p.id)}
-                        className="btn btn-ghost border border-border text-xs !p-2 text-muted hover:text-rose-300"
                         title="Remove from history"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                        icon={<Trash2 size={13} />}
+                      />
                     </div>
                   ) : null}
                 </div>

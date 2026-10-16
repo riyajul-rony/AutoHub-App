@@ -13,6 +13,7 @@ export type ComprehensiveLeadRecord = {
   company_facebook?: string;
   company_instagram?: string;
   company_linkedin?: string;
+  company_twitter?: string;
   company_tiktok?: string;
   company_youtube?: string;
   company_location: string;
@@ -128,314 +129,127 @@ export async function resolveLeadershipViaKnowledge(companyName: string, locatio
     }
   }
 
-  // 2. Wikidata Global Knowledge Lookup (Instant authentic data for corporations, chains & notable entities)
-  try {
-    const sUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(clean)}&language=en&format=json&limit=3`;
-    const res = await fetch(sUrl, { signal: AbortSignal.timeout(2500) });
-    if (res.ok) {
-      const data = await res.json();
-      const firstHit = data.search?.[0];
-      if (firstHit && firstHit.id) {
-        const entRes = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${firstHit.id}.json`, { signal: AbortSignal.timeout(2500) });
-        if (entRes.ok) {
-          const entData = await entRes.json();
-          const claims = entData.entities[firstHit.id]?.claims || {};
-
-          const extractPerson = async (propId: string) => {
-            if (claims[propId]?.[0]?.mainsnak?.datavalue?.value?.id) {
-              const pid = claims[propId][0].mainsnak.datavalue.value.id;
-              const pres = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${pid}.json`, { signal: AbortSignal.timeout(1800) });
-              if (pres.ok) {
-                const pdata = await pres.json();
-                return pdata.entities[pid]?.labels?.en?.value;
-              }
-            }
-            return undefined;
-          };
-
-          if (!founderName) {
-            founderName = (await extractPerson("P112")) || (await extractPerson("P169"));
-          }
-          if (!managerName) {
-            managerName = (await extractPerson("P1037")) || (await extractPerson("P488"));
-          }
-
-          // Extract official social channels and website from Wikidata claims
-          const fbVal = claims.P2013?.[0]?.mainsnak?.datavalue?.value;
-          if (typeof fbVal === "string" && fbVal.length > 1) {
-            facebook = `https://www.facebook.com/${fbVal}`;
-          }
-          const igVal = claims.P2003?.[0]?.mainsnak?.datavalue?.value;
-          if (typeof igVal === "string" && igVal.length > 1) {
-            instagram = `https://www.instagram.com/${igVal}/`;
-          }
-          const twVal = claims.P2002?.[0]?.mainsnak?.datavalue?.value;
-          if (typeof twVal === "string" && twVal.length > 1) {
-            twitter = `https://x.com/${twVal}`;
-          }
-          const webVal = claims.P856?.[0]?.mainsnak?.datavalue?.value;
-          if (typeof webVal === "string" && webVal.startsWith("http")) {
-            website = webVal;
-          }
-        }
-      }
-    }
-  } catch {}
-
-  // 3. Fast Wikipedia Lookup for notable corporations & regional companies
-  if (!founderName || !managerName) {
-    try {
-      const wikiUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(clean)}&format=json`;
-      const res = await fetch(wikiUrl, { signal: AbortSignal.timeout(2000) });
-      if (res.ok) {
-        const data = await res.json();
-        const firstHit = data.query?.search?.[0];
-        const firstWord = clean.toLowerCase().split(/\s+/)[0];
-        if (firstHit && firstHit.title.toLowerCase().includes(firstWord)) {
-          const pageId = firstHit.pageid;
-          const pageRes = await fetch(
-            `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&pageids=${pageId}&format=json`,
-            { signal: AbortSignal.timeout(2000) }
-          );
-          if (pageRes.ok) {
-            const pData = await pageRes.json();
-            const extract = pData.query?.pages?.[pageId]?.extract || "";
-            if (!founderName) {
-              const fMatch = extract.match(
-                /(?:origins in two companies;\s*|founded in \d{4} by|founded by|established by|started by|created by)\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i
-              );
-              if (fMatch && fMatch[1]) {
-                const raw = fMatch[1].replace(/\band\b.*$/i, "").replace(/\sson\b/i, "").trim();
-                if (raw.length > 2 && raw.length < 35) founderName = raw;
-              }
-            }
-            if (!managerName) {
-              const mMatch = extract.match(
-                /(?:Chief Executive Officer|CEO|Managing Director|General Manager)\s*(?:is|,)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i
-              );
-              if (mMatch && mMatch[1]) {
-                managerName = mMatch[1].trim();
-              }
-            }
-          }
-        }
-      }
-    } catch {}
-  }
-
   return { founderName, managerName, facebook, instagram, twitter, website };
 }
 
-function fetchDuckDuckGoLite(query: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    try {
-      const postData = "q=" + encodeURIComponent(query);
-      const req = https.request("https://lite.duckduckgo.com/lite/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Content-Length": Buffer.byteLength(postData),
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          "Accept": "*/*",
-        },
-        timeout: 4500,
-      }, (res) => {
-        if (res.statusCode !== 200) {
-          resolve(null);
-          return;
-        }
-        let data = "";
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-        res.on("end", () => {
-          resolve(data);
-        });
-      });
 
-      req.on("error", () => resolve(null));
-      req.on("timeout", () => {
-        req.destroy();
-        resolve(null);
-      });
-      req.write(postData);
-      req.end();
-    } catch {
-      resolve(null);
+
+export function formatSocialUrl(u?: string, platform?: "facebook" | "instagram" | "linkedin" | "tiktok" | "youtube" | "twitter"): string | undefined {
+  if (!u) return undefined;
+  let clean = u.trim();
+  if (clean.startsWith("//")) clean = `https:${clean}`;
+
+  // If passed a bare username / slug (e.g. "tavernonreade" or "@varietycoffee")
+  if (!clean.includes("/") && !clean.includes(".")) {
+    const slug = clean.replace(/^@/, "").trim();
+    if (slug.length >= 2) {
+      if (platform === "facebook") return `https://www.facebook.com/${slug}`;
+      if (platform === "instagram") return `https://www.instagram.com/${slug}/`;
+      if (platform === "linkedin") return `https://www.linkedin.com/company/${slug}`;
+      if (platform === "twitter") return `https://twitter.com/${slug}`;
+      if (platform === "tiktok") return `https://www.tiktok.com/@${slug}`;
+      if (platform === "youtube") return `https://www.youtube.com/@${slug}`;
     }
-  });
-}
-
-function parseBestCityOrLocation(loc: string): string {
-  if (!loc) return "";
-  const parts = loc.split(/[,]/).map((s) => s.trim()).filter(Boolean);
-  if (parts.length <= 1) return parts[0] || "";
-
-  const candidates = parts.filter((p) =>
-    !/^\d/.test(p) &&
-    !/^[A-Z0-9]{2,4}\s+[A-Z0-9]{2,4}$/i.test(p) &&
-    !/^(United States|USA|United Kingdom|UK|Canada|Australia|Bangladesh|India|Germany|France)$/i.test(p) &&
-    !/\b(street|road|st|rd|ave|avenue|blvd|lane|drive|way|suite|floor|building)\b/i.test(p)
-  );
-
-  if (candidates.length > 0) {
-    return candidates[candidates.length - 1] || candidates[0];
-  }
-  return parts[0];
-}
-
-const extractDdgHref = (rawHref: string): string => {
-  if (!rawHref) return "";
-  if (rawHref.includes("uddg=")) {
-    try {
-      const match = rawHref.match(/[?&]uddg=([^&]+)/);
-      if (match && match[1]) {
-        return decodeURIComponent(match[1]);
-      }
-    } catch {}
-  }
-  return rawHref;
-};
-
-export async function resolveLeadershipViaWebSearch(
-  companyName: string,
-  location = "",
-  domain = ""
-): Promise<{ founderName?: string; founderSocials?: string[]; managerName?: string; managerSocials?: string[] } | null> {
-  if (!companyName || ["business", "company", "target business", "target", "not available"].includes(companyName.toLowerCase().trim())) {
-    return null;
+    return undefined;
   }
 
-  const isRealPersonName = (n?: string): boolean => {
-    if (!n) return false;
-    const clean = n.trim();
-    if (clean.length < 4 || clean.length > 30) return false;
-    if (!/^[A-Z][A-Za-z'-]{1,20}(?:\s+[A-Z][A-Za-z'-]{1,20}){1,2}$/.test(clean)) return false;
-    const badWords = ["daughter", "daughters", "son", "sons", "member", "members", "friend", "friends", "welcome", "about", "contact", "history", "story", "board", "team", "staff", "office", "group", "agency", "service", "system", "center", "school", "university", "college", "state", "city", "county"];
-    const lower = clean.toLowerCase();
-    return !badWords.some((b) => lower.includes(b));
-  };
-
-  // Extract core brand name (e.g., "Tower 25 Digital Marketing Agency" -> "Tower 25")
-  const stripped = companyName
-    .replace(/\b(Digital|Marketing|Agency|Services|Solutions|Consulting|Management|Group|Technologies|Tech|Media|LLC|Inc\.|Inc|Corp\.|Corp|Ltd\.|Ltd|Limited|Pte|GmbH)\b/gi, "")
-    .replace(/[^a-zA-Z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const brandName = stripped.length >= 3 ? stripped : companyName.trim();
-  const locWord = parseBestCityOrLocation(location);
-  const query = `${brandName} ${locWord} founder`.trim();
+  if (!clean.startsWith("http")) clean = `https://${clean}`;
 
   try {
-    const html = await fetchDuckDuckGoLite(query);
-    if (!html) return null;
-    const $ = cheerio.load(html);
+    const parsed = new URL(clean);
+    const host = parsed.hostname.toLowerCase();
 
-    let founderName: string | undefined;
-    const founderSocials: string[] = [];
-    let managerName: string | undefined;
-    const managerSocials: string[] = [];
-
-    const compWords = brandName.toLowerCase().split(/\s+/).filter((w) => w.length > 1);
-
-    $(".result-link").each((_, el) => {
-      const title = $(el).text().trim();
-      const rawHref = $(el).attr("href") || "";
-      const href = extractDdgHref(rawHref);
-      const snippet = $(el).closest("tr").next().find(".result-snippet").text().trim();
-      const lowerSnippet = snippet.toLowerCase();
-
-      // Pattern 1: Title match e.g. "Brad McLaughlin - Chief Marketing Officer at Tower 25 ..."
-      const titleMatch = title.match(/^([A-Z][A-Za-z'-]{1,20}(?:\s+[A-Z][A-Za-z'-]{1,20}){1,2})\s*(?:Email & Phone Number\s*)?[-–—|]\s*(.+)$/i);
-      if (titleMatch) {
-        const candidateName = titleMatch[1].trim();
-        const rolePart = (titleMatch[2] || "").toLowerCase();
-
-        const mentionsCompany = compWords.every((w) => rolePart.includes(w) || lowerSnippet.includes(w));
-        if (mentionsCompany && isRealPersonName(candidateName)) {
-          const isFounder = /founder|co-founder|owner|ceo|president/i.test(rolePart) || /co-founder|founder|owner|ceo/i.test(lowerSnippet);
-          const isManager = /director|manager|cmo|chief marketing officer|lead|head|vp|executive/i.test(rolePart) || /director|manager|cmo|general manager/i.test(lowerSnippet);
-
-          if (isFounder && !founderName) {
-            founderName = candidateName;
-            if (href.includes("linkedin.com/in/")) founderSocials.push(href);
-          } else if (isManager && !managerName && candidateName !== founderName) {
-            managerName = candidateName;
-            if (href.includes("linkedin.com/in/")) managerSocials.push(href);
-          }
-        }
-      }
-
-      // Pattern 2: Snippet mention e.g. "Ross Furukawa ... is currently a Co-Founder at Tower 25"
-      if (!founderName) {
-        const fMatch = snippet.match(/([A-Z][A-Za-z'-]{1,20}\s+[A-Z][A-Za-z'-]{1,20})(?:,\s*[^,.\n]+,)?\s*(?:is currently a|is the|serves as)?\s*(?:Co-Founder|Founder|CEO|Owner|President)\s*(?:at|of)\s+/i);
-        if (fMatch && isRealPersonName(fMatch[1])) {
-          founderName = fMatch[1].trim();
-          if (href.includes("linkedin.com/in/")) founderSocials.push(href);
-        }
-      }
-
-      // Pattern 3: Snippet historical or founder match e.g. "our founder, Samuel Rains"
-      if (!founderName) {
-        const fHistoryMatch = snippet.match(/(?:our\s+founder|founder|founded\s+by)\s*[,:\s\-–]+\s*([A-Z][A-Za-z'-]{1,20}\s+[A-Z][A-Za-z'-]{1,20})/i);
-        if (fHistoryMatch && isRealPersonName(fHistoryMatch[1])) {
-          founderName = fHistoryMatch[1].trim();
-          if (href.includes("linkedin.com/in/")) founderSocials.push(href);
-        }
-      }
-
-      // Pattern 4: Manager snippet match
-      if (!managerName) {
-        const mMatch = snippet.match(/([A-Z][A-Za-z'-]{1,20}\s+[A-Z][A-Za-z'-]{1,20})(?:,\s*[^,.\n]+,)?\s*(?:is currently a|is the|serves as)?\s*(?:Chief Marketing Officer|Director|CMO|General Manager|Operations Manager)\s*(?:at|of)\s+/i);
-        if (mMatch && isRealPersonName(mMatch[1]) && mMatch[1] !== founderName) {
-          managerName = mMatch[1].trim();
-          if (href.includes("linkedin.com/in/")) managerSocials.push(href);
-        }
-      }
-    });
-
-    // Targeted LinkedIn Profile Search for Founder if not yet retrieved
-    if (founderName && founderSocials.length === 0) {
-      try {
-        const fHtml = await fetchDuckDuckGoLite(`${founderName} ${brandName} linkedin`);
-        if (fHtml) {
-          const $f = cheerio.load(fHtml);
-          const fLast = founderName.split(/\s+/).slice(-1)[0].toLowerCase();
-          $f(".result-link").each((_, el) => {
-            const lHref = extractDdgHref($f(el).attr("href") || "");
-            if (lHref.includes("linkedin.com/in/") && (lHref.toLowerCase().includes(fLast) || founderSocials.length === 0)) {
-              if (!founderSocials.includes(lHref)) {
-                founderSocials.push(lHref);
-              }
-            }
-          });
-        }
-      } catch {}
+    // Strip tracking & analytics params
+    const trackingParams = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "igsh", "ref", "ref_src"];
+    for (const p of trackingParams) {
+      parsed.searchParams.delete(p);
     }
 
-    // Targeted LinkedIn Profile Search for Manager if not yet retrieved
-    if (managerName && managerSocials.length === 0) {
-      try {
-        const mHtml = await fetchDuckDuckGoLite(`${managerName} ${brandName} linkedin`);
-        if (mHtml) {
-          const $m = cheerio.load(mHtml);
-          const mLast = managerName.split(/\s+/).slice(-1)[0].toLowerCase();
-          $m(".result-link").each((_, el) => {
-            const lHref = extractDdgHref($m(el).attr("href") || "");
-            if (lHref.includes("linkedin.com/in/") && (lHref.toLowerCase().includes(mLast) || managerSocials.length === 0)) {
-              if (!managerSocials.includes(lHref)) {
-                managerSocials.push(lHref);
-              }
-            }
-          });
-        }
-      } catch {}
+    if (host.includes("facebook.com")) {
+      const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+      if (path === "/profile.php") {
+        const id = parsed.searchParams.get("id");
+        if (!id) return undefined;
+        return `${parsed.origin}/profile.php?id=${encodeURIComponent(id)}`;
+      }
+      if (
+        !path ||
+        path === "/" ||
+        path === "/2008" ||
+        path.startsWith("/2008/") ||
+        path === "/tr" ||
+        path.startsWith("/tr/") ||
+        path.includes("sharer") ||
+        path.includes("share") ||
+        path.includes("dialog") ||
+        path.includes("login") ||
+        path.includes("plugins") ||
+        path.includes("intent") ||
+        path.includes("policy") ||
+        path.includes("legal") ||
+        path.includes("help")
+      ) {
+        return undefined;
+      }
+      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
     }
 
-    return { founderName, founderSocials, managerName, managerSocials };
+    if (host.includes("instagram.com")) {
+      const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+      if (
+        !path ||
+        path === "/" ||
+        path.includes("/p/") ||
+        path.includes("/stories/") ||
+        path.includes("/explore/") ||
+        path.includes("/reels/") ||
+        path.includes("/accounts/") ||
+        path.includes("/legal/") ||
+        path.includes("/about/")
+      ) {
+        return undefined;
+      }
+      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}/`;
+    }
+
+    if (host.includes("linkedin.com")) {
+      const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+      if (
+        !path ||
+        path === "/" ||
+        path.includes("sharearticle") ||
+        path.includes("sharing") ||
+        path.includes("/search/") ||
+        path.includes("/feed/") ||
+        path.includes("/pulse/") ||
+        path.includes("/legal/")
+      ) {
+        return undefined;
+      }
+      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
+    }
+
+    if (host.includes("tiktok.com")) {
+      const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+      if (!path || path === "/" || path.includes("share") || path.includes("embed") || path.includes("/tag/") || path.includes("/music/")) return undefined;
+      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
+    }
+
+    if (host.includes("youtube.com")) {
+      const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+      if (!path || path === "/" || path.includes("share") || path.includes("/watch") || path.includes("/embed") || path.includes("/playlist")) return undefined;
+      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
+    }
+
+    if (host.includes("twitter.com") || host.includes("x.com")) {
+      const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
+      if (!path || path === "/" || path.includes("intent") || path.includes("share")) return undefined;
+      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
+    }
+
+    return undefined;
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -476,6 +290,158 @@ export function decodeCloudflareEmail(encoded: string): string | null {
   return null;
 }
 
+export async function discoverSocialsAndEmailViaWeb(
+  companyName: string,
+  location = "",
+  domain = ""
+): Promise<{
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  youtube?: string;
+  email?: string;
+  phone?: string;
+  founderName?: string;
+}> {
+  if (!companyName || companyName === "Business") return {};
+  const cleanName = companyName.replace(/["']/g, "").trim();
+  const cleanLoc = location.split(",")[0].trim();
+
+  const query = `"${cleanName}" ${cleanLoc} (facebook OR instagram OR linkedin OR email OR phone)`;
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(1200),
+    });
+    if (!res.ok) return {};
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    let fb: string | undefined;
+    let ig: string | undefined;
+    let li: string | undefined;
+    let yt: string | undefined;
+    let email: string | undefined;
+    let phone: string | undefined;
+    let founderName: string | undefined;
+
+    $(".result").each((_, el) => {
+      const href = $(el).find(".result__url").attr("href") || $(el).find(".result__title a").attr("href") || "";
+      const snippet = $(el).find(".result__snippet").text() || "";
+      const title = $(el).find(".result__title").text() || "";
+
+      let actual = href;
+      if (href.includes("uddg=")) {
+        const m = href.match(/uddg=([^&]+)/);
+        if (m) actual = decodeURIComponent(m[1]);
+      }
+      if (!actual) return;
+
+      const lower = actual.toLowerCase();
+      if (!fb && lower.includes("facebook.com/") && !lower.includes("sharer") && !lower.includes("/share/")) {
+        fb = formatSocialUrl(actual, "facebook");
+      }
+      if (!ig && lower.includes("instagram.com/") && !lower.includes("/p/") && !lower.includes("/reels/")) {
+        ig = formatSocialUrl(actual, "instagram");
+      }
+      if (!li && lower.includes("linkedin.com/")) {
+        li = formatSocialUrl(actual, "linkedin");
+      }
+      if (!yt && lower.includes("youtube.com/")) {
+        yt = formatSocialUrl(actual, "youtube");
+      }
+
+      if (!email && domain) {
+        const matches = `${title} ${snippet}`.match(EMAIL_REGEX) || [];
+        for (const m of matches) {
+          const clean = cleanExtractedEmail(m);
+          if (clean && clean.includes(domain)) {
+            email = clean;
+            break;
+          }
+        }
+      }
+
+      if (!phone) {
+        const phMatches = `${title} ${snippet}`.match(STRICT_PHONE_REGEX);
+        if (phMatches && phMatches[0]) {
+          phone = phMatches[0].trim();
+        }
+      }
+
+      if (!founderName) {
+        const drMatch = `${title} ${snippet}`.match(/\b(Dr\.?\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/);
+        if (drMatch) founderName = drMatch[1].trim();
+      }
+    });
+
+    return { facebook: fb, instagram: ig, linkedin: li, youtube: yt, email, phone, founderName };
+  } catch {
+    return {};
+  }
+}
+
+export async function resolveLeadershipViaWebSearch(
+  companyName: string,
+  location = "",
+  _domain = ""
+): Promise<{ founderName?: string; founderSocials?: string[]; managerName?: string; managerSocials?: string[] } | null> {
+  if (!companyName || companyName === "Business") return null;
+  const cleanName = companyName.replace(/["']/g, "").trim();
+  const cleanLoc = location.split(",")[0].trim();
+
+  const query = `"${cleanName}" ${cleanLoc} (founder OR owner OR "dr." OR "practice manager") site:linkedin.com/in`;
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+      signal: AbortSignal.timeout(1200),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    let foundFounder: string | undefined;
+    const founderSocials: string[] = [];
+
+    $(".result").each((_, el) => {
+      const title = $(el).find(".result__title").text() || "";
+      const href = $(el).find(".result__url").attr("href") || $(el).find(".result__title a").attr("href") || "";
+      let actual = href;
+      if (href.includes("uddg=")) {
+        const m = href.match(/uddg=([^&]+)/);
+        if (m) actual = decodeURIComponent(m[1]);
+      }
+
+      if (actual.includes("linkedin.com/in/")) {
+        const cleanSocial = formatSocialUrl(actual);
+        if (cleanSocial) founderSocials.push(cleanSocial);
+
+        const namePart = title.split(/[-–|]/)[0].trim();
+        if (namePart && namePart.length >= 3 && namePart.length <= 35 && !foundFounder) {
+          foundFounder = namePart;
+        }
+      }
+    });
+
+    if (foundFounder || founderSocials.length > 0) {
+      return { founderName: foundFounder, founderSocials };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const FOUNDER_KEYWORDS = ["ceo", "founder", "owner", "president", "director", "managing", "md", "principal", "partner", "general manager", "gm", "proprietor", "curator", "creator", "chef"];
 const MANAGER_KEYWORDS = ["manager", "operations", "lead", "head", "hr", "admin", "marketing", "business", "supervisor", "director", "branch", "practice"];
 
@@ -509,6 +475,55 @@ export type InitialCompanyData = {
   facebook?: string;
   instagram?: string;
   linkedin?: string;
+  twitter?: string;
+  tiktok?: string;
+  youtube?: string;
+};
+
+export const NON_PERSON_WORDS = new Set([
+  "commitment", "mission", "vision", "story", "about", "history", "contact",
+  "services", "service", "hours", "welcome", "info", "details", "updates", "news",
+  "terms", "privacy", "menu", "events", "policy", "pricing", "careers",
+  "jobs", "practice", "branch", "office", "team", "staff", "location",
+  "purveyors", "order", "online", "market", "cafe", "clinic", "dental",
+  "hospital", "care", "health", "center", "centre", "group", "agency",
+  "search", "filter", "share", "follow", "subscribe", "newsletter", "cart",
+  "checkout", "login", "register", "join", "help", "support", "faq",
+  "discounts", "discount", "reasons", "reason", "additional", "resources", "resource",
+  "coverage", "insurance", "benefits", "benefit", "solutions", "solution",
+  "claims", "claim", "quotes", "quote", "options", "option", "features", "feature",
+  "products", "product", "reviews", "review", "ratings", "rating", "questions",
+  "answers", "locations", "cookies", "cookie", "copyright", "portal", "account",
+  "overview", "explore", "learn", "read", "view", "click", "download", "schedule",
+  "appointment", "consultation", "message", "send", "submit", "page", "next",
+  "previous", "header", "footer", "banner", "hero", "modal", "card", "box", "item",
+  "list", "table", "button", "link", "form", "input", "field", "media", "social",
+  "customer", "client", "clients", "partners", "partner", "investors", "investor",
+  "corporate", "commercial", "residential", "financial", "legal", "medical",
+  "realty", "properties", "property", "estate", "agents", "brokerage",
+  "enterprises", "holdings", "associates", "international", "global", "national",
+  "state", "city", "county", "district", "street", "avenue", "road", "building",
+  "north", "south", "east", "west", "you", "your", "our", "all", "get", "more", "most"
+]);
+
+export const sanitizeName = (raw: string): string => {
+  let clean = raw.split(/[\r\n]/)[0];
+  // Strip trailing professional degrees
+  clean = clean.replace(/,?\s*(?:DDS|DMD|MD|DO|FAGD|MAGD|BDS|MS|PhD|FAACD)\b/gi, "");
+  // Strip trailing role noise (e.g. "Elizabeth Riley Scheduling Coordinator", "Dr. Arvind Philomin Dr")
+  clean = clean.replace(/\s+(?:Scheduling|Coordinator|Assistant|Receptionist|Office Manager|Practice Manager|Manager|Director|Lead|Dr\.?)\b/gi, "");
+  return clean.replace(/\s+/g, " ").trim();
+};
+
+export const isValidPersonName = (raw: string): boolean => {
+  const clean = sanitizeName(raw);
+  if (clean.length < 3 || clean.length > 35) return false;
+  if (!/^(?:Dr\.?\s+|Prof\.?\s+)?[A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){1,2}$/.test(clean)) return false;
+  const words = clean.toLowerCase().replace(/^(?:dr|prof)\.?\s+/i, "").split(/\s+/);
+  if (words.some((w) => NON_PERSON_WORDS.has(w))) return false;
+  const stopWords = ["you", "your", "we", "our", "us", "they", "their", "it", "its", "all", "get", "has", "have", "for", "with", "from", "into", "over", "more", "most", "the", "and", "but", "not"];
+  if (words.some((w) => stopWords.includes(w))) return false;
+  return true;
 };
 
 /**
@@ -561,8 +576,9 @@ export async function scrapeFullCompanyProfile(
   let fbUrl: string | undefined = initialCompany?.facebook;
   let igUrl: string | undefined = initialCompany?.instagram;
   let liUrl: string | undefined = initialCompany?.linkedin;
-  let ttUrl: string | undefined;
-  let ytUrl: string | undefined;
+  let twUrl: string | undefined = initialCompany?.twitter;
+  let ttUrl: string | undefined = initialCompany?.tiktok;
+  let ytUrl: string | undefined = initialCompany?.youtube;
 
   let base: string = "";
   let baseHostname: string = "";
@@ -583,7 +599,7 @@ export async function scrapeFullCompanyProfile(
   try {
     if (websiteUrl && websiteUrl !== "business.com" && websiteUrl !== "Not Available") {
       const parsed = new URL(websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`);
-      base = `${parsed.protocol}//${parsed.hostname}`;
+      base = parsed.origin;
       baseHostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
       validSite = true;
     }
@@ -646,182 +662,178 @@ export async function scrapeFullCompanyProfile(
     return true;
   };
 
-  const formatSocialUrl = (u?: string): string | undefined => {
-    if (!u) return undefined;
-    let clean = u.trim();
-    if (clean.startsWith("//")) clean = `https:${clean}`;
-    if (!clean.startsWith("http")) clean = `https://${clean}`;
-
-    try {
-      const parsed = new URL(clean);
-      const host = parsed.hostname.toLowerCase();
-
-      // Strip tracking & analytics params
-      const trackingParams = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "fbclid", "igsh", "ref", "ref_src"];
-      for (const p of trackingParams) {
-        parsed.searchParams.delete(p);
-      }
-
-      if (host.includes("facebook.com")) {
-        const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
-        if (path === "/profile.php") {
-          const id = parsed.searchParams.get("id");
-          if (!id) return undefined;
-          return `${parsed.origin}/profile.php?id=${encodeURIComponent(id)}`;
-        }
-        if (
-          !path ||
-          path === "/" ||
-          path.includes("sharer") ||
-          path.includes("share") ||
-          path.includes("dialog") ||
-          path.includes("login") ||
-          path.includes("plugins") ||
-          path.includes("intent") ||
-          path.includes("policy") ||
-          path.includes("legal") ||
-          path.includes("help")
-        ) {
-          return undefined;
-        }
-        return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-      }
-
-      if (host.includes("instagram.com")) {
-        const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
-        if (
-          !path ||
-          path === "/" ||
-          path.includes("/p/") ||
-          path.includes("/stories/") ||
-          path.includes("/explore/") ||
-          path.includes("/reels/") ||
-          path.includes("/accounts/") ||
-          path.includes("/legal/") ||
-          path.includes("/about/")
-        ) {
-          return undefined;
-        }
-        return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}/`;
-      }
-
-      if (host.includes("linkedin.com")) {
-        const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
-        if (
-          !path ||
-          path === "/" ||
-          path.includes("sharearticle") ||
-          path.includes("sharing") ||
-          path.includes("/search/") ||
-          path.includes("/feed/") ||
-          path.includes("/pulse/") ||
-          path.includes("/legal/")
-        ) {
-          return undefined;
-        }
-        return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-      }
-
-      if (host.includes("tiktok.com")) {
-        const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
-        if (!path || path === "/" || path.includes("share") || path.includes("embed") || path.includes("/tag/") || path.includes("/music/")) return undefined;
-        return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-      }
-
-      if (host.includes("youtube.com")) {
-        const path = parsed.pathname.toLowerCase().replace(/\/+$/, "");
-        if (!path || path === "/" || path.includes("share") || path.includes("/watch") || path.includes("/embed") || path.includes("/playlist")) return undefined;
-        return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-      }
-
-      return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
-    } catch {
-      return undefined;
-    }
-  };
-
   const htmlMap = new Map<string, string>();
   let aggregatedSiteText = "";
 
   if (validSite && base) {
     const homeTarget = websiteUrl.startsWith("http") ? websiteUrl : `${base}/`;
 
-    // 1. Fetch homepage first
+    const allowLoopback = process.env.NODE_ENV === "test";
+
+    // 1. Fetch homepage first (fast 2.5s timeout)
     let homeHtml = "";
     try {
-      homeHtml = await safeFetch(homeTarget, { timeoutMs: 7000, maxBytes: 1024 * 1024 });
+      homeHtml = await safeFetch(homeTarget, { timeoutMs: 2500, maxBytes: 512 * 1024, allowLoopback });
     } catch {}
 
-    const subpagesToFetch = new Set<string>();
+    // Fallback: If deep subpage URL (e.g. store branch locator) failed with 404 or timeout,
+    // fallback immediately to the root domain homepage!
+    if (!homeHtml && homeTarget !== `${base}/` && homeTarget !== base) {
+      try {
+        homeHtml = await safeFetch(`${base}/`, { timeoutMs: 2500, maxBytes: 512 * 1024, allowLoopback });
+        if (homeHtml) {
+          websiteUrl = `${base}/`;
+        }
+      } catch {}
+    }
 
     if (homeHtml) {
       htmlMap.set(homeTarget, homeHtml);
-      const $home = cheerio.load(homeHtml);
 
-      // Discover authentic contact / about / team / story / people / management subpages from links
-      const priorityCandidates: { url: string; score: number }[] = [];
-      $home("a[href]").each((_, el) => {
-        const href = $home(el).attr("href")?.trim();
-        const text = $home(el).text().toLowerCase().trim();
-        if (!href || href.startsWith("#") || href.startsWith("javascript:") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
-        const lowerHref = href.toLowerCase();
+      // Deep Multi-Page Full-Site Discovery & Crawler:
+      // Discovers all internal pages across navigation, header, footer, and body.
+      const visitedUrls = new Set<string>([
+        homeTarget,
+        `${base}/`,
+        base,
+        homeTarget.replace(/\/+$/, ""),
+      ]);
 
-        let score = 0;
-        if (
-          /team|our-team|meet-the-team|staff|people|doctors|dentists|attorneys|agents|founders|leadership|directors|management/i.test(lowerHref) ||
-          /team|staff|people|leadership|management/i.test(text)
-        ) {
-          score = 10;
-        } else if (/story|our-story|about|about-us|who-we-are|history/i.test(lowerHref) || /story|about/i.test(text)) {
-          score = 8;
-        } else if (/contact|contact-us|reach|location|visit|find-us/i.test(lowerHref) || /contact/i.test(text)) {
-          score = 6;
-        } else if (/impressum|kontakt|over-ons|ueber-uns|info|support/i.test(lowerHref)) {
-          score = 4;
+      const crawlQueue: Array<{ url: string; score: number }> = [];
+
+      const isInternalUrl = (candUrl: string): boolean => {
+        try {
+          const parsedCand = new URL(candUrl, base);
+          const candHost = parsedCand.hostname.toLowerCase().replace(/^www\./, "");
+          return (
+            parsedCand.origin === base ||
+            candHost === baseHostname ||
+            candHost.endsWith(`.${baseHostname}`)
+          );
+        } catch {
+          return false;
         }
+      };
 
-        if (score > 0) {
+      const isIgnoredAsset = (pathname: string): boolean => {
+        return /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|map|pdf|zip|rar|tar|gz|mp4|webm|mp3|wav|woff|woff2|ttf|eot|xml|json|txt|exe|dmg|apk|doc|docx|xls|xlsx|ppt|pptx)$/i.test(pathname);
+      };
+
+      const extractInternalLinksFromHtml = (pageHtml: string, pageUrl: string) => {
+        const $page = cheerio.load(pageHtml);
+        $page("a[href]").each((_, el) => {
+          const href = $page(el).attr("href")?.trim();
+          const text = $page(el).text().toLowerCase().trim();
+          if (!href || href.startsWith("#") || href.startsWith("javascript:") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("whatsapp:")) return;
+
           try {
-            const absoluteUrl = new URL(href, base).toString();
-            if (absoluteUrl.startsWith(base) && absoluteUrl !== homeTarget) {
-              priorityCandidates.push({ url: absoluteUrl, score });
+            const abs = new URL(href, pageUrl).toString();
+            const parsed = new URL(abs);
+            const cleanUrl = `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "");
+
+            if (!isInternalUrl(abs) || isIgnoredAsset(parsed.pathname) || visitedUrls.has(cleanUrl)) {
+              return;
             }
+
+            visitedUrls.add(cleanUrl);
+
+            const lowerHref = parsed.pathname.toLowerCase();
+            let score = 35; // base score for any internal website page
+
+            // Team / Doctors / Staff / Leadership / Key persons (Highest priority)
+            if (
+              /team|doctor|dentist|staff|provider|leadership|meet-the|founder|practitioner|physician|attorney|lawyer|bio|executives|board|management/i.test(lowerHref) ||
+              /team|doctor|dentist|staff|our doctors|our dentists|providers|meet our|physician|attorneys|partners|leadership/i.test(text)
+            ) {
+              score = 100;
+            }
+            // Contact & Locations
+            else if (
+              /contact|contact-us|reach|location|locations|office|touch|find-us/i.test(lowerHref) ||
+              /contact|reach us|get in touch|locations|find us|our office/i.test(text)
+            ) {
+              score = 90;
+            }
+            // About Us & Company Story
+            else if (
+              /about|about-us|story|who-we-are|practice|our-story|overview/i.test(lowerHref) ||
+              /about|our story|the practice|who we are|company/i.test(text)
+            ) {
+              score = 80;
+            }
+            // Impressum / Imprint / Legal / Privacy / Compliance (Often holds registered email, CEO name, phone)
+            else if (/impressum|imprint|legal|terms|privacy|compliance|disclaimer/i.test(lowerHref)) {
+              score = 75;
+            }
+            // Services / Practice areas / Products / Solutions
+            else if (/service|services|practice-area|areas-of-practice|treatment|solutions|specialties/i.test(lowerHref)) {
+              score = 60;
+            }
+            // FAQ / Help / Info / Careers
+            else if (/faq|help|info|careers|jobs|news|blog|press/i.test(lowerHref)) {
+              score = 45;
+            }
+
+            crawlQueue.push({ url: abs, score });
           } catch {}
+        });
+      };
+
+      // 1. Extract internal links from homepage
+      extractInternalLinksFromHtml(homeHtml, homeTarget);
+
+      // Probe standard high-priority paths if not already discovered
+      const standardProbes = [
+        "/contact",
+        "/contact-us",
+        "/about",
+        "/about-us",
+        "/team",
+        "/our-team",
+        "/staff",
+        "/doctors",
+        "/leadership",
+        "/services",
+        "/impressum",
+      ];
+      for (const probe of standardProbes) {
+        const fullProbe = `${base}${probe}`;
+        if (!visitedUrls.has(fullProbe)) {
+          visitedUrls.add(fullProbe);
+          crawlQueue.push({ url: fullProbe, score: 70 });
         }
-      });
+      }
 
-      // Sort by score descending and take up to 5 distinct URLs
-      priorityCandidates.sort((a, b) => b.score - a.score);
-      for (const cand of priorityCandidates) {
-        if (subpagesToFetch.size >= 5) break;
-        subpagesToFetch.add(cand.url);
+      // 2. Concurrently crawl discovered pages across the entire site
+      const MAX_CRAWL_PAGES = 18;
+      const BATCH_SIZE = 6;
+
+      while (crawlQueue.length > 0 && htmlMap.size < MAX_CRAWL_PAGES) {
+        crawlQueue.sort((a, b) => b.score - a.score);
+        const batch = crawlQueue.splice(0, Math.min(BATCH_SIZE, MAX_CRAWL_PAGES - htmlMap.size));
+
+        await Promise.all(
+          batch.map(async ({ url: subUrl }) => {
+            try {
+              const subHtml = await safeFetch(subUrl, {
+                timeoutMs: 2500,
+                maxBytes: 384 * 1024,
+                allowLoopback,
+              });
+              if (subHtml) {
+                htmlMap.set(subUrl, subHtml);
+
+                // Deep queueing: discover secondary internal links on subpages if crawl budget permits
+                if (htmlMap.size + crawlQueue.length < MAX_CRAWL_PAGES * 1.5) {
+                  extractInternalLinksFromHtml(subHtml, subUrl);
+                }
+              }
+            } catch {}
+          })
+        );
       }
     }
-
-    // Fallback standard subpage paths if none were discovered
-    if (subpagesToFetch.size === 0) {
-      subpagesToFetch.add(`${base}/about`);
-      subpagesToFetch.add(`${base}/team`);
-      subpagesToFetch.add(`${base}/our-story`);
-      subpagesToFetch.add(`${base}/contact`);
-    }
-
-    // 2. Fetch discovered subpages in parallel (with robust timeout)
-    const fetchPromises = Array.from(subpagesToFetch).map(async (u) => {
-      try {
-        const content = await safeFetch(u, { timeoutMs: 4500, maxBytes: 512 * 1024 });
-        return { url: u, content };
-      } catch {
-        return null;
-      }
-    });
-
-    const subResults = await Promise.allSettled(fetchPromises);
-    for (const res of subResults) {
-      if (res.status === "fulfilled" && res.value?.content) {
-        htmlMap.set(res.value.url, res.value.content);
-      }
-    }
+  }
 
     // 3. Process all gathered pages for complete contact data
     for (const [, html] of htmlMap) {
@@ -886,11 +898,12 @@ export async function scrapeFullCompanyProfile(
               const sameAs = Array.isArray(obj.sameAs) ? obj.sameAs : obj.sameAs ? [obj.sameAs] : [];
               for (const s of sameAs) {
                 if (typeof s !== "string") continue;
-                if (s.includes("facebook.com") && !fbUrl) fbUrl = formatSocialUrl(s);
-                if (s.includes("instagram.com") && !igUrl) igUrl = formatSocialUrl(s);
-                if (s.includes("linkedin.com") && !liUrl) liUrl = formatSocialUrl(s);
-                if (s.includes("tiktok.com") && !ttUrl) ttUrl = formatSocialUrl(s);
-                if (s.includes("youtube.com") && !ytUrl) ytUrl = formatSocialUrl(s);
+                if (s.includes("facebook.com") && !fbUrl) fbUrl = formatSocialUrl(s, "facebook");
+                if (s.includes("instagram.com") && !igUrl) igUrl = formatSocialUrl(s, "instagram");
+                if (s.includes("linkedin.com") && !liUrl) liUrl = formatSocialUrl(s, "linkedin");
+                if ((s.includes("twitter.com") || s.includes("x.com")) && !twUrl) twUrl = formatSocialUrl(s, "twitter");
+                if (s.includes("tiktok.com") && !ttUrl) ttUrl = formatSocialUrl(s, "tiktok");
+                if (s.includes("youtube.com") && !ytUrl) ytUrl = formatSocialUrl(s, "youtube");
               }
 
               if (typeof obj.email === "string" && isEmailRelevant(obj.email)) {
@@ -997,47 +1010,6 @@ export async function scrapeFullCompanyProfile(
           }
         }
 
-        const NON_PERSON_WORDS = new Set([
-          "commitment", "mission", "vision", "story", "about", "history", "contact",
-          "services", "service", "hours", "welcome", "info", "details", "updates", "news",
-          "terms", "privacy", "menu", "events", "policy", "pricing", "careers",
-          "jobs", "practice", "branch", "office", "team", "staff", "location",
-          "purveyors", "order", "online", "market", "cafe", "clinic", "dental",
-          "hospital", "care", "health", "center", "centre", "group", "agency",
-          "search", "filter", "share", "follow", "subscribe", "newsletter", "cart",
-          "checkout", "login", "register", "join", "help", "support", "faq",
-          "discounts", "discount", "reasons", "reason", "additional", "resources", "resource",
-          "coverage", "insurance", "benefits", "benefit", "solutions", "solution",
-          "claims", "claim", "quotes", "quote", "options", "option", "features", "feature",
-          "products", "product", "reviews", "review", "ratings", "rating", "questions",
-          "answers", "locations", "cookies", "cookie", "copyright", "portal", "account",
-          "overview", "explore", "learn", "read", "view", "click", "download", "schedule",
-          "appointment", "consultation", "message", "send", "submit", "page", "next",
-          "previous", "header", "footer", "banner", "hero", "modal", "card", "box", "item",
-          "list", "table", "button", "link", "form", "input", "field", "media", "social",
-          "customer", "client", "clients", "partners", "partner", "investors", "investor",
-          "corporate", "commercial", "residential", "financial", "legal", "medical",
-          "realty", "properties", "property", "estate", "agents", "brokerage",
-          "enterprises", "holdings", "associates", "international", "global", "national",
-          "state", "city", "county", "district", "street", "avenue", "road", "building",
-          "north", "south", "east", "west", "you", "your", "our", "all", "get", "more", "most"
-        ]);
-
-        const sanitizeName = (raw: string): string => {
-          return raw.split(/[\r\n]/)[0].replace(/\s+/g, " ").trim();
-        };
-
-        const isValidPersonName = (raw: string): boolean => {
-          const clean = sanitizeName(raw);
-          if (clean.length < 3 || clean.length > 35) return false;
-          if (!/^(?:Dr\.?\s+|Prof\.?\s+)?[A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){1,2}$/.test(clean)) return false;
-          const words = clean.toLowerCase().replace(/^(?:dr|prof)\.?\s+/i, "").split(/\s+/);
-          if (words.some((w) => NON_PERSON_WORDS.has(w))) return false;
-          const stopWords = ["you", "your", "we", "our", "us", "they", "their", "it", "its", "all", "get", "has", "have", "for", "with", "from", "into", "over", "more", "most", "the", "and", "but", "not"];
-          if (words.some((w) => stopWords.includes(w))) return false;
-          return true;
-        };
-
         // Universal Heading & Team-Card Person Name + Role Scanner (strict container classes)
         $("[class*='team'], [class*='staff'], [class*='bio'], [class*='author'], [class*='leader'], [class*='founder'], [class*='executive'], [class*='member'], [class*='person']").find("h1, h2, h3, h4, h5, [class*='title'], [class*='name'], strong, b").each((_, el) => {
           const rawText = $(el).text();
@@ -1076,8 +1048,23 @@ export async function scrapeFullCompanyProfile(
         });
 
         if (!founderName) {
+          // Direct element scan for authentic Doctor / Executive names in headings, links and paragraphs
+          $("h1, h2, h3, h4, a, strong, b, p").each((_, el) => {
+            if (founderName) return;
+            const text = $(el).text().trim();
+            const drM = text.match(/\b(Dr\.?\s+[A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){1,2})\b/);
+            if (drM) {
+              const cand = sanitizeName(drM[1]);
+              if (isValidPersonName(cand)) {
+                founderName = cand;
+              }
+            }
+          });
+        }
+
+        if (!founderName) {
           const founderMatch = unobfuscatedText.match(
-            /(?:(?:Founder & CEO|Founder and CEO|Co-founder|Founder|CEO|Owner|President|Managing Director|Principal Doctor|Principal Dentist|Principal|Proprietor|Geschäftsführer|Inhaber|Directeur)\s*[:\-–,\s]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})|Dr\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}))/i
+            /(?:(?:Founder & CEO|Founder and CEO|Co-founder|Founder|CEO|Owner|President|Managing Director|Principal Doctor|Principal Dentist|Principal|Proprietor|Geschäftsführer|Inhaber|Directeur)\s*[:\-–,\s]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})|Dr\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})(?:,\s*(?:DDS|DMD|MD|DO|FAGD|MAGD|BDS|PhD))?)/i
           );
           if (founderMatch) {
             const cand = (founderMatch[2] ? `Dr. ${founderMatch[2]}` : founderMatch[1] || "").trim();
@@ -1087,7 +1074,7 @@ export async function scrapeFullCompanyProfile(
 
         // Inline patterns like "John Smith, Owner" or "Jane Doe, Founder"
         if (!founderName) {
-          const inlineMatch = unobfuscatedText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*,\s*(?:Founder|Owner|CEO|Co-Founder|President|Managing Director|Proprietor)/i);
+          const inlineMatch = unobfuscatedText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*,\s*(?:Founder|Owner|CEO|Co-Founder|President|Managing Director|Proprietor|Dentist|Doctor)/i);
           if (inlineMatch && inlineMatch[1] && isValidPersonName(inlineMatch[1])) {
             founderName = inlineMatch[1].trim();
           }
@@ -1103,30 +1090,69 @@ export async function scrapeFullCompanyProfile(
           }
         }
         if (!managerName) {
-          const inlineMgr = unobfuscatedText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*,\s*(?:General Manager|Operations Manager|Branch Manager|Practice Manager|Manager)/i);
+          const inlineMgr = unobfuscatedText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*,\s*(?:General Manager|Operations Manager|Branch Manager|Practice Manager|Office Manager|Manager)/i);
           if (inlineMgr && inlineMgr[1] && isValidPersonName(inlineMgr[1])) {
             managerName = inlineMgr[1].trim();
           }
         }
 
         // Categorize discovered emails authentically
-        const founderFirstName = founderName ? founderName.split(/\s+/)[0].toLowerCase() : "";
-        const managerFirstName = managerName ? managerName.split(/\s+/)[0].toLowerCase() : "";
+        const cleanFounder = founderName ? founderName.replace(/^(?:Dr\.?|Prof\.?)\s+/i, "") : "";
+        const founderFirstName = cleanFounder ? cleanFounder.split(/\s+/)[0].toLowerCase() : "";
+        const founderLastName = cleanFounder ? cleanFounder.split(/\s+/).slice(-1)[0].toLowerCase() : "";
+
+        const cleanManager = managerName ? managerName.replace(/^(?:Mr\.?|Ms\.?|Mrs\.?)\s+/i, "") : "";
+        const managerFirstName = cleanManager ? cleanManager.split(/\s+/)[0].toLowerCase() : "";
+        const managerLastName = cleanManager ? cleanManager.split(/\s+/).slice(-1)[0].toLowerCase() : "";
+
         const ROLE_EMAIL_PREFIXES = [
           "info", "contact", "support", "help", "sales", "billing", "office", "admin",
           "service", "services", "marketing", "hello", "mail", "team", "general", "inquiries",
           "enquiry", "enquiries", "discounts", "discount", "additional", "resource", "resources",
-          "careers", "jobs", "press", "media", "privacy", "feedback", "quotes", "claims"
+          "careers", "jobs", "press", "media", "privacy", "feedback", "quotes", "claims", "frontdesk", "reception"
         ];
 
         for (const em of pageEmails) {
           const local = em.split("@")[0].toLowerCase();
           const isRoleEmail = ROLE_EMAIL_PREFIXES.some((p) => local === p || local.startsWith(`${p}.`) || local.startsWith(`${p}_`) || local.startsWith(`${p}-`));
 
-          if (!isRoleEmail && founderFirstName && founderFirstName.length > 2 && local.includes(founderFirstName)) {
+          const matchesFounder =
+            !isRoleEmail &&
+            ((founderFirstName && founderFirstName.length >= 2 && local.includes(founderFirstName)) ||
+             (founderLastName && founderLastName.length >= 3 && local.includes(founderLastName)) ||
+             local.startsWith("dr") ||
+             local.startsWith("doctor"));
+
+          const matchesManager =
+            !isRoleEmail &&
+            ((managerFirstName && managerFirstName.length >= 2 && local.includes(managerFirstName)) ||
+             (managerLastName && managerLastName.length >= 3 && local.includes(managerLastName)) ||
+             local.includes("manager") ||
+             local.includes("office"));
+
+          if (matchesFounder) {
             founderEmails.add(em);
-          } else if (!isRoleEmail && managerFirstName && managerFirstName.length > 2 && local.includes(managerFirstName)) {
+          } else if (matchesManager) {
             managerEmails.add(em);
+          } else if (!isRoleEmail) {
+            // Authentic personal email (e.g. john@..., drsmith@..., sarah.jones@...)
+            if (founderEmails.size === 0) {
+              founderEmails.add(em);
+              // Infer founderName if format is first.last
+              if (!founderName && local.includes(".") && !local.startsWith("dr.")) {
+                const parts = local.split(".").filter((p) => p.length >= 2 && /^[a-z]+$/.test(p));
+                if (parts.length === 2) {
+                  const candidate = parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+                  if (isValidPersonName(candidate)) {
+                    founderName = candidate;
+                  }
+                }
+              }
+            } else if (managerEmails.size === 0) {
+              managerEmails.add(em);
+            } else {
+              founderEmails.add(em);
+            }
           } else {
             compEmails.add(em);
           }
@@ -1147,50 +1173,69 @@ export async function scrapeFullCompanyProfile(
         $('a[href]').each((_, el) => {
           const href = $(el).attr("href")?.trim();
           if (!href) return;
-          if (!fbUrl && href.includes("facebook.com")) {
-            const f = formatSocialUrl(href);
+          if (!fbUrl && (href.includes("facebook.com/") || href.includes("fb.com/"))) {
+            const f = formatSocialUrl(href, "facebook");
             if (f) fbUrl = f;
           }
-          if (!igUrl && href.includes("instagram.com")) {
-            const f = formatSocialUrl(href);
+          if (!igUrl && (href.includes("instagram.com/") || href.includes("instagr.am/"))) {
+            const f = formatSocialUrl(href, "instagram");
             if (f) igUrl = f;
           }
-          if (!liUrl && href.includes("linkedin.com")) {
-            const f = formatSocialUrl(href);
+          if (href.includes("linkedin.com/")) {
+            const f = formatSocialUrl(href, "linkedin");
             if (f) {
               if (f.includes("/in/")) {
-                if (founderSocials.size === 0) founderSocials.add(f);
-                else managerSocials.add(f);
-              } else {
+                if (founderSocials.size === 0) {
+                  founderSocials.add(f);
+                  if (!founderName) {
+                    const slug = f.split("/in/")[1]?.split("/")[0]?.replace(/[-_.]/g, " ").trim();
+                    if (slug && /^[a-zA-Z\s]{4,30}$/.test(slug)) {
+                      const words = slug.split(/\s+/).filter((w) => w.length >= 2);
+                      if (words.length >= 2) {
+                        const candidate = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+                        if (isValidPersonName(candidate)) {
+                          founderName = `Dr. ${candidate}`;
+                        }
+                      }
+                    }
+                  }
+                } else {
+                  managerSocials.add(f);
+                }
+              } else if (!liUrl) {
                 liUrl = f;
               }
             }
           }
-          if (!ttUrl && href.includes("tiktok.com")) {
-            const f = formatSocialUrl(href);
+          if (!twUrl && (href.includes("twitter.com/") || href.includes("x.com/"))) {
+            const f = formatSocialUrl(href, "twitter");
+            if (f) twUrl = f;
+          }
+          if (!ttUrl && href.includes("tiktok.com/")) {
+            const f = formatSocialUrl(href, "tiktok");
             if (f) ttUrl = f;
           }
-          if (!ytUrl && href.includes("youtube.com")) {
-            const f = formatSocialUrl(href);
+          if (!ytUrl && (href.includes("youtube.com/") || href.includes("youtu.be/"))) {
+            const f = formatSocialUrl(href, "youtube");
             if (f) ytUrl = f;
           }
         });
 
         // Raw HTML Regex Fallback for JavaScript / SVG icon / embedded links
         if (!fbUrl) {
-          const m = html.match(/https?:\/\/(?:www\.)?facebook\.com\/(?:[a-zA-Z0-9.\-_]+|profile\.php\?id=\d+)/gi);
+          const m = html.match(/https?:\/\/(?:www\.)?(?:facebook\.com|fb\.com)\/(?:[a-zA-Z0-9.\-_]+|profile\.php\?id=\d+)/gi);
           if (m) {
             for (const item of m) {
-              const f = formatSocialUrl(item);
+              const f = formatSocialUrl(item, "facebook");
               if (f) { fbUrl = f; break; }
             }
           }
         }
         if (!igUrl) {
-          const m = html.match(/https?:\/\/(?:www\.)?instagram\.com\/[a-zA-Z0-9._\-]+/gi);
+          const m = html.match(/https?:\/\/(?:www\.)?(?:instagram\.com|instagr\.am)\/[a-zA-Z0-9._\-]+/gi);
           if (m) {
             for (const item of m) {
-              const f = formatSocialUrl(item);
+              const f = formatSocialUrl(item, "instagram");
               if (f) { igUrl = f; break; }
             }
           }
@@ -1199,7 +1244,7 @@ export async function scrapeFullCompanyProfile(
           const m = html.match(/https?:\/\/(?:www\.)?linkedin\.com\/(?:company|in)\/[a-zA-Z0-9._\-]+/gi);
           if (m) {
             for (const item of m) {
-              const f = formatSocialUrl(item);
+              const f = formatSocialUrl(item, "linkedin");
               if (f) {
                 if (f.includes("/in/")) {
                   if (founderSocials.size === 0) founderSocials.add(f);
@@ -1212,20 +1257,29 @@ export async function scrapeFullCompanyProfile(
             }
           }
         }
+        if (!twUrl) {
+          const m = html.match(/https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/[a-zA-Z0-9._\-]+/gi);
+          if (m) {
+            for (const item of m) {
+              const f = formatSocialUrl(item, "twitter");
+              if (f) { twUrl = f; break; }
+            }
+          }
+        }
         if (!ttUrl) {
           const m = html.match(/https?:\/\/(?:www\.)?tiktok\.com\/@[a-zA-Z0-9._\-]+/gi);
           if (m) {
             for (const item of m) {
-              const f = formatSocialUrl(item);
+              const f = formatSocialUrl(item, "tiktok");
               if (f) { ttUrl = f; break; }
             }
           }
         }
         if (!ytUrl) {
-          const m = html.match(/https?:\/\/(?:www\.)?youtube\.com\/(?:@[a-zA-Z0-9._\-]+|c\/[a-zA-Z0-9._\-]+|channel\/[a-zA-Z0-9._\-]+)/gi);
+          const m = html.match(/https?:\/\/(?:www\.)?(?:youtube\.com\/(?:@[a-zA-Z0-9._\-]+|c\/[a-zA-Z0-9._\-]+|channel\/[a-zA-Z0-9._\-]+)|youtu\.be\/[a-zA-Z0-9._\-]+)/gi);
           if (m) {
             for (const item of m) {
-              const f = formatSocialUrl(item);
+              const f = formatSocialUrl(item, "youtube");
               if (f) { ytUrl = f; break; }
             }
           }
@@ -1234,23 +1288,6 @@ export async function scrapeFullCompanyProfile(
         // Continue next page
       }
     }
-
-    // 4. If still no emails found, check RFC 9116 /.well-known/security.txt
-    if (compEmails.size === 0 && founderEmails.size === 0 && managerEmails.size === 0) {
-      try {
-        const secText = await safeFetch(`${base}/.well-known/security.txt`, { timeoutMs: 2500, maxBytes: 64 * 1024 }).catch(() =>
-          safeFetch(`${base}/security.txt`, { timeoutMs: 2500, maxBytes: 64 * 1024 })
-        );
-        if (secText) {
-          const secEmails = secText.match(EMAIL_REGEX) || [];
-          for (const em of secEmails) {
-            const clean = em.toLowerCase().trim();
-            if (isEmailRelevant(clean)) compEmails.add(clean);
-          }
-        }
-      } catch {}
-    }
-  }
 
 
 
@@ -1269,15 +1306,14 @@ export async function scrapeFullCompanyProfile(
     } catch {}
   }
 
-  // 7. Live Public Intelligence & Web Search for Executive Leadership
-  if (!founderName || !managerName) {
+  // 7. Live Public Intelligence & Web Search for Executive Leadership & Missing Socials
+  if (!founderName || !managerName || !fbUrl || !igUrl || !liUrl || compEmails.size === 0) {
     try {
       const searchLeadership = await resolveLeadershipViaWebSearch(
         initialCompany?.name || "",
         initialCompany?.location || "",
         baseHostname
       );
-      console.log('>>> [enrichment] searchLeadership:', JSON.stringify(searchLeadership));
       if (searchLeadership) {
         if (!founderName && searchLeadership.founderName) {
           founderName = searchLeadership.founderName;
@@ -1291,6 +1327,24 @@ export async function scrapeFullCompanyProfile(
             searchLeadership.managerSocials.forEach((s) => managerSocials.add(s));
           }
         }
+      }
+
+      // Discover missing socials (Facebook, Instagram, LinkedIn, YouTube) and public contact channels
+      const discovered = await discoverSocialsAndEmailViaWeb(
+        initialCompany?.name || "",
+        initialCompany?.location || "",
+        baseHostname
+      );
+      if (!fbUrl && discovered.facebook) fbUrl = formatSocialUrl(discovered.facebook, "facebook");
+      if (!igUrl && discovered.instagram) igUrl = formatSocialUrl(discovered.instagram, "instagram");
+      if (!liUrl && discovered.linkedin) liUrl = formatSocialUrl(discovered.linkedin, "linkedin");
+      if (!ytUrl && discovered.youtube) ytUrl = formatSocialUrl(discovered.youtube, "youtube");
+      if (discovered.email && isEmailRelevant(discovered.email)) compEmails.add(discovered.email);
+      if (discovered.phone && phoneMap.size === 0) {
+        normalizeAndAddPhone(discovered.phone, phoneMap);
+      }
+      if (!founderName && discovered.founderName && isValidPersonName(discovered.founderName)) {
+        founderName = discovered.founderName;
       }
     } catch {}
   }
@@ -1387,6 +1441,15 @@ export async function scrapeFullCompanyProfile(
     return matchesName && (lowerS.includes("/in/") || lowerS.includes("twitter.com") || lowerS.includes("x.com"));
   });
 
+  // If company emails is empty, promote primary founder or manager email so contact channels are available
+  if (compEmails.size === 0) {
+    if (founderEmails.size > 0) {
+      compEmails.add(Array.from(founderEmails)[0]);
+    } else if (managerEmails.size > 0) {
+      compEmails.add(Array.from(managerEmails)[0]);
+    }
+  }
+
   // Sort company emails so official domain emails appear first
   const sortedCompEmails = Array.from(compEmails).sort((a, b) => {
     const aMatches = baseHostname && a.endsWith(`@${baseHostname}`) ? -1 : 1;
@@ -1396,25 +1459,26 @@ export async function scrapeFullCompanyProfile(
 
   return {
     company_name: initialCompany?.name || "Business",
-    company_emails: sortedCompEmails.slice(0, 5),
-    company_phones: Array.from(phoneMap.values()).slice(0, 3),
+    company_emails: sortedCompEmails.slice(0, 10),
+    company_phones: Array.from(phoneMap.values()).slice(0, 5),
     company_website: websiteUrl || "Not Available",
     company_facebook: fbUrl,
     company_instagram: igUrl,
     company_linkedin: liUrl,
+    company_twitter: twUrl,
     company_tiktok: ttUrl,
     company_youtube: ytUrl,
     company_location: initialCompany?.location || "Not Available",
 
     founder_name: founderName,
-    founder_emails: founderName ? Array.from(founderEmails) : [],
-    founder_phones: founderName ? Array.from(founderPhonesMap.values()) : [],
-    founder_socials: founderName ? cleanFounderSocials : [],
+    founder_emails: Array.from(founderEmails),
+    founder_phones: Array.from(founderPhonesMap.values()),
+    founder_socials: cleanFounderSocials.length > 0 ? cleanFounderSocials : Array.from(founderSocials),
 
     manager_name: managerName,
-    manager_emails: managerName ? Array.from(managerEmails) : [],
-    manager_phones: managerName ? Array.from(managerPhonesMap.values()) : [],
-    manager_socials: managerName ? cleanManagerSocials : [],
+    manager_emails: Array.from(managerEmails),
+    manager_phones: Array.from(managerPhonesMap.values()),
+    manager_socials: cleanManagerSocials.length > 0 ? cleanManagerSocials : Array.from(managerSocials),
   };
 }
 
@@ -1437,6 +1501,9 @@ export async function deepScrapeWebsite(url: string) {
     facebookUrl: profile.company_facebook,
     instagramUrl: profile.company_instagram,
     linkedinUrl: profile.company_linkedin,
+    twitterUrl: profile.company_twitter,
+    tiktokUrl: profile.company_tiktok,
+    youtubeUrl: profile.company_youtube,
   };
 }
 
@@ -1447,5 +1514,8 @@ export async function enrichWebsite(url: string) {
     facebookUrl: d.facebookUrl,
     instagramUrl: d.instagramUrl,
     linkedinUrl: d.linkedinUrl,
+    twitterUrl: d.twitterUrl,
+    tiktokUrl: d.tiktokUrl,
+    youtubeUrl: d.youtubeUrl,
   };
 }

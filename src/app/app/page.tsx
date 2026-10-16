@@ -1,59 +1,107 @@
+import React from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { MODULES } from "@/lib/modules";
+import { db } from "@/server/db";
+import { requireUser } from "@/server/auth/guards";
+import { cacheRemember } from "@/server/cache";
+import { PageHeader, Card, CardContent, Badge } from "@/components/ui";
 
-export const metadata = { title: "Hub — AutoHub", description: "Choose an automation to get started." };
+export const metadata = {
+  title: "Hub — AutoHub",
+  description: "Select an automation engine to get started.",
+};
 
-export default function HubPage() {
+export default async function HubPage() {
+  const user = await requireUser();
+  const userId = user.id;
+
+  const [postsCount, leadsCount, emailsCount] = await cacheRemember(
+    `stats:hub:${userId}`,
+    90,
+    async () => {
+      return await Promise.all([
+        db.post_runs.count({ where: { user_id: userId, status: "published" } }),
+        db.leads.count({ where: { user_id: userId } }),
+        db.email_messages.count({ where: { user_id: userId, direction: "out", status: "sent" } }),
+      ]);
+    }
+  );
+
   return (
-    <div className="mx-auto max-w-6xl">
-      <section className="float-in py-8">
-        <span className="badge">Welcome back</span>
-        <h1 className="mt-3 text-4xl font-bold md:text-5xl">
-          What do you want to <span className="gradient-text">automate</span> today?
-        </h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          Four automations, one hub. Start any task in three clicks.
-        </p>
-      </section>
+    <div className="space-y-6">
+      <PageHeader
+        title="Automation Hub"
+        description="Select an engine to create social posts, collect leads, or dispatch email campaigns."
+        badge={
+          <Badge variant="accent" size="sm">
+            Active Workspace
+          </Badge>
+        }
+      />
 
-      <section className="grid gap-5 md:grid-cols-2" aria-label="Automation modules">
-        {MODULES.map((m, i) => (
+      {/* 4 Core Module Cards */}
+      <section className="grid gap-4 sm:grid-cols-2" aria-label="Automation engines">
+        {MODULES.map((m) => (
           <Link
             key={m.id}
             id={`hub-card-${m.id}`}
             href={m.href}
-            className="hub-card glass float-in block"
-            style={{ ["--glow" as string]: m.glow, animationDelay: `${i * 90}ms` }}
+            className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded-[8px]"
           >
-            <div className="relative z-10 flex items-start justify-between">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-surface-2 text-brand-2">
-                <m.icon size={24} />
-              </span>
-              <ArrowUpRight className="text-muted" />
-            </div>
-            <h2 className="relative z-10 mt-5 text-xl font-semibold">{m.title}</h2>
-            <p className="relative z-10 mt-2 text-sm text-muted">{m.description}</p>
-            <div className="relative z-10 mt-5 flex flex-wrap gap-2">
-              {m.options.map((o) => (
-                <span key={o.href} className="badge">{o.label}</span>
-              ))}
-            </div>
+            <Card className="h-full transition-colors hover:border-text-muted hover:bg-surface-hover/30 p-5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-[6px] border border-border bg-bg-subtle text-text flex items-center justify-center">
+                    <m.icon className="w-4 h-4" strokeWidth={1.5} />
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-text-subtle group-hover:text-text transition-colors" strokeWidth={1.5} />
+                </div>
+
+                <div>
+                  <h2 className="text-base font-semibold text-text group-hover:text-accent-text transition-colors">
+                    {m.title}
+                  </h2>
+                  <p className="text-xs text-text-muted mt-1 leading-normal line-clamp-2">
+                    {m.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-4 flex flex-wrap gap-1.5">
+                {m.options.map((o) => (
+                  <Badge key={o.href} variant="neutral" size="sm">
+                    {o.label}
+                  </Badge>
+                ))}
+              </div>
+            </Card>
           </Link>
         ))}
       </section>
 
-      <section className="mt-10 grid gap-4 sm:grid-cols-3" aria-label="Quick stats">
-        {[
-          ["Posts today", "0"],
-          ["Leads collected", "0"],
-          ["Emails sent today", "0"],
-        ].map(([k, v]) => (
-          <div key={k} className="glass rounded-2xl p-5">
-            <div className="text-sm text-muted">{k}</div>
-            <div className="mt-1 text-3xl font-bold">{v}</div>
-          </div>
-        ))}
+      {/* Lifetime Performance Counters */}
+      <section className="grid gap-4 sm:grid-cols-3" aria-label="Quick metrics">
+        <Card className="p-4 space-y-1">
+          <p className="text-xs font-medium text-text-muted">Social Posts Published</p>
+          <p className="text-2xl font-bold font-mono tracking-tight text-text">
+            {postsCount.toLocaleString()}
+          </p>
+        </Card>
+
+        <Card className="p-4 space-y-1">
+          <p className="text-xs font-medium text-text-muted">Leads Collected</p>
+          <p className="text-2xl font-bold font-mono tracking-tight text-text">
+            {leadsCount.toLocaleString()}
+          </p>
+        </Card>
+
+        <Card className="p-4 space-y-1">
+          <p className="text-xs font-medium text-text-muted">Emails Dispatched</p>
+          <p className="text-2xl font-bold font-mono tracking-tight text-text">
+            {emailsCount.toLocaleString()}
+          </p>
+        </Card>
       </section>
     </div>
   );

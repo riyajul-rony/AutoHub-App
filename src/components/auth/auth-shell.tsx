@@ -1,5 +1,6 @@
+import React from "react";
 import Link from "next/link";
-import { Zap } from "lucide-react";
+import { ThemeToggle, Card, CardContent } from "@/components/ui";
 
 export function AuthShell({
   title,
@@ -13,20 +14,41 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen place-items-center px-4 py-10">
-      <div className="float-in w-full max-w-md">
-        <Link href="/" className="mb-6 flex items-center justify-center gap-2 text-2xl font-bold">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand to-brand-2">
-            <Zap size={20} />
+    <main className="min-h-screen flex flex-col justify-between p-4 sm:p-6 bg-bg text-text">
+      {/* Top Bar with Brand & Theme Toggle */}
+      <div className="w-full max-w-md mx-auto flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 font-semibold text-text text-sm tracking-tight select-none">
+          <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
+            A
           </span>
-          <span className="gradient-text">AutoHub</span>
+          <span>AutoHub</span>
         </Link>
-        <div className="glass rounded-3xl p-8">
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
-          <div className="mt-6">{children}</div>
-        </div>
-        {footer && <p className="mt-5 text-center text-sm text-muted">{footer}</p>}
+        <ThemeToggle />
+      </div>
+
+      {/* Centered Auth Card */}
+      <div className="w-full max-w-md mx-auto my-auto py-8">
+        <Card className="border border-border bg-surface text-text">
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-1.5 text-center sm:text-left">
+              <h1 className="text-xl font-semibold tracking-tight text-text leading-tight">{title}</h1>
+              {subtitle ? <p className="text-xs text-text-muted leading-normal">{subtitle}</p> : null}
+            </div>
+
+            <div>{children}</div>
+          </div>
+        </Card>
+
+        {footer ? (
+          <div className="mt-4 text-center text-xs text-text-muted">
+            {footer}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Bottom Copyright */}
+      <div className="w-full max-w-md mx-auto text-center text-[11px] text-text-subtle">
+        <span>© {new Date().getFullYear()} AutoHub. All rights reserved.</span>
       </div>
     </main>
   );

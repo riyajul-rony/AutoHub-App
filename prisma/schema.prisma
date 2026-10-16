@@ -14,7 +14,10 @@ datasource db {
 // ───────────── Enums ─────────────
 enum UserRole {
   user
+  super_admin
   admin
+  support
+  finance
 }
 
 enum UserStatus {
@@ -25,6 +28,7 @@ enum UserStatus {
 
 enum ApiKeyProvider {
   openai
+  bright_data
   google_places
 }
 
@@ -232,6 +236,21 @@ enum SequenceSourceType {
   sheet
 }
 
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  expired
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
 // ───────────── Users & auth ─────────────
 model workspaces {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -255,6 +274,8 @@ model users {
   country               String?
   role                  UserRole     @default(user)
   status                UserStatus   @default(active)
+  plan                  String       @default("free")
+  plan_id               String?      @db.Uuid
   timezone              String       @default("UTC")
   sender_legal_name     String?
   sender_address        String?
@@ -265,6 +286,8 @@ model users {
   created_at            DateTime     @default(now()) @db.Timestamptz
   updated_at            DateTime     @updatedAt @db.Timestamptz
 
+  plan_ref              plans?       @relation(fields: [plan_id], references: [id])
+  user_limit_overrides  user_limit_overrides?
   workspaces            workspaces[]
   sessions              sessions[]
   oauth_accounts        oauth_accounts[]
@@ -286,6 +309,14 @@ model users {
   followup_sequences    followup_sequences[]
   notifications         notifications[]
   activity_logs         activity_logs[]
+  admin_audit_logs      admin_audit_logs[]
+  usage_counters        usage_counters[]
+  subscriptions         subscriptions[]
+  payments              payments[]
+  error_logs            error_logs[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([role, status])
 }
 
 model sessions {
@@ -484,6 +515,7 @@ model social_campaigns {
   post_runs                 post_runs[]
 
   @@index([user_id, status])
+  @@index([status])
 }
 
 model assets {
@@ -612,6 +644,7 @@ model leads {
   @@index([user_id, search_id])
   @@index([user_id, email])
   @@index([user_id, status])
+  @@index([user_id, collected_at(sort: Desc)])
 }
 
 model export_jobs {
@@ -679,6 +712,7 @@ model outreach_campaigns {
   sequences        followup_sequences[]
 
   @@index([user_id, status])
+  @@index([status])
 }
 
 model outreach_campaign_accounts {
@@ -723,6 +757,7 @@ model campaign_recipients {
 
   @@unique([campaign_id, email])
   @@unique([campaign_id, lead_id])
+  @@index([user_id])
   @@index([campaign_id, status])
   @@index([assigned_account_id, status])
   @@index([next_followup_at])
@@ -751,6 +786,8 @@ model email_messages {
 
   @@unique([email_account_id, message_id])
   @@index([email_account_id, sent_at])
+  @@index([user_id, direction, status])
+  @@index([user_id, direction, sent_at])
 }
 
 model followup_sequences {
@@ -770,6 +807,9 @@ model followup_sequences {
   email_account    email_accounts?     @relation(fields: [email_account_id], references: [id])
   openai_key       api_keys?           @relation(fields: [openai_key_id], references: [id])
   steps            followup_steps[]
+
+  @@index([user_id])
+  @@index([campaign_id, status])
 }
 
 model followup_steps {
@@ -816,3 +856,160 @@ model activity_logs {
 
   @@index([user_id, created_at(sort: Desc)])
 }
+
+model admin_audit_logs {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_id     String    @db.Uuid
+  action       String
+  target_type  String
+  target_id    String?
+  before_state Json?
+  after_state  Json?
+  ip_address   String?
+  user_agent   String?
+  created_at   DateTime  @default(now()) @db.Timestamptz
+
+  admin        users     @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+
+  @@index([admin_id])
+  @@index([action])
+  @@index([created_at(sort: Desc)])
+}
+
+model error_logs {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source      String
+  message     String
+  stack       String?   @db.Text
+  context     Json?
+  user_id     String?   @db.Uuid
+  resolved_at DateTime? @db.Timestamptz
+  created_at  DateTime  @default(now()) @db.Timestamptz
+
+  user        users?    @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([created_at(sort: Desc)])
+  @@index([source])
+  @@index([user_id])
+}
+
+model plans {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String
+  slug                    String    @unique
+  monthly_price           Decimal   @default(0) @db.Decimal(10, 2)
+  yearly_price            Decimal   @default(0) @db.Decimal(10, 2)
+  currency                String    @default("USD")
+  is_active               Boolean   @default(true)
+  features                String[]  @default([])
+
+  monthly_leads           Int       @default(100)
+  monthly_social_posts    Int       @default(30)
+  monthly_outreach_emails Int       @default(100)
+  max_social_accounts     Int       @default(2)
+  max_email_accounts      Int       @default(1)
+  max_campaigns           Int       @default(2)
+
+  created_at              DateTime  @default(now()) @db.Timestamptz
+  updated_at              DateTime  @updatedAt @db.Timestamptz
+
+  users                   users[]
+  subscriptions           subscriptions[]
+
+  @@index([slug])
+  @@index([is_active])
+}
+
+model user_limit_overrides {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String    @unique @db.Uuid
+  monthly_leads           Int?
+  monthly_social_posts    Int?
+  monthly_outreach_emails Int?
+  max_social_accounts     Int?
+  max_email_accounts      Int?
+  max_campaigns           Int?
+
+  created_at              DateTime  @default(now()) @db.Timestamptz
+  updated_at              DateTime  @updatedAt @db.Timestamptz
+
+  user                    users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model usage_counters {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String    @db.Uuid
+  resource                String
+  quantity                Int       @default(0)
+  period                  String
+  created_at              DateTime  @default(now()) @db.Timestamptz
+  updated_at              DateTime  @default(now()) @updatedAt @db.Timestamptz
+
+  user                    users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, resource, period])
+  @@index([user_id, period])
+  @@index([resource, period])
+}
+
+// ───────────── Subscriptions & Payments ─────────────
+model subscriptions {
+  id                       String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String             @db.Uuid
+  plan_id                  String             @db.Uuid
+  status                   SubscriptionStatus @default(active)
+  current_period_start     DateTime           @default(now()) @db.Timestamptz
+  current_period_end       DateTime           @db.Timestamptz
+  cancel_at_period_end     Boolean            @default(false)
+  provider                 String             @default("manual")
+  provider_subscription_id String?
+  created_at               DateTime           @default(now()) @db.Timestamptz
+  updated_at               DateTime           @updatedAt @db.Timestamptz
+
+  user                     users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  plan                     plans              @relation(fields: [plan_id], references: [id], onDelete: Restrict)
+  payments                 payments[]
+
+  @@index([user_id])
+  @@index([status])
+  @@index([current_period_end])
+}
+
+model payments {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String         @db.Uuid
+  subscription_id     String?        @db.Uuid
+  amount              Decimal        @db.Decimal(10, 2)
+  currency            String         @default("USD")
+  status              PaymentStatus  @default(succeeded)
+  provider            String         @default("manual")
+  provider_payment_id String?
+  invoice_number      String         @unique
+  paid_at             DateTime?      @db.Timestamptz
+  method_details      Json?
+  refunded_at         DateTime?      @db.Timestamptz
+  refund_reason       String?
+  created_at          DateTime       @default(now()) @db.Timestamptz
+  updated_at          DateTime       @updatedAt @db.Timestamptz
+
+  user                users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  subscription        subscriptions? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([status])
+  @@index([invoice_number])
+  @@index([provider_payment_id])
+}
+
+model processed_webhook_events {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider     String
+  event_id     String
+  event_type   String
+  processed_at DateTime @default(now()) @db.Timestamptz
+  payload      Json?
+
+  @@unique([provider, event_id])
+}
+
+

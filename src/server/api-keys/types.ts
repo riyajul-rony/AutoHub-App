@@ -1,8 +1,12 @@
 import { z } from "zod";
 
+export const apiKeyProviderEnum = z.enum(["bright_data", "openai"]);
+export type ApiKeyProviderType = z.infer<typeof apiKeyProviderEnum>;
+
 export const apiKeyInputSchema = z.object({
+  provider: apiKeyProviderEnum.default("bright_data"),
   label: z.string().trim().min(1, "Label is required").max(60),
-  key: z.string().trim().startsWith("sk-", "OpenAI key must start with 'sk-'"),
+  key: z.string().trim().min(8, "API Key must be at least 8 characters"),
 });
 
 export type ApiKeyInput = z.infer<typeof apiKeyInputSchema>;

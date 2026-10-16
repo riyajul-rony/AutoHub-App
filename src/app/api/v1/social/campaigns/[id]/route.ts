@@ -6,14 +6,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -38,14 +31,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

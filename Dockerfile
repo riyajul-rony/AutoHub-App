@@ -1,35 +1,38 @@
 # Multi-stage production build for AutoHub web & worker
-FROM node:24-alpine AS base
-WORKDIR /app
-RUN apk add --no-cache libc6-compat
-ENV NODE_ENV=production
+# Fast, lightweight Node.js Debian-slim image
 
-# 1. Dependencies layer
-FROM base AS deps
+# 1. Node production dependencies
+FROM node:24-bookworm-slim AS deps
+WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts
-# Re-install prisma CLI locally for migrations in builder/runner
 RUN npm install -D prisma@7.10.0
 
-# 2. Builder layer
-FROM base AS builder
+# 2. Next.js app builder
+FROM node:24-bookworm-slim AS builder
+WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-# 3. Production runner
-FROM base AS runner
+# 3. Final Debian-based production runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
+ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# Install tini process supervisor and curl for healthchecks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    tini \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy runtime assets and built output
+# Copy built Next.js artifacts and dependencies
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
@@ -37,11 +40,14 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src ./src
 
-# Create uploads folder and permissions
-RUN mkdir -p /data/uploads /data/backups && \
-    chown -R nextjs:nodejs /data /app
+# Copy entrypoint script
+COPY docker/entrypoint.sh /app/docker/entrypoint.sh
+RUN chmod +x /app/docker/entrypoint.sh
 
-USER nextjs
+# Create persistent directories for uploads and backups
+RUN mkdir -p /data/uploads /data/backups
+
 EXPOSE 3000
 
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/docker/entrypoint.sh"]
 CMD ["node_modules/.bin/next", "start"]

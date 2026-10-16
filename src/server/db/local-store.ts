@@ -4,55 +4,245 @@ import path from "path";
 const DATA_DIR = path.resolve(process.cwd(), "data");
 const STORE_PATH = path.resolve(DATA_DIR, "dev_store.json");
 
+const DEFAULT_ADMIN_USER = {
+  id: "00000000-0000-0000-0000-000000000001",
+  email: "admin@example.com",
+  name: "Admin User",
+  password_hash: "$argon2id$v=19$m=19456,t=2,p=1$placeholder",
+  email_verified_at: new Date("2026-01-01T00:00:00.000Z"),
+  onboarded_at: new Date("2026-01-01T00:00:00.000Z"),
+  role: "super_admin",
+  status: "active",
+  plan: "free",
+  timezone: "Asia/Dhaka",
+};
+
 interface StoreSchema {
+  users: any[];
+  sessions: any[];
   api_keys: any[];
   social_accounts: any[];
   social_campaigns: any[];
   post_runs: any[];
+  email_accounts: any[];
+  outreach_campaigns: any[];
+  campaign_recipients: any[];
+  email_messages: any[];
+  followup_sequences: any[];
+  suppressions: any[];
+  lead_searches: any[];
+  leads: any[];
+  admin_audit_logs: any[];
+  activity_logs: any[];
+  plans: any[];
+  user_limit_overrides: any[];
+  usage_counters: any[];
+  subscriptions: any[];
+  payments: any[];
+  processed_webhook_events: any[];
+  error_logs: any[];
+  system_settings: any[];
 }
 
 function getInitialStore(): StoreSchema {
   return {
+    users: [{ ...DEFAULT_ADMIN_USER }],
+    sessions: [],
     api_keys: [],
     social_accounts: [],
     social_campaigns: [],
     post_runs: [],
+    email_accounts: [],
+    outreach_campaigns: [],
+    campaign_recipients: [],
+    email_messages: [],
+    followup_sequences: [],
+    suppressions: [],
+    lead_searches: [],
+    leads: [],
+    admin_audit_logs: [],
+    activity_logs: [],
+    plans: [],
+    user_limit_overrides: [],
+    usage_counters: [],
+    subscriptions: [],
+    payments: [],
+    processed_webhook_events: [],
+    error_logs: [],
+    system_settings: [],
   };
 }
 
 let inMemoryStore: StoreSchema | null = null;
 
 function loadStore(): StoreSchema {
-  if (inMemoryStore) return inMemoryStore;
+  if (process.env.NODE_ENV === "test") {
+    if (!inMemoryStore) {
+      inMemoryStore = getInitialStore();
+    }
+    return inMemoryStore;
+  }
+
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     if (fs.existsSync(STORE_PATH)) {
       const raw = fs.readFileSync(STORE_PATH, "utf8");
-      inMemoryStore = { ...getInitialStore(), ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      inMemoryStore = {
+        ...getInitialStore(),
+        ...parsed,
+        users: parsed.users?.length ? parsed.users : [{ ...DEFAULT_ADMIN_USER }],
+        sessions: parsed.sessions || [],
+        api_keys: parsed.api_keys || [],
+        social_accounts: parsed.social_accounts || [],
+        social_campaigns: parsed.social_campaigns || [],
+        post_runs: parsed.post_runs || [],
+        email_accounts: parsed.email_accounts || [],
+        outreach_campaigns: parsed.outreach_campaigns || [],
+        campaign_recipients: parsed.campaign_recipients || [],
+        email_messages: parsed.email_messages || [],
+        followup_sequences: parsed.followup_sequences || [],
+        suppressions: parsed.suppressions || [],
+        lead_searches: parsed.lead_searches || [],
+        leads: parsed.leads || [],
+        admin_audit_logs: parsed.admin_audit_logs || [],
+        activity_logs: parsed.activity_logs || [],
+        plans: parsed.plans || [],
+        user_limit_overrides: parsed.user_limit_overrides || [],
+        usage_counters: parsed.usage_counters || [],
+        subscriptions: parsed.subscriptions || [],
+        payments: parsed.payments || [],
+        processed_webhook_events: parsed.processed_webhook_events || [],
+        error_logs: parsed.error_logs || [],
+        system_settings: parsed.system_settings || [],
+      };
       return inMemoryStore!;
     }
   } catch (err) {
     console.warn("[LocalDevStore] Error loading local store, using default", err);
   }
   inMemoryStore = getInitialStore();
-  saveStore();
-  return inMemoryStore;
+  saveStore(inMemoryStore);
+  return inMemoryStore!;
 }
 
-function saveStore(): void {
+function saveStore(storeToSave?: StoreSchema): void {
+  if (process.env.NODE_ENV === "test") {
+    return; // Don't write to shared disk file in test mode to avoid concurrency collisions
+  }
+
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
-    fs.writeFileSync(STORE_PATH, JSON.stringify(inMemoryStore, null, 2), "utf8");
+    const data = storeToSave || inMemoryStore || getInitialStore();
+    fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), "utf8");
   } catch (err) {
     console.warn("[LocalDevStore] Failed to persist dev store to disk", err);
   }
 }
 
 export const localDevStore = {
+  // --- Users ---
+  getUsers: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.users) store.users = [{ ...DEFAULT_ADMIN_USER }];
+    return filter ? store.users.filter(filter) : store.users;
+  },
+  findUser: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.users) store.users = [{ ...DEFAULT_ADMIN_USER }];
+    return store.users.find(filter) || null;
+  },
+  saveUser: (item: any) => {
+    const store = loadStore();
+    if (!store.users) store.users = [{ ...DEFAULT_ADMIN_USER }];
+    const idx = store.users.findIndex((u) => u.id === item.id || (u.email && u.email.toLowerCase() === item.email?.toLowerCase()));
+    if (idx >= 0) {
+      store.users[idx] = { ...store.users[idx], ...item };
+      saveStore();
+      return store.users[idx];
+    }
+    const user = {
+      id: item.id || `user_${Date.now()}`,
+      created_at: new Date().toISOString(),
+      role: item.role || "user",
+      status: "active",
+      plan: "free",
+      email_verified_at: new Date().toISOString(),
+      onboarded_at: new Date().toISOString(),
+      ...item,
+    };
+    store.users.unshift(user);
+    saveStore();
+    return user;
+  },
+  updateUser: (id: string, data: any) => {
+    const store = loadStore();
+    if (!store.users) store.users = [{ ...DEFAULT_ADMIN_USER }];
+    const idx = store.users.findIndex((u) => u.id === id);
+    if (idx >= 0) {
+      store.users[idx] = { ...store.users[idx], ...data };
+      saveStore();
+      return store.users[idx];
+    }
+    return null;
+  },
+
+  // --- Sessions ---
+  getSessions: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.sessions) store.sessions = [];
+    return filter ? store.sessions.filter(filter) : store.sessions;
+  },
+  findSession: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.sessions) store.sessions = [];
+    const sess = store.sessions.find(filter);
+    if (!sess) return null;
+    return {
+      ...sess,
+      expires_at: sess.expires_at ? new Date(sess.expires_at) : new Date(Date.now() + 30 * 86400000),
+    };
+  },
+  saveSession: (item: any) => {
+    const store = loadStore();
+    if (!store.sessions) store.sessions = [];
+    const idx = store.sessions.findIndex((s) => s.id === item.id || s.token_hash === item.token_hash);
+    if (idx >= 0) {
+      store.sessions[idx] = { ...store.sessions[idx], ...item };
+      saveStore();
+      return store.sessions[idx];
+    }
+    const sess = {
+      id: item.id || `sess_${Date.now()}`,
+      created_at: new Date().toISOString(),
+      ...item,
+    };
+    store.sessions.unshift(sess);
+    saveStore();
+    return sess;
+  },
+  updateSession: (id: string, data: any) => {
+    const store = loadStore();
+    if (!store.sessions) store.sessions = [];
+    const idx = store.sessions.findIndex((s) => s.id === id);
+    if (idx >= 0) {
+      store.sessions[idx] = { ...store.sessions[idx], ...data };
+      saveStore();
+      return store.sessions[idx];
+    }
+    return null;
+  },
+  deleteSessions: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.sessions) store.sessions = [];
+    store.sessions = store.sessions.filter((s) => !filter(s));
+    saveStore();
+  },
+
   // --- Social Accounts ---
   getSocialAccounts: (filter?: (item: any) => boolean) => {
     const store = loadStore();
@@ -78,9 +268,11 @@ export const localDevStore = {
     saveStore();
     return idx >= 0 ? store.social_accounts[idx] : store.social_accounts[store.social_accounts.length - 1];
   },
-  deleteSocialAccount: (id: string) => {
+  deleteSocialAccount: (id: string, userId?: string) => {
     const store = loadStore();
-    store.social_accounts = store.social_accounts.filter((a) => a.id !== id);
+    store.social_accounts = store.social_accounts.filter(
+      (a) => !(a.id === id && (!userId || a.user_id === userId))
+    );
     saveStore();
   },
 
@@ -110,9 +302,11 @@ export const localDevStore = {
     saveStore();
     return idx >= 0 ? store.social_campaigns[idx] : store.social_campaigns[0];
   },
-  deleteCampaign: (id: string) => {
+  deleteCampaign: (id: string, userId?: string) => {
     const store = loadStore();
-    store.social_campaigns = store.social_campaigns.filter((c) => c.id !== id);
+    store.social_campaigns = store.social_campaigns.filter(
+      (c) => !(c.id === id && (!userId || c.user_id === userId))
+    );
     store.post_runs = store.post_runs.filter((p) => p.campaign_id !== id);
     saveStore();
   },
@@ -142,9 +336,11 @@ export const localDevStore = {
     saveStore();
     return idx >= 0 ? store.post_runs[idx] : store.post_runs[0];
   },
-  deletePostRun: (id: string) => {
+  deletePostRun: (id: string, userId?: string) => {
     const store = loadStore();
-    store.post_runs = store.post_runs.filter((p) => p.id !== id);
+    store.post_runs = store.post_runs.filter(
+      (p) => !(p.id === id && (!userId || p.user_id === userId))
+    );
     saveStore();
   },
 
@@ -177,5 +373,681 @@ export const localDevStore = {
     const store = loadStore();
     store.api_keys = store.api_keys.filter((k) => k.id !== id);
     saveStore();
+  },
+
+  // --- Email Accounts ---
+  getEmailAccounts: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.email_accounts) store.email_accounts = [];
+    return filter ? store.email_accounts.filter(filter) : store.email_accounts;
+  },
+  findEmailAccount: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.email_accounts) store.email_accounts = [];
+    return store.email_accounts.find(filter) || null;
+  },
+  saveEmailAccount: (item: any) => {
+    const store = loadStore();
+    if (!store.email_accounts) store.email_accounts = [];
+    const idx = store.email_accounts.findIndex((a) => a.id === item.id || (a.user_id === item.user_id && a.from_email === item.from_email));
+    if (idx >= 0) {
+      store.email_accounts[idx] = { ...store.email_accounts[idx], ...item, updated_at: new Date().toISOString() };
+    } else {
+      store.email_accounts.unshift({
+        id: item.id || `ea-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        status: item.status || "active",
+        hourly_limit: item.hourly_limit ?? 25,
+        daily_limit: item.daily_limit ?? 150,
+        ...item,
+      });
+    }
+    saveStore();
+    return idx >= 0 ? store.email_accounts[idx] : store.email_accounts[0];
+  },
+  deleteEmailAccount: (id: string) => {
+    const store = loadStore();
+    if (!store.email_accounts) store.email_accounts = [];
+    store.email_accounts = store.email_accounts.filter((a) => a.id !== id);
+    saveStore();
+  },
+
+  // --- Outreach Campaigns ---
+  getOutreachCampaigns: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.outreach_campaigns) store.outreach_campaigns = [];
+    return filter ? store.outreach_campaigns.filter(filter) : store.outreach_campaigns;
+  },
+  findOutreachCampaign: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.outreach_campaigns) store.outreach_campaigns = [];
+    return store.outreach_campaigns.find(filter) || null;
+  },
+  saveOutreachCampaign: (item: any) => {
+    const store = loadStore();
+    if (!store.outreach_campaigns) store.outreach_campaigns = [];
+    const idx = store.outreach_campaigns.findIndex((c) => c.id === item.id);
+    if (idx >= 0) {
+      store.outreach_campaigns[idx] = { ...store.outreach_campaigns[idx], ...item, updated_at: new Date().toISOString() };
+    } else {
+      store.outreach_campaigns.unshift({
+        id: item.id || `oc-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: item.status || "draft",
+        ...item,
+      });
+    }
+    saveStore();
+    return idx >= 0 ? store.outreach_campaigns[idx] : store.outreach_campaigns[0];
+  },
+  deleteOutreachCampaign: (id: string) => {
+    const store = loadStore();
+    if (!store.outreach_campaigns) store.outreach_campaigns = [];
+    store.outreach_campaigns = store.outreach_campaigns.filter((c) => c.id !== id);
+    saveStore();
+  },
+
+  // --- Campaign Recipients ---
+  getRecipients: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.campaign_recipients) store.campaign_recipients = [];
+    return filter ? store.campaign_recipients.filter(filter) : store.campaign_recipients;
+  },
+  findRecipient: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.campaign_recipients) store.campaign_recipients = [];
+    return store.campaign_recipients.find(filter) || null;
+  },
+  saveRecipient: (item: any) => {
+    const store = loadStore();
+    if (!store.campaign_recipients) store.campaign_recipients = [];
+    const idx = store.campaign_recipients.findIndex((r) => r.id === item.id);
+    if (idx >= 0) {
+      store.campaign_recipients[idx] = { ...store.campaign_recipients[idx], ...item };
+    } else {
+      store.campaign_recipients.push({
+        id: item.id || `cr-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        status: item.status || "queued",
+        current_step: 0,
+        ...item,
+      });
+    }
+    saveStore();
+    return idx >= 0 ? store.campaign_recipients[idx] : store.campaign_recipients[store.campaign_recipients.length - 1];
+  },
+
+  // --- Suppressions ---
+  getSuppressions: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.suppressions) store.suppressions = [];
+    return filter ? store.suppressions.filter(filter) : store.suppressions;
+  },
+  saveSuppression: (item: any) => {
+    const store = loadStore();
+    if (!store.suppressions) store.suppressions = [];
+    const idx = store.suppressions.findIndex((s) => s.user_id === item.user_id && s.email === item.email);
+    if (idx < 0) {
+      store.suppressions.push({
+        id: item.id || `sup-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        ...item,
+      });
+    }
+    saveStore();
+    return item;
+  },
+
+  // --- Lead Searches ---
+  getLeadSearches: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.lead_searches) store.lead_searches = [];
+    return filter ? store.lead_searches.filter(filter) : store.lead_searches;
+  },
+  findLeadSearch: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.lead_searches) store.lead_searches = [];
+    return store.lead_searches.find(filter) || null;
+  },
+  saveLeadSearch: (item: any) => {
+    const store = loadStore();
+    if (!store.lead_searches) store.lead_searches = [];
+    const idx = store.lead_searches.findIndex((s) => s.id === item.id);
+    if (idx >= 0) {
+      store.lead_searches[idx] = { ...store.lead_searches[idx], ...item };
+    } else {
+      store.lead_searches.unshift({
+        id: item.id || `ls-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        status: item.status || "queued",
+        found_count: 0,
+        enriched_count: 0,
+        ...item,
+      });
+    }
+    saveStore();
+    return idx >= 0 ? store.lead_searches[idx] : store.lead_searches[0];
+  },
+
+  // --- Leads ---
+  getLeads: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.leads) store.leads = [];
+    return filter ? store.leads.filter(filter) : store.leads;
+  },
+  findLead: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.leads) store.leads = [];
+    return store.leads.find(filter) || null;
+  },
+  saveLead: (item: any) => {
+    const store = loadStore();
+    if (!store.leads) store.leads = [];
+    // Deduplicate by user_id and dedupe_key (when present)
+    const idx = store.leads.findIndex(
+      (l) => l.user_id === item.user_id && Boolean(item.dedupe_key) && l.dedupe_key === item.dedupe_key
+    );
+    if (idx >= 0) {
+      store.leads[idx] = { ...store.leads[idx], ...item };
+      saveStore();
+      return store.leads[idx];
+    }
+    const newLead = {
+      id: item.id || `lead-${Math.random().toString(36).slice(2, 10)}`,
+      collected_at: new Date().toISOString(),
+      status: item.status || "new",
+      ...item,
+    };
+    store.leads.unshift(newLead);
+    saveStore();
+    return newLead;
+  },
+  updateLead: (id: string, data: any) => {
+    const store = loadStore();
+    if (!store.leads) store.leads = [];
+    const idx = store.leads.findIndex((l) => l.id === id);
+    if (idx >= 0) {
+      store.leads[idx] = { ...store.leads[idx], ...data, updated_at: new Date().toISOString() };
+      saveStore();
+      return store.leads[idx];
+    }
+    return null;
+  },
+
+  // --- Email Messages ---
+  getEmailMessages: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.email_messages) store.email_messages = [];
+    return filter ? store.email_messages.filter(filter) : store.email_messages;
+  },
+  saveEmailMessage: (item: any) => {
+    const store = loadStore();
+    if (!store.email_messages) store.email_messages = [];
+    const msg = {
+      id: item.id || `msg-${Math.random().toString(36).slice(2, 10)}`,
+      created_at: new Date().toISOString(),
+      sent_at: item.sent_at || new Date().toISOString(),
+      ...item,
+    };
+    store.email_messages.unshift(msg);
+    saveStore();
+    return msg;
+  },
+
+  // --- Followup Sequences ---
+  getFollowupSequences: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.followup_sequences) store.followup_sequences = [];
+    return filter ? store.followup_sequences.filter(filter) : store.followup_sequences;
+  },
+  findFollowupSequence: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.followup_sequences) store.followup_sequences = [];
+    return store.followup_sequences.find(filter) || null;
+  },
+  saveFollowupSequence: (item: any) => {
+    const store = loadStore();
+    if (!store.followup_sequences) store.followup_sequences = [];
+    const idx = store.followup_sequences.findIndex(
+      (s) => s.id === item.id || (s.campaign_id && s.campaign_id === item.campaign_id)
+    );
+    if (idx >= 0) {
+      store.followup_sequences[idx] = { ...store.followup_sequences[idx], ...item };
+    } else {
+      store.followup_sequences.unshift({
+        id: item.id || `seq-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        status: item.status || "active",
+        steps: [],
+        ...item,
+      });
+    }
+    saveStore();
+    return idx >= 0 ? store.followup_sequences[idx] : store.followup_sequences[0];
+  },
+  getAuditLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.admin_audit_logs) store.admin_audit_logs = [];
+    return filter ? store.admin_audit_logs.filter(filter) : store.admin_audit_logs;
+  },
+  saveAuditLog: (log: any) => {
+    const store = loadStore();
+    if (!store.admin_audit_logs) store.admin_audit_logs = [];
+    const item = {
+      id: log.id || `audit_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      created_at: new Date(),
+      ...log,
+    };
+    store.admin_audit_logs.unshift(item);
+    saveStore();
+    return item;
+  },
+  deleteAuditLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.admin_audit_logs) store.admin_audit_logs = [];
+    if (!filter) {
+      const count = store.admin_audit_logs.length;
+      store.admin_audit_logs = [];
+      saveStore();
+      return { count };
+    }
+    const beforeCount = store.admin_audit_logs.length;
+    store.admin_audit_logs = store.admin_audit_logs.filter((item) => !filter(item));
+    saveStore();
+    return { count: beforeCount - store.admin_audit_logs.length };
+  },
+
+  // --- Activity Logs ---
+  getActivityLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.activity_logs) store.activity_logs = [];
+    return filter ? store.activity_logs.filter(filter) : [...store.activity_logs];
+  },
+  saveActivityLog: (log: any) => {
+    const store = loadStore();
+    if (!store.activity_logs) store.activity_logs = [];
+    const item = {
+      id: log.id || `act_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      created_at: new Date().toISOString(),
+      ...log,
+    };
+    store.activity_logs.unshift(item);
+    saveStore();
+    return item;
+  },
+  deleteActivityLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.activity_logs) store.activity_logs = [];
+    if (!filter) {
+      const count = store.activity_logs.length;
+      store.activity_logs = [];
+      saveStore();
+      return { count };
+    }
+    const beforeCount = store.activity_logs.length;
+    store.activity_logs = store.activity_logs.filter((item) => !filter(item));
+    saveStore();
+    return { count: beforeCount - store.activity_logs.length };
+  },
+
+  // --- Plans & Limits ---
+  getPlans: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.plans) store.plans = [];
+    return filter ? store.plans.filter(filter) : store.plans;
+  },
+  findPlan: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.plans) store.plans = [];
+    return store.plans.find(filter) || null;
+  },
+  savePlan: (item: any) => {
+    const store = loadStore();
+    if (!store.plans) store.plans = [];
+    const idx = store.plans.findIndex((p) => p.id === item.id || (p.slug && p.slug === item.slug));
+    if (idx >= 0) {
+      store.plans[idx] = { ...store.plans[idx], ...item, updated_at: new Date().toISOString() };
+      saveStore();
+      return store.plans[idx];
+    }
+    const newPlan = {
+      id: item.id || `plan_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_active: item.is_active !== undefined ? item.is_active : true,
+      features: item.features || [],
+      monthly_leads: item.monthly_leads ?? 100,
+      monthly_social_posts: item.monthly_social_posts ?? 30,
+      monthly_outreach_emails: item.monthly_outreach_emails ?? 100,
+      max_social_accounts: item.max_social_accounts ?? 2,
+      max_email_accounts: item.max_email_accounts ?? 1,
+      max_campaigns: item.max_campaigns ?? 2,
+      ...item,
+    };
+    store.plans.push(newPlan);
+    saveStore();
+    return newPlan;
+  },
+  updatePlan: (id: string, data: any) => {
+    const store = loadStore();
+    if (!store.plans) store.plans = [];
+    const idx = store.plans.findIndex((p) => p.id === id || p.slug === id);
+    if (idx >= 0) {
+      store.plans[idx] = { ...store.plans[idx], ...data, updated_at: new Date().toISOString() };
+      saveStore();
+      return store.plans[idx];
+    }
+    return null;
+  },
+  deletePlan: (id: string) => {
+    const store = loadStore();
+    if (!store.plans) store.plans = [];
+    const idx = store.plans.findIndex((p) => p.id === id || p.slug === id);
+    if (idx >= 0) {
+      const removed = store.plans.splice(idx, 1)[0];
+      saveStore();
+      return removed;
+    }
+    return null;
+  },
+
+  // --- User Limit Overrides ---
+  getUserLimitOverrides: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.user_limit_overrides) store.user_limit_overrides = [];
+    return filter ? store.user_limit_overrides.filter(filter) : store.user_limit_overrides;
+  },
+  findUserLimitOverride: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.user_limit_overrides) store.user_limit_overrides = [];
+    return store.user_limit_overrides.find(filter) || null;
+  },
+  saveUserLimitOverride: (item: any) => {
+    const store = loadStore();
+    if (!store.user_limit_overrides) store.user_limit_overrides = [];
+    const idx = store.user_limit_overrides.findIndex((o) => o.user_id === item.user_id);
+    if (idx >= 0) {
+      store.user_limit_overrides[idx] = { ...store.user_limit_overrides[idx], ...item, updated_at: new Date().toISOString() };
+      saveStore();
+      return store.user_limit_overrides[idx];
+    }
+    const newOverride = {
+      id: item.id || `ovr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...item,
+    };
+    store.user_limit_overrides.push(newOverride);
+    saveStore();
+    return newOverride;
+  },
+  deleteUserLimitOverride: (userId: string) => {
+    const store = loadStore();
+    if (!store.user_limit_overrides) store.user_limit_overrides = [];
+    const idx = store.user_limit_overrides.findIndex((o) => o.user_id === userId);
+    if (idx >= 0) {
+      const removed = store.user_limit_overrides.splice(idx, 1)[0];
+      saveStore();
+      return removed;
+    }
+    return null;
+  },
+
+  // --- Usage Counters ---
+  getUsageCounters: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.usage_counters) store.usage_counters = [];
+    return filter ? store.usage_counters.filter(filter) : store.usage_counters;
+  },
+  findUsageCounter: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.usage_counters) store.usage_counters = [];
+    return store.usage_counters.find(filter) || null;
+  },
+  saveUsageCounter: (item: any) => {
+    const store = loadStore();
+    if (!store.usage_counters) store.usage_counters = [];
+    const idx = store.usage_counters.findIndex(
+      (c) =>
+        (item.id && c.id === item.id) ||
+        (c.user_id === item.user_id && c.resource === item.resource && c.period === item.period)
+    );
+    if (idx >= 0) {
+      store.usage_counters[idx] = {
+        ...store.usage_counters[idx],
+        ...item,
+        updated_at: new Date().toISOString(),
+      };
+      saveStore();
+      return store.usage_counters[idx];
+    }
+    const newCounter = {
+      id: item.id || `uc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      quantity: item.quantity || 0,
+      ...item,
+    };
+    store.usage_counters.push(newCounter);
+    saveStore();
+    return newCounter;
+  },
+  incrementUsageCounter: (userId: string, resource: string, period: string, amount: number) => {
+    const store = loadStore();
+    if (!store.usage_counters) store.usage_counters = [];
+    const idx = store.usage_counters.findIndex(
+      (c) => c.user_id === userId && c.resource === resource && c.period === period
+    );
+    if (idx >= 0) {
+      store.usage_counters[idx].quantity = (store.usage_counters[idx].quantity || 0) + amount;
+      store.usage_counters[idx].updated_at = new Date().toISOString();
+      saveStore();
+      return store.usage_counters[idx];
+    }
+    const newCounter = {
+      id: `uc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      user_id: userId,
+      resource,
+      period,
+      quantity: amount,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    store.usage_counters.push(newCounter);
+    saveStore();
+    return newCounter;
+  },
+  deleteUsageCounters: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.usage_counters) store.usage_counters = [];
+    if (!filter) {
+      const count = store.usage_counters.length;
+      store.usage_counters = [];
+      saveStore();
+      return { count };
+    }
+    const beforeCount = store.usage_counters.length;
+    store.usage_counters = store.usage_counters.filter((item) => !filter(item));
+    saveStore();
+    return { count: beforeCount - store.usage_counters.length };
+  },
+
+  // Subscriptions
+  getSubscriptions: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.subscriptions) store.subscriptions = [];
+    return filter ? store.subscriptions.filter(filter) : [...store.subscriptions];
+  },
+  findSubscription: (predicate: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.subscriptions) store.subscriptions = [];
+    return store.subscriptions.find(predicate) || null;
+  },
+  saveSubscription: (item: any) => {
+    const store = loadStore();
+    if (!store.subscriptions) store.subscriptions = [];
+    const idx = store.subscriptions.findIndex((s) => s.id === item.id);
+    if (idx >= 0) {
+      store.subscriptions[idx] = {
+        ...store.subscriptions[idx],
+        ...item,
+        updated_at: new Date().toISOString(),
+      };
+      saveStore();
+      return store.subscriptions[idx];
+    }
+    const newSub = {
+      id: item.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      status: item.status || "active",
+      cancel_at_period_end: Boolean(item.cancel_at_period_end),
+      provider: item.provider || "manual",
+      ...item,
+    };
+    store.subscriptions.push(newSub);
+    saveStore();
+    return newSub;
+  },
+  deleteSubscription: (id: string) => {
+    const store = loadStore();
+    if (!store.subscriptions) store.subscriptions = [];
+    store.subscriptions = store.subscriptions.filter((s) => s.id !== id);
+    saveStore();
+  },
+
+  // Payments
+  getPayments: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.payments) store.payments = [];
+    return filter ? store.payments.filter(filter) : [...store.payments];
+  },
+  findPayment: (predicate: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.payments) store.payments = [];
+    return store.payments.find(predicate) || null;
+  },
+  savePayment: (item: any) => {
+    const store = loadStore();
+    if (!store.payments) store.payments = [];
+    const idx = store.payments.findIndex((p) => p.id === item.id || (item.invoice_number && p.invoice_number === item.invoice_number));
+    if (idx >= 0) {
+      store.payments[idx] = {
+        ...store.payments[idx],
+        ...item,
+        updated_at: new Date().toISOString(),
+      };
+      saveStore();
+      return store.payments[idx];
+    }
+    const newPayment = {
+      id: item.id || `pay_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      invoice_number: item.invoice_number || `INV-${new Date().toISOString().slice(0, 7).replace("-", "")}-${Math.floor(1000 + Math.random() * 9000)}`,
+      currency: item.currency || "USD",
+      status: item.status || "succeeded",
+      provider: item.provider || "manual",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...item,
+    };
+    store.payments.push(newPayment);
+    saveStore();
+    return newPayment;
+  },
+
+  // Processed Webhooks
+  findProcessedEvent: (predicate: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.processed_webhook_events) store.processed_webhook_events = [];
+    return store.processed_webhook_events.find(predicate) || null;
+  },
+  saveProcessedEvent: (item: any) => {
+    const store = loadStore();
+    if (!store.processed_webhook_events) store.processed_webhook_events = [];
+    const newEvent = {
+      id: item.id || `pwe_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      processed_at: new Date().toISOString(),
+      ...item,
+    };
+    store.processed_webhook_events.push(newEvent);
+    saveStore();
+    return newEvent;
+  },
+
+  // Error Logs
+  getErrorLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.error_logs) store.error_logs = [];
+    return filter ? store.error_logs.filter(filter) : [...store.error_logs];
+  },
+  findErrorLog: (predicate: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.error_logs) store.error_logs = [];
+    return store.error_logs.find(predicate) || null;
+  },
+  saveErrorLog: (item: any) => {
+    const store = loadStore();
+    if (!store.error_logs) store.error_logs = [];
+    const newLog = {
+      id: item.id || `err_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      created_at: new Date().toISOString(),
+      ...item,
+    };
+    store.error_logs.push(newLog);
+    saveStore();
+    return newLog;
+  },
+  updateErrorLog: (id: string, updates: any) => {
+    const store = loadStore();
+    if (!store.error_logs) store.error_logs = [];
+    const idx = store.error_logs.findIndex((l) => l.id === id);
+    if (idx < 0) return null;
+    store.error_logs[idx] = { ...store.error_logs[idx], ...updates };
+    saveStore();
+    return store.error_logs[idx];
+  },
+  deleteErrorLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.error_logs) store.error_logs = [];
+    if (!filter) {
+      const count = store.error_logs.length;
+      store.error_logs = [];
+      saveStore();
+      return { count };
+    }
+    const beforeCount = store.error_logs.length;
+    store.error_logs = store.error_logs.filter((item) => !filter(item));
+    saveStore();
+    return { count: beforeCount - store.error_logs.length };
+  },
+
+  // System Settings
+  getSystemSettings: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.system_settings) store.system_settings = [];
+    return filter ? store.system_settings.filter(filter) : [...store.system_settings];
+  },
+  findSystemSetting: (predicate: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.system_settings) store.system_settings = [];
+    return store.system_settings.find(predicate) || null;
+  },
+  upsertSystemSetting: (key: string, data: { value_enc: string }) => {
+    const store = loadStore();
+    if (!store.system_settings) store.system_settings = [];
+    const idx = store.system_settings.findIndex((s) => s.key === key);
+    const item = {
+      key,
+      value_enc: data.value_enc,
+      updated_at: new Date().toISOString(),
+    };
+    if (idx >= 0) {
+      store.system_settings[idx] = item;
+    } else {
+      store.system_settings.push(item);
+    }
+    saveStore();
+    return item;
   },
 };

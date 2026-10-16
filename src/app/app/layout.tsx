@@ -1,60 +1,101 @@
+import React from "react";
 import Link from "next/link";
-import { LayoutDashboard, Home, Settings, Bell, Zap, MessageSquareReply } from "lucide-react";
-import { MODULES } from "@/lib/modules";
+import {
+  Home,
+  LayoutDashboard,
+  Share2,
+  Search,
+  Mail,
+  Repeat2,
+  MessageSquareReply,
+  Settings,
+  Shield,
+  User,
+} from "lucide-react";
+import { getSessionUser } from "@/server/auth/session";
+import { isAdminRole } from "@/server/auth/permissions";
+import { SidebarProvider, Sidebar, Topbar, NavSection } from "@/components/ui";
 
-const nav = [
-  { href: "/app", label: "Hub", icon: Home },
-  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  ...MODULES.map((m) => ({ href: m.href, label: m.title.replace("Social Media Auto Post", "Social Auto Post"), icon: m.icon })),
-  { href: "/app/replies", label: "Replies", icon: MessageSquareReply },
-  { href: "/app/settings/profile", label: "Settings", icon: Settings },
-];
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSessionUser();
+  const isAdmin = isAdminRole(session?.user?.role);
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const sections: NavSection[] = [
+    {
+      title: "Workspace",
+      items: [
+        { id: "hub", label: "Hub", href: "/app", icon: <Home className="w-4 h-4" strokeWidth={1.5} /> },
+        { id: "dashboard", label: "Dashboard", href: "/app/dashboard", icon: <LayoutDashboard className="w-4 h-4" strokeWidth={1.5} /> },
+      ],
+    },
+    {
+      title: "Automations",
+      items: [
+        { id: "social", label: "Social Auto Post", href: "/app/social", icon: <Share2 className="w-4 h-4" strokeWidth={1.5} /> },
+        { id: "leads", label: "Lead Generation", href: "/app/leads", icon: <Search className="w-4 h-4" strokeWidth={1.5} /> },
+        { id: "outreach", label: "Cold Outreach", href: "/app/outreach", icon: <Mail className="w-4 h-4" strokeWidth={1.5} /> },
+        { id: "followup", label: "Follow-up", href: "/app/followup", icon: <Repeat2 className="w-4 h-4" strokeWidth={1.5} /> },
+      ],
+    },
+    {
+      title: "Communications",
+      items: [
+        { id: "replies", label: "Inbox & Replies", href: "/app/replies", icon: <MessageSquareReply className="w-4 h-4" strokeWidth={1.5} /> },
+      ],
+    },
+    {
+      title: "Settings",
+      items: [
+        { id: "settings", label: "Account Settings", href: "/app/settings/profile", icon: <Settings className="w-4 h-4" strokeWidth={1.5} /> },
+      ],
+    },
+  ];
+
+  if (isAdmin) {
+    sections.push({
+      title: "Administration",
+      items: [
+        {
+          id: "admin-panel",
+          label: "Control Center",
+          href: "/admin",
+          icon: <Shield className="w-4 h-4 text-accent" strokeWidth={1.5} />,
+          badge: "Staff",
+        },
+      ],
+    });
+  }
+
+  const userInitial = session?.user?.name ? session.user.name.charAt(0).toUpperCase() : "U";
+
   return (
-    <div className="flex min-h-screen">
-      <aside className="glass hidden w-64 shrink-0 flex-col gap-1 border-r p-4 md:flex" aria-label="Sidebar">
-        <Link href="/app" className="mb-6 flex items-center gap-2 px-2 py-1 text-xl font-bold">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-brand-2">
-            <Zap size={18} />
-          </span>
-          <span className="gradient-text">AutoHub</span>
-        </Link>
-        {nav.map((n) => (
-          <Link
-            key={n.href}
-            id={`nav-${n.label.toLowerCase().replace(/\s+/g, "-")}`}
-            href={n.href}
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted transition hover:bg-surface-2 hover:text-fg"
-          >
-            <n.icon size={18} />
-            {n.label}
-          </Link>
-        ))}
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between px-6 py-4">
-          <details className="md:hidden">
-            <summary className="btn btn-ghost list-none" aria-label="Open menu">☰ Menu</summary>
-            <nav className="glass absolute z-20 mt-2 w-60 rounded-2xl p-2">
-              {nav.map((n) => (
-                <Link key={n.href} href={n.href} className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-surface-2">
-                  <n.icon size={16} /> {n.label}
-                </Link>
-              ))}
-            </nav>
-          </details>
-          <div className="ml-auto flex items-center gap-3">
-            <button id="notif-bell" className="btn btn-ghost !p-2.5" aria-label="Notifications">
-              <Bell size={18} />
-            </button>
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-brand to-accent-pink font-bold">
-              A
-            </div>
-          </div>
-        </header>
-        <main className="flex-1 px-6 pb-12">{children}</main>
+    <SidebarProvider>
+      <div className="flex min-h-screen bg-bg text-text">
+        {/* Clean 240px Collapsible Sidebar */}
+        <Sidebar sections={sections} />
+
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <Topbar
+            breadcrumbs={[
+              { label: "AutoHub", href: "/app" },
+              { label: "Workspace" },
+            ]}
+            userSlot={
+              <Link
+                href="/app/settings/profile"
+                className="w-8 h-8 rounded-[6px] border border-border bg-surface text-text hover:bg-surface-hover flex items-center justify-center text-xs font-semibold font-mono transition-colors"
+                title={`Signed in as ${session?.user?.email || "User"}`}
+              >
+                {userInitial}
+              </Link>
+            }
+          />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1200px] w-full mx-auto">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

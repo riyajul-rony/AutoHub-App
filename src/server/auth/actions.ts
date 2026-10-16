@@ -61,7 +61,12 @@ export async function signupAction(_: FormState, form: FormData): Promise<FormSt
   const adminEmail = (await getConfig("ADMIN_EMAIL"))?.toLowerCase();
   const isAdmin = userCount === 0 || (!!adminEmail && adminEmail === email);
 
-  if (!isAdmin && (await getRegistrationMode()) === "invite") {
+  const regMode = await getRegistrationMode();
+  if (!isAdmin && regMode === "closed") {
+    return { error: "Registration is currently closed by the administrator." };
+  }
+
+  if (!isAdmin && regMode === "invite") {
     const inv = invite
       ? await db.verification_tokens.findUnique({ where: { token_hash: sha256(invite) } })
       : null;
@@ -72,12 +77,14 @@ export async function signupAction(_: FormState, form: FormData): Promise<FormSt
 
   const existing = await db.users.findUnique({ where: { email } });
   if (!existing) {
+    const defaultPlan = (await getConfig("DEFAULT_PLAN")) || "free";
     const user = await db.users.create({
       data: {
         email,
         name,
         password_hash: await hashPassword(password),
-        role: isAdmin ? "admin" : "user",
+        role: isAdmin ? "super_admin" : "user",
+        plan: defaultPlan,
         workspaces: { create: { name: "Default", is_default: true } },
         user_settings: { create: {} },
       },
@@ -189,5 +196,6 @@ export async function resetPasswordAction(_: FormState, form: FormData): Promise
     db.verification_tokens.update({ where: { id: rec.id }, data: { used_at: new Date() } }),
     db.sessions.deleteMany({ where: { user_id: user.id } }),
   ]);
+  await destroyAllSessions(user.id);
   redirect("/login?reset=1");
 }

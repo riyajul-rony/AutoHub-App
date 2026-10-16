@@ -30,10 +30,11 @@ export function isPrivateIp(ip: string): boolean {
  */
 export async function safeFetch(
   targetUrl: string,
-  options: { timeoutMs?: number; maxBytes?: number; maxRedirects?: number } = {}
+  options: { timeoutMs?: number; maxBytes?: number; maxRedirects?: number; allowLoopback?: boolean } = {}
 ): Promise<string> {
   const timeoutMs = options.timeoutMs ?? 8000;
   const maxBytes = options.maxBytes ?? 2 * 1024 * 1024; // 2MB limit
+  const allowLoopback = options.allowLoopback ?? false;
   let currentUrl = targetUrl;
   let redirects = 0;
   const maxRedirects = options.maxRedirects ?? 3;
@@ -47,7 +48,8 @@ export async function safeFetch(
     // Resolve hostname to IP to verify against SSRF blocklist
     try {
       const lookup = await dns.lookup(parsed.hostname);
-      if (isPrivateIp(lookup.address)) {
+      const isLoopback = lookup.address === "127.0.0.1" || lookup.address === "::1";
+      if (isPrivateIp(lookup.address) && (!allowLoopback || !isLoopback)) {
         throw new Error(`SSRF blocked: Domain resolves to private or metadata IP (${lookup.address})`);
       }
     } catch (dnsErr: any) {

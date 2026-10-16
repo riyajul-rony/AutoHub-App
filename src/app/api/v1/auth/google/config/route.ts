@@ -10,17 +10,16 @@ function encKey(): string | undefined {
   return DEV_KEY_B64;
 }
 
-export async function POST(req: NextRequest) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
+import { hasPermission } from "@/server/auth/permissions";
 
+export async function POST(req: NextRequest) {
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!hasPermission(session.user.role, "settings.manage")) {
+    return NextResponse.json({ error: "Forbidden: settings.manage permission required" }, { status: 403 });
   }
 
   let body: any;

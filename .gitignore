@@ -48,5 +48,6 @@ next-env.d.ts
 # temporary & local scratch
 scratch/
 autohub-tmp/
+webdata/
 *.log
 dev.log

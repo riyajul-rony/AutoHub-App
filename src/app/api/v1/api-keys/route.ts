@@ -4,6 +4,7 @@ import { db, scoped } from "@/server/db";
 import { encrypt, last4 } from "@/server/crypto";
 import { apiKeyInputSchema } from "@/server/api-keys/types";
 import { testOpenAiKey } from "@/server/ai/tester";
+import { testBrightDataKey } from "@/server/api-keys/bright-data-tester";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -47,15 +48,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 422 });
   }
 
-  const { label, key } = parsed.data;
+  const { provider, label, key } = parsed.data;
 
-  // Test the key before saving
-  const testRes = await testOpenAiKey(key);
+  // Test the key connection before saving
+  let testRes: { ok: boolean; error?: string };
+  if (provider === "bright_data") {
+    testRes = await testBrightDataKey(key);
+  } else {
+    testRes = await testOpenAiKey(key);
+  }
 
   const created = await db.api_keys.create({
     data: {
       user_id: session.user.id,
-      provider: "openai",
+      provider,
       label,
       key_enc: encrypt(key),
       key_last4: last4(key),

@@ -1,8 +1,20 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import React, { useState, useActionState } from "react";
 import { submitOnboardingAction } from "@/server/onboarding/actions";
-import { Zap, Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Button,
+  Input,
+  Select,
+  Checkbox,
+  ThemeToggle,
+} from "@/components/ui";
 
 const CATEGORIES = [
   "Real Estate",
@@ -22,8 +34,8 @@ const CATEGORIES = [
 const MODULE_OPTIONS = [
   { id: "social", label: "Social Media Auto Post", desc: "AI image & caption generation posted on schedule" },
   { id: "leads", label: "Lead Generation", desc: "Find qualified business leads and export to Sheet/CSV" },
-  { id: "outreach", label: "Outreach", desc: "Cold email campaigns with sender account rotation" },
-  { id: "followup", label: "Followup", desc: "Automated sequence replies until response received" },
+  { id: "outreach", label: "Cold Outreach", desc: "Cold email campaigns with sender account rotation" },
+  { id: "followup", label: "Smart Follow-up", desc: "Automated sequence replies until response received" },
 ];
 
 export function OnboardingWizard({
@@ -50,36 +62,59 @@ export function OnboardingWizard({
   };
 
   return (
-    <div className="mx-auto max-w-xl">
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-brand-2">
-          <Zap size={24} />
+    <div className="w-full max-w-xl mx-auto space-y-6">
+      {/* Top Header with Brand & Theme Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 font-semibold text-text text-sm tracking-tight select-none">
+          <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
+            A
+          </span>
+          <span>AutoHub Workspace Setup</span>
         </div>
-        <h1 className="text-3xl font-bold">Welcome to AutoHub</h1>
-        <p className="mt-2 text-sm text-muted">Complete these 3 quick steps to set up your workspace.</p>
-
-        {/* Steps indicator */}
-        <div className="mt-6 flex items-center justify-center gap-3">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className="flex items-center gap-3">
-              <div
-                className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold transition-colors ${
-                  step === s
-                    ? "bg-brand text-white shadow-lg shadow-brand/30"
-                    : step > s
-                    ? "bg-accent-green text-white"
-                    : "bg-surface-2 text-muted border border-border"
-                }`}
-              >
-                {step > s ? <Check size={14} /> : s}
-              </div>
-              {s < 3 && <div className={`h-0.5 w-10 ${step > s ? "bg-accent-green" : "bg-border"}`} />}
-            </div>
-          ))}
-        </div>
+        <ThemeToggle />
       </div>
 
-      <div className="glass rounded-3xl p-8">
+      {/* Steps Indicator */}
+      <div className="flex items-center justify-center gap-2 pt-2 pb-1">
+        {[
+          { num: 1, label: "Profile" },
+          { num: 2, label: "Goals" },
+          { num: 3, label: "Configuration" },
+        ].map((s, idx) => (
+          <React.Fragment key={s.num}>
+            {idx > 0 ? (
+              <div
+                className={`h-px w-10 transition-colors ${
+                  step >= s.num ? "bg-primary" : "bg-border"
+                }`}
+              />
+            ) : null}
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                  step > s.num
+                    ? "bg-primary text-primary-text"
+                    : step === s.num
+                    ? "bg-primary text-primary-text"
+                    : "border border-border-input bg-surface text-text-subtle"
+                }`}
+              >
+                {step > s.num ? <Check className="w-3.5 h-3.5" strokeWidth={2.5} /> : s.num}
+              </div>
+              <span
+                className={`text-xs hidden sm:inline ${
+                  step === s.num ? "font-semibold text-text" : "text-text-subtle"
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Main Wizard Card */}
+      <Card>
         <form action={formAction}>
           {/* Hidden inputs to preserve step state on submit */}
           <input type="hidden" name="business_name" value={businessName} />
@@ -93,173 +128,191 @@ export function OnboardingWizard({
 
           {/* STEP 1: Profile */}
           {step === 1 && (
-            <div className="space-y-4 float-in">
-              <h2 className="text-xl font-semibold">1. Business Profile</h2>
-              <p className="text-xs text-muted">This informs AI generation and your automated scheduling timezone.</p>
-
-              <div>
-                <label className="label">Business / Brand Name</label>
-                <input
-                  type="text"
-                  className="input"
+            <>
+              <CardHeader>
+                <CardTitle>1. Business Profile</CardTitle>
+                <CardDescription>
+                  This informs AI content generation and automated scheduling timezones.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  label="Business or Project Name"
                   placeholder="e.g. Acme Studio"
-                  required
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
+                  required
                 />
-              </div>
 
-              <div>
-                <label className="label">Category</label>
-                <select
-                  className="input"
+                <Select
+                  label="Industry Category"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c} className="bg-surface-2 text-fg">
-                      {c}
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Country</label>
-                  <input
-                    type="text"
-                    className="input"
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    label="Country"
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. United States"
                   />
-                </div>
-                <div>
-                  <label className="label">Timezone (MUST)</label>
-                  <input
-                    type="text"
-                    className="input"
+                  <Input
+                    label="Timezone"
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
+                    placeholder="e.g. America/New_York"
                   />
                 </div>
-              </div>
 
-              <div className="pt-4">
-                <button
-                  type="button"
-                  className="btn btn-primary w-full"
-                  disabled={!businessName.trim()}
-                  onClick={() => setStep(2)}
-                >
-                  Next: Goals <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
+                <div className="pt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    onClick={() => {
+                      if (!businessName.trim()) {
+                        alert("Please enter your business or project name.");
+                        return;
+                      }
+                      setStep(2);
+                    }}
+                    icon={<ArrowRight className="w-4 h-4" strokeWidth={1.5} />}
+                  >
+                    Continue to Goals
+                  </Button>
+                </div>
+              </CardContent>
+            </>
           )}
 
           {/* STEP 2: Goals */}
           {step === 2 && (
-            <div className="space-y-4 float-in">
-              <h2 className="text-xl font-semibold">2. What are your main goals?</h2>
-              <p className="text-xs text-muted">Select the modules you plan to use. All modules remain fully accessible.</p>
-
-              <div className="space-y-3">
-                {MODULE_OPTIONS.map((m) => {
-                  const active = selectedGoals.includes(m.id);
-                  return (
-                    <div
-                      key={m.id}
-                      onClick={() => toggleGoal(m.id)}
-                      className={`cursor-pointer rounded-2xl border p-4 transition-all ${
-                        active
-                          ? "border-brand bg-brand/10 shadow-sm"
-                          : "border-border bg-surface hover:border-muted"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="text-sm font-semibold">{m.label}</div>
-                          <div className="text-xs text-muted">{m.desc}</div>
-                        </div>
-                        <div
-                          className={`grid h-5 w-5 place-items-center rounded-md border ${
-                            active ? "border-brand bg-brand text-white" : "border-border"
-                          }`}
-                        >
-                          {active && <Check size={12} />}
+            <>
+              <CardHeader>
+                <CardTitle>2. Primary Automation Goals</CardTitle>
+                <CardDescription>
+                  Select the engines you plan to use first. You can always adjust this later.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {MODULE_OPTIONS.map((m) => {
+                    const isSelected = selectedGoals.includes(m.id);
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => toggleGoal(m.id)}
+                        className={`p-3.5 rounded-[6px] border cursor-pointer select-none transition-colors ${
+                          isSelected
+                            ? "border-primary bg-bg-subtle text-text"
+                            : "border-border bg-surface hover:bg-surface-hover text-text-muted"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold text-text leading-tight">{m.label}</p>
+                            <p className="text-[11px] text-text-muted mt-1 leading-normal">{m.desc}</p>
+                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-[4px] border shrink-0 flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? "bg-primary border-primary text-primary-text"
+                                : "border-border-input bg-surface"
+                            }`}
+                          >
+                            {isSelected ? <Check className="w-3 h-3" strokeWidth={2.5} /> : null}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  className="btn btn-ghost flex-1"
-                  onClick={() => setStep(1)}
-                >
-                  <ArrowLeft size={16} /> Back
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary flex-1"
-                  onClick={() => setStep(3)}
-                >
-                  Next: API Key <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
+                <div className="pt-2 flex items-center justify-between border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="md"
+                    onClick={() => setStep(1)}
+                    icon={<ArrowLeft className="w-4 h-4" strokeWidth={1.5} />}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    onClick={() => setStep(3)}
+                    icon={<ArrowRight className="w-4 h-4" strokeWidth={1.5} />}
+                  >
+                    Continue to Configuration
+                  </Button>
+                </div>
+              </CardContent>
+            </>
           )}
 
-          {/* STEP 3: BYOK (Optional) */}
+          {/* STEP 3: Configuration */}
           {step === 3 && (
-            <div className="space-y-4 float-in">
-              <h2 className="text-xl font-semibold">3. OpenAI API Key (BYOK)</h2>
-              <p className="text-xs text-muted">
-                Bring Your Own Key. Text & image generation costs are billed to your OpenAI account. You can skip this and add it later in Settings.
-              </p>
-
-              <div>
-                <label className="label">OpenAI Key (Optional)</label>
-                <input
+            <>
+              <CardHeader>
+                <CardTitle>3. Final Configuration</CardTitle>
+                <CardDescription>
+                  Optionally provide your OpenAI API key for AI generation, or connect it later.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  label="OpenAI API Key (Optional)"
                   type="password"
-                  className="input font-mono text-xs"
-                  placeholder="sk-proj-..."
+                  placeholder="sk-..."
                   value={openaiKey}
                   onChange={(e) => setOpenaiKey(e.target.value)}
+                  helperText="Your key is encrypted with AES-256-GCM. If omitted, platform limits apply."
                 />
-              </div>
 
-              {state?.error && (
-                <p role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
-                  {state.error}
-                </p>
-              )}
+                {state?.error ? (
+                  <div
+                    role="alert"
+                    className="rounded-[6px] border border-danger/30 bg-danger-bg p-2.5 text-xs text-danger font-medium"
+                  >
+                    {state.error}
+                  </div>
+                ) : null}
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  className="btn btn-ghost flex-1"
-                  onClick={() => setStep(2)}
-                  disabled={pending}
-                >
-                  <ArrowLeft size={16} /> Back
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={pending}
-                >
-                  {pending ? "Finishing..." : "Complete & Enter Hub →"}
-                </button>
-              </div>
-            </div>
+                <div className="pt-2 flex items-center justify-between border-t border-border/50">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="md"
+                    disabled={pending}
+                    onClick={() => setStep(2)}
+                    icon={<ArrowLeft className="w-4 h-4" strokeWidth={1.5} />}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="md"
+                    loading={pending}
+                    icon={<Check className="w-4 h-4" strokeWidth={1.5} />}
+                  >
+                    Finish Setup & Enter Hub
+                  </Button>
+                </div>
+              </CardContent>
+            </>
           )}
         </form>
-      </div>
+      </Card>
     </div>
   );
 }

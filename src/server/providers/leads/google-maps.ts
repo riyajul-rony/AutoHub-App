@@ -1,520 +1,422 @@
-import { getConfig } from "@/server/config";
+import { getConfig } from "../../config";
 import type { LeadSourceProvider, LeadSearchParams, RawLead } from "./types";
-import { logger } from "@/server/logger";
-import { resolveOfficialWebsite } from "./enrichment";
+import { logger } from "../../logger";
+import { normalizePhone, resolveOfficialWebsite } from "./enrichment";
+import { parseString } from "fast-csv";
 
 export { resolveOfficialWebsite };
 
+// Timestamp of the last scrape job submitted (safety delay to prevent IP bans)
+let lastJobTime = 0;
+
+// In-memory queue to guarantee only 1 scrape job runs at a time (optimized for 1 vCPU / 4 GB VPS)
+let activeJobPromise: Promise<any> = Promise.resolve();
+let queuedJobsCount = 0;
+
+export function getScrapeQueueStatus() {
+  return {
+    isBusy: queuedJobsCount > 0,
+    queuedCount: queuedJobsCount,
+  };
+}
+
+export interface GosomScraperRow {
+  input_id?: string;
+  link?: string;
+  title?: string;
+  category?: string;
+  address?: string;
+  open_hours?: string;
+  popular_times?: string;
+  website?: string;
+  phone?: string;
+  plus_code?: string;
+  review_count?: string;
+  review_rating?: string;
+  reviews_per_rating?: string;
+  latitude?: string;
+  longitude?: string;
+  cid?: string;
+  status?: string;
+  descriptions?: string;
+  reviews_link?: string;
+  thumbnail?: string;
+  timezone?: string;
+  price_range?: string;
+  data_id?: string;
+  street_view_url?: string;
+  place_id?: string;
+  images?: string;
+  reservations?: string;
+  order_online?: string;
+  menu?: string;
+  owner?: string;
+  complete_address?: string;
+  credit_cards_accepted?: string;
+  about?: string;
+  user_reviews?: string;
+  user_reviews_extended?: string;
+  emails?: string;
+}
+
+export function parseScraperCsv(csvContent: string): Promise<GosomScraperRow[]> {
+  return new Promise((resolve, reject) => {
+    const rows: GosomScraperRow[] = [];
+    parseString<GosomScraperRow, GosomScraperRow>(csvContent, {
+      headers: true,
+      ignoreEmpty: true,
+      trim: true,
+    })
+      .on("data", (row) => rows.push(row))
+      .on("end", () => resolve(rows))
+      .on("error", (err) => reject(err));
+  });
+}
+
+export function detectCountryCode(loc: string): any {
+  const l = (loc || "").toLowerCase();
+  if (/\b(us|usa|united states|new york|ny|los angeles|chicago|houston|miami|san francisco|california|texas|florida|seattle|austin|boston)\b/i.test(l)) {
+    return "US";
+  }
+  if (/\b(uk|united kingdom|england|great britain|london|manchester|birmingham|leeds|glasgow)\b/i.test(l)) {
+    return "GB";
+  }
+  if (/\b(bangladesh|bd|dhaka|chittagong|sylhet|rajshahi|khulna)\b/i.test(l)) {
+    return "BD";
+  }
+  if (/\b(canada|ca|toronto|vancouver|montreal|calgary|ottawa)\b/i.test(l)) {
+    return "CA";
+  }
+  if (/\b(australia|au|sydney|melbourne|brisbane|perth|adelaide)\b/i.test(l)) {
+    return "AU";
+  }
+  if (/\b(germany|de|berlin|munich|hamburg|frankfurt)\b/i.test(l)) {
+    return "DE";
+  }
+  if (/\b(france|fr|paris|marseille|lyon)\b/i.test(l)) {
+    return "FR";
+  }
+  return "US";
+}
+
+/**
+ * Fast static coordinates table + Nominatim fallback to resolve lat/lon for any query.
+ * Providing lat/lon ensures fast_mode succeeds instantly and avoids Google bot blockers.
+ */
+const KNOWN_COORDINATES: Record<string, { lat: string; lon: string }> = {
+  "new york": { lat: "40.7128", lon: "-74.0060" },
+  "new york, ny": { lat: "40.7128", lon: "-74.0060" },
+  "ny": { lat: "40.7128", lon: "-74.0060" },
+  "los angeles": { lat: "34.0522", lon: "-118.2437" },
+  "chicago": { lat: "41.8781", lon: "-87.6298" },
+  "houston": { lat: "29.7604", lon: "-95.3698" },
+  "miami": { lat: "25.7617", lon: "-80.1918" },
+  "san francisco": { lat: "37.7749", lon: "-122.4194" },
+  "austin": { lat: "30.2672", lon: "-97.7431" },
+  "seattle": { lat: "47.6062", lon: "-122.3321" },
+  "boston": { lat: "42.3601", lon: "-71.0589" },
+  "london": { lat: "51.5074", lon: "-0.1278" },
+  "paris": { lat: "48.8566", lon: "2.3522" },
+  "berlin": { lat: "52.5200", lon: "13.4050" },
+  "toronto": { lat: "43.6532", lon: "-79.3832" },
+  "sydney": { lat: "-33.8688", lon: "151.2093" },
+  "dhaka": { lat: "23.8103", lon: "90.4125" },
+};
+
+export async function resolveLocationCoordinates(location: string): Promise<{ lat: string; lon: string }> {
+  const norm = location.trim().toLowerCase();
+  if (KNOWN_COORDINATES[norm]) {
+    return KNOWN_COORDINATES[norm];
+  }
+  for (const [key, coords] of Object.entries(KNOWN_COORDINATES)) {
+    if (norm.includes(key)) {
+      return coords;
+    }
+  }
+
+  // Fallback: fast lookup via Nominatim OpenStreetMap
+  try {
+    const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`;
+    const res = await fetch(geoUrl, {
+      headers: { "User-Agent": "AutoHubLeadFinder/2.0" },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data[0]?.lat && data[0]?.lon) {
+        return {
+          lat: String(parseFloat(data[0].lat).toFixed(4)),
+          lon: String(parseFloat(data[0].lon).toFixed(4)),
+        };
+      }
+    }
+  } catch {
+    // Ignore timeout / network failure
+  }
+
+  // Default to New York if unresolvable
+  return { lat: "40.7128", lon: "-74.0060" };
+}
+
+/**
+ * Extracts the real Google CID (Customer ID) from scraper output without using any counter.
+ * If cid is missing, decodes the 64-bit hexadecimal part of data_id into its decimal CID.
+ */
+export function extractCid(row: GosomScraperRow): string {
+  if (row.cid && row.cid.trim()) {
+    return row.cid.trim();
+  }
+  if (row.data_id && row.data_id.includes(":")) {
+    const parts = row.data_id.split(":");
+    const hex = parts[1]?.trim();
+    if (hex && hex.startsWith("0x")) {
+      try {
+        const dec = BigInt(hex).toString();
+        if (dec && dec !== "0") {
+          return dec;
+        }
+      } catch {
+        // Fall through
+      }
+    }
+  }
+  if (row.link && row.link.includes("cid=")) {
+    const match = row.link.match(/cid=([0-9]+)/);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+  if (row.link && row.link.trim()) {
+    return row.link.trim();
+  }
+  if (row.place_id && row.place_id.trim()) {
+    return row.place_id.trim();
+  }
+  if (row.data_id && row.data_id.trim()) {
+    return row.data_id.trim();
+  }
+  return "";
+}
 
 export class GoogleMapsProvider implements LeadSourceProvider {
   id = "google_maps" as const;
 
   async search(params: LeadSearchParams): Promise<RawLead[]> {
-    const apiKey = params.userApiKey || (await getConfig("PLACES_API_KEY"));
-    const targetCount = Math.min(Math.max(params.maxResults || 15, 5), 500);
-    const requireWebsite = params.onlyWithWebsite !== false;
+    const keyword = (params.keyword || "").trim();
+    const location = (params.location || "").trim();
 
-    if (apiKey) {
-      try {
-        const endpoint = "https://places.googleapis.com/v1/places:searchText";
-        const leads: RawLead[] = [];
-        const seenRefs = new Set<string>();
-        let pageToken: string | undefined = undefined;
-
-        // Loop pages to satisfy up to targetCount (max 500)
-        while (leads.length < targetCount) {
-          const reqBody: any = {
-            textQuery: `${params.keyword} in ${params.location}`,
-            pageSize: Math.min(requireWebsite ? 20 : targetCount - leads.length, 20),
-          };
-          if (pageToken) {
-            reqBody.pageToken = pageToken;
-          }
-
-          const res = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Goog-Api-Key": apiKey,
-              "X-Goog-FieldMask":
-                "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.location,nextPageToken",
-            },
-            body: JSON.stringify(reqBody),
-          });
-
-          const data = await res.json();
-          if (!res.ok || !Array.isArray(data.places)) break;
-
-          for (const p of data.places) {
-            if (p.id && seenRefs.has(p.id)) continue;
-            if (p.id) seenRefs.add(p.id);
-
-            // If quality website leads requested, skip places without official website
-            if (requireWebsite && !p.websiteUri) {
-              continue;
-            }
-
-            const phone = (p.internationalPhoneNumber || p.nationalPhoneNumber || "").replace(/^\+/, "").trim();
-            leads.push({
-              sourceRef: p.id || `gplace_${leads.length + 1}`,
-              companyName: p.displayName?.text || "Business",
-              website: p.websiteUri || undefined,
-              phoneRaw: phone || undefined,
-              phoneE164: phone || undefined,
-              address: p.formattedAddress || params.location,
-              city: params.location,
-              rating: p.rating,
-              reviewsCount: p.userRatingCount,
-              latitude: p.location?.latitude,
-              longitude: p.location?.longitude,
-              businessType: params.keyword,
-            });
-
-            if (leads.length >= targetCount) break;
-          }
-
-          if (data.nextPageToken && leads.length < targetCount) {
-            pageToken = data.nextPageToken;
-            // Short delay required by Google before nextPageToken becomes active
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-          } else {
-            break;
-          }
-        }
-
-        if (leads.length > 0) return leads;
-      } catch (err) {
-        logger.warn({ err }, "Google Places API failed, falling back to live open search");
-      }
+    if (!keyword || !location) {
+      throw new Error("Both keyword and location are required for Google Maps lead search.");
     }
 
-    // Live search for genuine businesses with verified website URLs
-    return this.searchLivePlaces(params);
+    // Queue scrape jobs so ONLY ONE runs at a time (protects 1 vCPU / 4 GB RAM VPS)
+    queuedJobsCount++;
+    const currentRun = activeJobPromise.then(() => this.executeScrapeJob(params));
+    activeJobPromise = currentRun.catch(() => {});
+
+    try {
+      return await currentRun;
+    } finally {
+      queuedJobsCount = Math.max(0, queuedJobsCount - 1);
+    }
   }
 
-  private async searchLivePlaces(params: LeadSearchParams): Promise<RawLead[]> {
-    const targetCount = Math.min(Math.max(params.maxResults || 15, 5), 500);
+  private async executeScrapeJob(params: LeadSearchParams): Promise<RawLead[]> {
+    const keyword = (params.keyword || "").trim();
+    const location = (params.location || "").trim();
+
+    // Configurable Max Results Cap
+    const capConfig = process.env.GMAPS_MAX_RESULTS_CAP;
+    const maxResultsCap = capConfig ? Math.max(1, parseInt(capConfig, 10)) : 100;
+    const targetCount = Math.min(Math.max(params.maxResults || 15, 1), maxResultsCap);
     const requireWebsite = params.onlyWithWebsite !== false;
-    const candidates: RawLead[] = [];
-    const seenNames = new Set<string>();
 
-    const cleanKw = params.keyword.trim();
-    const cleanLoc = params.location.trim();
-    const lowerKw = cleanKw.toLowerCase();
-    const lowerLoc = cleanLoc.toLowerCase();
+    // 1. Resolve scraper service URL (defaults to embedded scraper at 127.0.0.1:8080)
+    const configUrl = process.env.GMAPS_SCRAPER_URL;
+    const baseUrl = (configUrl || "http://127.0.0.1:8080").replace(/\/+$/, "");
 
-    // 0. Dynamic Global Geocoding: Resolves exact country code, bounding box, and coordinates for ANY location worldwide
-    let geoCountryCode: string | undefined;
-    let geoCountryName: string | undefined;
-    let geoLat: number | undefined;
-    let geoLon: number | undefined;
-    let geoViewbox: string | undefined;
-
-    // Fast static check for top common search terms (0ms)
-    if (
-      lowerLoc === "usa" || lowerLoc === "us" || lowerLoc === "united states" ||
-      /\b(los angeles|new york|chicago|miami|dallas|houston|san francisco|austin|seattle|boston|california|texas|florida)\b/i.test(lowerLoc)
-    ) {
-      geoCountryCode = "us";
-    } else if (
-      lowerLoc === "uk" || lowerLoc === "united kingdom" || lowerLoc === "england" || lowerLoc === "great britain" ||
-      /\b(london|manchester|birmingham|leeds|glasgow|liverpool)\b/i.test(lowerLoc)
-    ) {
-      geoCountryCode = "gb";
-    } else if (
-      lowerLoc === "bangladesh" || lowerLoc === "bd" ||
-      /\b(dhaka|chittagong|sylhet|rajshahi|khulna|uttara|gulshan|banani|dhanmondi)\b/i.test(lowerLoc)
-    ) {
-      geoCountryCode = "bd";
-    } else if (lowerLoc === "canada" || lowerLoc === "ca" || /\b(toronto|vancouver|montreal|calgary|ottawa)\b/i.test(lowerLoc)) {
-      geoCountryCode = "ca";
-    } else if (lowerLoc === "australia" || lowerLoc === "au" || /\b(sydney|melbourne|brisbane|perth|adelaide)\b/i.test(lowerLoc)) {
-      geoCountryCode = "au";
-    } else if (lowerLoc === "germany" || lowerLoc === "de" || /\b(berlin|munich|hamburg|frankfurt|cologne)\b/i.test(lowerLoc)) {
-      geoCountryCode = "de";
-    } else if (lowerLoc === "france" || lowerLoc === "fr" || /\b(paris|marseille|lyon|nice|toulouse)\b/i.test(lowerLoc)) {
-      geoCountryCode = "fr";
-    } else if (lowerLoc === "italy" || lowerLoc === "it" || /\b(rome|milan|naples|turin|florence)\b/i.test(lowerLoc)) {
-      geoCountryCode = "it";
-    } else if (lowerLoc === "spain" || lowerLoc === "es" || /\b(madrid|barcelona|valencia|seville)\b/i.test(lowerLoc)) {
-      geoCountryCode = "es";
-    } else if (lowerLoc === "uae" || lowerLoc === "united arab emirates" || /\b(dubai|abu dhabi|sharjah)\b/i.test(lowerLoc)) {
-      geoCountryCode = "ae";
-    } else if (lowerLoc === "netherlands" || lowerLoc === "holland" || /\b(amsterdam|rotterdam|the hague|utrecht)\b/i.test(lowerLoc)) {
-      geoCountryCode = "nl";
+    // 2. Safety rate limit / delay between consecutive scrape jobs (configurable, default: 2500ms)
+    const intervalConfig = process.env.GMAPS_MIN_JOB_INTERVAL_MS;
+    const minJobIntervalMs = intervalConfig ? parseInt(intervalConfig, 10) : 2500;
+    const now = Date.now();
+    const elapsed = now - lastJobTime;
+    if (elapsed < minJobIntervalMs) {
+      await new Promise((resolve) => setTimeout(resolve, minJobIntervalMs - elapsed));
     }
+    lastJobTime = Date.now();
 
-    // Live geocoding query to pinpoint exact coordinates and boundary
+    // 3. Fast mode configuration (configurable via GMAPS_FAST_MODE, default: true)
+    const fastModeConfig = process.env.GMAPS_FAST_MODE;
+    const fastMode = fastModeConfig === "false" ? false : true;
+
+    // Resolve geographic coordinates for location
+    const coords = await resolveLocationCoordinates(location);
+
+    // 4. Submit scrape job to gosom/google-maps-scraper REST API
+    const searchQuery = `${keyword} in ${location}`.trim();
+    // Depth: 1 depth level roughly yields 20 listings in Google Maps
+    const depth = Math.min(Math.max(1, Math.ceil(targetCount / 15)), 10);
+    const jobPayload = {
+      name: `autohub_${Date.now()}`,
+      keywords: [searchQuery],
+      lang: "en",
+      zoom: 15,
+      lat: coords.lat,
+      lon: coords.lon,
+      depth,
+      max_time: 300,
+      fast_mode: fastMode,
+      radius: 10000,
+      email: params.findEmails !== false,
+    };
+
+    logger.info({ baseUrl, searchQuery, depth, targetCount, fastMode, coords }, "Submitting Google Maps scraping job to scraper service");
+
+    let jobId: string;
     try {
-      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanLoc)}&format=json&addressdetails=1&limit=1`;
-      const gRes = await fetch(geoUrl, {
-        headers: { "User-Agent": "AutoHubLeadFinder/2.0 (leadfinder@autohub.local)" },
-        signal: AbortSignal.timeout(3000),
+      const createRes = await fetch(`${baseUrl}/api/v1/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jobPayload),
       });
-      if (gRes.ok) {
-        const gData = await gRes.json();
-        if (Array.isArray(gData) && gData[0]) {
-          const item = gData[0];
-          const addr = item.address || {};
-          if (addr.country_code) geoCountryCode = addr.country_code.toLowerCase();
-          if (addr.country) geoCountryName = addr.country.toLowerCase();
-          if (item.lat) geoLat = parseFloat(item.lat);
-          if (item.lon) geoLon = parseFloat(item.lon);
-          if (Array.isArray(item.boundingbox) && item.boundingbox.length === 4) {
-            const [south, north, west, east] = item.boundingbox;
-            geoViewbox = `${west},${north},${east},${south}`;
-          }
-        }
+
+      if (!createRes.ok) {
+        const errorText = await createRes.text().catch(() => "");
+        throw new Error(`Scraper service rejected job creation (HTTP ${createRes.status}): ${errorText}`);
       }
-    } catch {}
 
-    // Build target sub-locations (supports broad countries and deep multi-district city searches)
-    const targetSubLocations: string[] = [];
-
-    if (lowerLoc === "usa" || lowerLoc === "us" || lowerLoc === "united states") {
-      targetSubLocations.push(
-        "New York", "Los Angeles", "Chicago", "Houston", "Miami",
-        "Dallas", "Phoenix", "Philadelphia", "Atlanta", "Seattle",
-        "Boston", "San Francisco", "Austin", "San Diego", "Denver",
-        "Charlotte", "Orlando", "Las Vegas", "Nashville", "Detroit",
-        "Indianapolis", "Columbus", "San Jose", "San Antonio", "Jacksonville"
-      );
-    } else if (lowerLoc === "uk" || lowerLoc === "united kingdom" || lowerLoc === "england") {
-      targetSubLocations.push(
-        "London", "Manchester", "Birmingham", "Leeds", "Glasgow",
-        "Liverpool", "Bristol", "Edinburgh", "Sheffield", "Newcastle",
-        "Nottingham", "Cardiff", "Belfast", "Southampton"
-      );
-    } else if (lowerLoc === "bangladesh" || lowerLoc === "bd") {
-      targetSubLocations.push(
-        "Dhaka", "Chittagong", "Sylhet", "Uttara Dhaka", "Gulshan Dhaka",
-        "Dhanmondi Dhaka", "Banani Dhaka", "Rajshahi", "Khulna", "Mirpur Dhaka",
-        "Barisal", "Comilla"
-      );
-    } else if (lowerLoc === "canada") {
-      targetSubLocations.push("Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton", "Winnipeg", "Quebec City");
-    } else if (lowerLoc === "australia") {
-      targetSubLocations.push("Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Gold Coast", "Canberra");
-    } else if (lowerLoc === "germany") {
-      targetSubLocations.push("Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", "Stuttgart", "Düsseldorf", "Leipzig");
-    } else if (lowerLoc === "france") {
-      targetSubLocations.push("Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Bordeaux", "Nantes", "Strasbourg");
-    } else {
-      targetSubLocations.push(cleanLoc);
-      // For single cities with large target counts, query neighboring areas / districts
-      if (targetCount > 25) {
-        targetSubLocations.push(
-          `Downtown ${cleanLoc}`,
-          `North ${cleanLoc}`,
-          `South ${cleanLoc}`,
-          `West ${cleanLoc}`,
-          `East ${cleanLoc}`,
-          `Central ${cleanLoc}`
+      const createData = (await createRes.json()) as { id?: string };
+      if (!createData.id) {
+        throw new Error("Scraper service did not return a valid job ID.");
+      }
+      jobId = createData.id;
+    } catch (err: any) {
+      if (err.cause?.code === "ECONNREFUSED" || err.message?.includes("fetch failed") || err.message?.includes("ECONNREFUSED")) {
+        throw new Error(
+          `Google Maps Scraper service is unreachable at ${baseUrl}. Ensure the embedded scraper service is active.`
         );
       }
+      throw err;
     }
 
-    const nominatimQueries: string[] = [];
-    for (const subLoc of targetSubLocations) {
-      nominatimQueries.push(`${cleanKw} in ${subLoc}`, `${cleanKw} ${subLoc}`);
-      if (lowerKw.includes("dentist") || lowerKw.includes("dental")) {
-        nominatimQueries.push(`dentist in ${subLoc}`, `dental clinic in ${subLoc}`);
-      } else if (lowerKw.includes("hotel") || lowerKw.includes("resort") || lowerKw.includes("motel")) {
-        nominatimQueries.push(`hotel in ${subLoc}`);
-      } else if (lowerKw.includes("restaurant") || lowerKw.includes("food") || lowerKw.includes("cafe")) {
-        nominatimQueries.push(`restaurant in ${subLoc}`, `cafe in ${subLoc}`);
-      } else if (lowerKw.includes("estate") || lowerKw.includes("realt") || lowerKw.includes("property")) {
-        nominatimQueries.push(`estate agent in ${subLoc}`, `real estate in ${subLoc}`);
-      } else if (lowerKw.includes("agency")) {
-        nominatimQueries.push(`marketing agency in ${subLoc}`);
-      } else if (lowerKw.includes("law") || lowerKw.includes("attorney") || lowerKw.includes("solicitor")) {
-        nominatimQueries.push(`lawyer in ${subLoc}`, `law firm in ${subLoc}`);
-      } else if (lowerKw.includes("gym") || lowerKw.includes("fitness")) {
-        nominatimQueries.push(`gym in ${subLoc}`);
-      } else if (lowerKw.includes("clinic") || lowerKw.includes("doctor")) {
-        nominatimQueries.push(`clinic in ${subLoc}`, `doctor in ${subLoc}`);
-      }
-    }
+    // 5. Poll job status until complete (with hard timeout)
+    const pollIntervalMs = 1500;
+    const maxPollTimeMs = 180_000; // 3 minutes timeout
+    const startTime = Date.now();
+    let jobFinished = false;
 
-    let countryCodeParam = geoCountryCode ? `&countrycodes=${geoCountryCode}` : "";
-    let viewboxParam = geoViewbox ? `&viewbox=${geoViewbox}&bounded=0` : "";
+    while (Date.now() - startTime < maxPollTimeMs) {
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 
-    const uniqueQueries = [...new Set(nominatimQueries)];
-    // Ensure sufficient raw candidates to meet large targetCount (up to 500)
-    const fetchLimit = requireWebsite ? Math.min(Math.max(targetCount * 3.5, 120), 1200) : Math.min(targetCount + 20, 600);
-
-    // 1. Fast OpenStreetMap Nominatim check (capped to 2 queries with 2s timeout)
-    for (const q of uniqueQueries.slice(0, 2)) {
-      if (candidates.length >= fetchLimit) break;
       try {
-        const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&extratags=1&limit=50${countryCodeParam}${viewboxParam}`;
-        const res = await fetch(nomUrl, {
-          headers: {
-            "User-Agent": "AutoHubLeadFinder/2.0 (leadfinder@autohub.local)",
-            Accept: "application/json",
-          },
-          signal: AbortSignal.timeout(2000),
+        const statusRes = await fetch(`${baseUrl}/api/v1/jobs/${jobId}`, {
+          headers: { Accept: "application/json" },
         });
 
-        if (!res.ok) {
-          // If rate limited (429) or unavailable, immediately proceed to high-speed Photon engine
+        if (!statusRes.ok) {
+          continue;
+        }
+
+        const jobStatus = (await statusRes.json()) as { Status?: string; status?: string };
+        const currentStatus = (jobStatus.Status || jobStatus.status || "").toLowerCase();
+
+        if (currentStatus === "ok" || currentStatus === "completed") {
+          jobFinished = true;
           break;
         }
 
-        const items = await res.json();
-        if (Array.isArray(items)) {
-          for (const item of items) {
-            if (candidates.length >= fetchLimit) break;
-            const rawName = item.name || (item.display_name ? item.display_name.split(",")[0] : "");
-            const cleanName = rawName.trim();
-            if (!cleanName || cleanName.length < 2 || seenNames.has(cleanName.toLowerCase())) continue;
-
-            const addr = item.address || {};
-            const nomCountryCode = (addr.country_code || "").toLowerCase();
-            const nomCountryName = (addr.country || "").toLowerCase();
-
-            // Strict country verification: reject items from outside the target country
-            if (geoCountryCode && nomCountryCode && nomCountryCode !== geoCountryCode) continue;
-            if (geoCountryName && nomCountryName && !nomCountryName.includes(geoCountryName) && !geoCountryName.includes(nomCountryName)) continue;
-
-            const fullAddressParts = [
-              addr.house_number,
-              addr.road,
-              addr.quarter || addr.suburb || addr.neighbourhood,
-              addr.city || addr.town || addr.county || cleanLoc,
-              addr.postcode,
-              addr.country,
-            ].filter(Boolean);
-
-            const fullAddress = fullAddressParts.length >= 2 ? fullAddressParts.join(", ") : (item.display_name || cleanLoc);
-
-            const extra = item.extratags || {};
-            const rawWeb =
-              extra.website ||
-              extra["contact:website"] ||
-              extra.url ||
-              extra.facebook ||
-              extra["contact:facebook"] ||
-              extra["brand:website"] ||
-              undefined;
-            const web = rawWeb && rawWeb.startsWith("http") ? rawWeb.trim() : rawWeb ? `https://${rawWeb.trim()}` : undefined;
-
-            const rawPhone = extra.phone || extra["contact:phone"] || undefined;
-            const cleanPhone = rawPhone ? rawPhone.replace(/^\+/, "").trim() : undefined;
-
-            const rawEmail = extra.email || extra["contact:email"] || undefined;
-            const cleanEmail = rawEmail ? rawEmail.toLowerCase().trim() : undefined;
-
-            const rawOperator = extra.operator || extra.brand || undefined;
-            const rawFb = extra.facebook || extra["contact:facebook"] || undefined;
-            const rawIg = extra.instagram || extra["contact:instagram"] || undefined;
-
-            seenNames.add(cleanName.toLowerCase());
-            candidates.push({
-              sourceRef: `osm_${item.osm_type || "node"}_${item.osm_id || item.place_id}`,
-              companyName: cleanName,
-              website: web,
-              phoneRaw: cleanPhone,
-              phoneE164: cleanPhone ? cleanPhone.replace(/[^\d]/g, "") : undefined,
-              email: cleanEmail,
-              operator: rawOperator,
-              facebookUrl: rawFb,
-              instagramUrl: rawIg,
-              address: fullAddress,
-              city: addr.city || addr.town || cleanLoc,
-              country: addr.country || cleanLoc,
-              rating: undefined,
-              reviewsCount: undefined,
-              latitude: item.lat ? parseFloat(item.lat) : undefined,
-              longitude: item.lon ? parseFloat(item.lon) : undefined,
-              businessType: cleanKw,
-            });
-          }
+        if (currentStatus === "failed") {
+          throw new Error("Google Maps scraping job failed on the scraper service.");
         }
-      } catch {
-        // Continue to Photon
+      } catch (err: any) {
+        if (err.message?.includes("failed on the scraper service")) {
+          throw err;
+        }
+        // Transient network error while polling, retry next tick
+      }
+    }
+
+    if (!jobFinished) {
+      throw new Error(
+        `Google Maps scraping job timed out after ${maxPollTimeMs / 1000}s. Please try again with a narrower search query.`
+      );
+    }
+
+    // 6. Download the CSV results
+    let csvText = "";
+    try {
+      const downloadRes = await fetch(`${baseUrl}/api/v1/jobs/${jobId}/download`);
+      if (!downloadRes.ok) {
+        throw new Error(`Failed to download scraping results (HTTP ${downloadRes.status})`);
+      }
+      csvText = await downloadRes.text();
+    } catch (err: any) {
+      throw new Error(`Failed to retrieve scraper results: ${err.message}`);
+    }
+
+    // 7. Parse CSV using fast-csv
+    const rows = await parseScraperCsv(csvText);
+    logger.info({ count: rows.length, jobId }, "Retrieved parsed CSV records from scraper");
+
+    // 8. Map scraper fields to RawLead interface
+    const leads: RawLead[] = [];
+    const seenRefs = new Set<string>();
+    const defaultCountry = detectCountryCode(location);
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const companyName = (row.title || "").trim();
+      if (!companyName) continue;
+
+      const website = (row.website || "").trim();
+      if (requireWebsite && (!website || !website.startsWith("http"))) {
+        continue;
+      }
+
+      // Unique reference ID (real Google CID, data_id, link, or place_id)
+      const realCid = extractCid(row);
+      const ref = realCid || (row.link || row.place_id || `gmap_${i + 1}`).trim();
+      if (seenRefs.has(ref)) continue;
+      seenRefs.add(ref);
+
+      // Normalize phone using existing normalizePhone helper
+      const phoneNorm = row.phone ? normalizePhone(row.phone, defaultCountry) : undefined;
+      const phoneRaw = row.phone ? row.phone.trim() : undefined;
+      const phoneE164 = phoneNorm?.e164 || phoneRaw;
+
+      // Extract rating and review count
+      const rating = row.review_rating ? parseFloat(row.review_rating) : undefined;
+      const reviewsCount = row.review_count ? parseInt(row.review_count, 10) : undefined;
+
+      // Coordinates
+      const latitude = row.latitude ? parseFloat(row.latitude) : undefined;
+      const longitude = row.longitude ? parseFloat(row.longitude) : undefined;
+
+      // First email if available directly from scraper
+      const email = row.emails ? row.emails.split(",")[0]?.trim() : undefined;
+
+      leads.push({
+        sourceRef: ref,
+        companyName,
+        website: website || undefined,
+        phoneRaw,
+        phoneE164,
+        email: email || undefined,
+        address: row.address?.trim() || location,
+        city: location,
+        businessType: row.category?.trim() || keyword,
+        rating: isNaN(rating as number) ? undefined : rating,
+        reviewsCount: isNaN(reviewsCount as number) ? undefined : reviewsCount,
+        latitude: isNaN(latitude as number) ? undefined : latitude,
+        longitude: isNaN(longitude as number) ? undefined : longitude,
+      });
+
+      if (leads.length >= targetCount) {
         break;
       }
     }
 
-    // 2. Secondary Engine: Photon Geocoder (Komoot/OSM) - High-speed parallel queries
-    if (candidates.length < fetchLimit) {
-      const photonTerms: string[] = [cleanKw];
-      if (lowerKw.includes("estate") || lowerKw.includes("realt")) {
-        photonTerms.push("estate agent", "real estate");
-      } else if (lowerKw.includes("agency")) {
-        photonTerms.push("agency", "marketing");
-      } else if (lowerKw.includes("hotel") || lowerKw.includes("resort") || lowerKw.includes("motel")) {
-        photonTerms.push("hotel");
-      } else if (lowerKw.includes("restaurant") || lowerKw.includes("cafe")) {
-        photonTerms.push("restaurant");
-      } else if (lowerKw.includes("dentist")) {
-        photonTerms.push("dentist");
-      }
-
-      const isCountrySearch = ["usa", "us", "united states", "uk", "united kingdom", "england", "bangladesh", "bd", "canada", "australia", "germany", "france"].includes(lowerLoc);
-      const coordParams = (!isCountrySearch && geoLat && geoLon) ? `&lat=${geoLat}&lon=${geoLon}` : "";
-
-      // Batch sublocation queries in parallel chunks of 5 for lightning speed
-      const batchSize = 5;
-      for (let i = 0; i < targetSubLocations.length && candidates.length < fetchLimit; i += batchSize) {
-        const chunk = targetSubLocations.slice(i, i + batchSize);
-        await Promise.all(
-          chunk.map(async (subLoc) => {
-            if (candidates.length >= fetchLimit) return;
-            for (const term of photonTerms) {
-              if (candidates.length >= fetchLimit) break;
-              try {
-                const pRes = await fetch(
-                  `https://photon.komoot.io/api/?q=${encodeURIComponent(term + " " + subLoc)}&osm_tag=office&osm_tag=amenity&osm_tag=tourism&osm_tag=shop&limit=100${coordParams}`,
-                  {
-                    headers: { "User-Agent": "AutoHub-App/2.0" },
-                    signal: AbortSignal.timeout(3000),
-                  }
-                );
-                if (pRes.ok) {
-                  const pData = await pRes.json();
-                  const features = pData.features || [];
-                  for (const f of features) {
-                    if (candidates.length >= fetchLimit) break;
-                    const p = f.properties || {};
-                    const name = p.name;
-                    if (!name || seenNames.has(name.toLowerCase())) continue;
-
-                    const osmKey = p.osm_key;
-                    const osmValue = p.osm_value;
-
-                    // Strictly reject non-commercial items (peaks, water tanks, roads, boundaries, residential areas)
-                    if (
-                      osmKey === "natural" ||
-                      osmKey === "highway" ||
-                      osmKey === "waterway" ||
-                      osmKey === "boundary" ||
-                      osmKey === "place" ||
-                      osmKey === "landuse" ||
-                      ["peak", "storage_tank", "water_tower", "river", "forest", "residential", "military", "library", "government"].includes(
-                        osmValue
-                      )
-                    ) {
-                      continue;
-                    }
-
-                    // Verify location matches target country/city (never accept overseas places)
-                    const leadCountry = (p.country || "").toLowerCase();
-                    const leadCountryCode = (p.countrycode || "").toLowerCase();
-
-                    if (geoCountryCode && leadCountryCode && leadCountryCode !== geoCountryCode) continue;
-                    if (geoCountryName && leadCountry && !leadCountry.includes(geoCountryName) && !geoCountryName.includes(leadCountry)) continue;
-
-                    seenNames.add(name.toLowerCase());
-
-                    const addrParts = [
-                      p.housenumber,
-                      p.street,
-                      p.district || p.locality,
-                      p.city || subLoc,
-                      p.postcode,
-                      p.country,
-                    ].filter(Boolean);
-                    const fullAddress = addrParts.length >= 2 ? addrParts.join(", ") : (p.street ? `${p.street}, ${subLoc}` : subLoc);
-
-                    candidates.push({
-                      sourceRef: `photon_${p.osm_type || "N"}_${p.osm_id || candidates.length + 1}`,
-                      companyName: name.trim(),
-                      website: undefined,
-                      phoneRaw: undefined,
-                      phoneE164: undefined,
-                      address: fullAddress,
-                      city: p.city || subLoc,
-                      country: p.country || cleanLoc,
-                      rating: undefined,
-                      reviewsCount: undefined,
-                      latitude: f.geometry?.coordinates?.[1],
-                      longitude: f.geometry?.coordinates?.[0],
-                      businessType: cleanKw,
-                    });
-                  }
-                }
-              } catch {
-                // Continue next term
-              }
-            }
-          })
-        );
-      }
-    }
-
-    if (!requireWebsite) {
-      return candidates.slice(0, targetCount);
-    }
-
-    // 3. Strict Quality Verification: Only keep businesses that have a genuine website
-    const qualityLeads: RawLead[] = [];
-
-    // Prioritize candidates that already have verified websites
-    for (const c of candidates) {
-      if (c.website && c.website.startsWith("http")) {
-        qualityLeads.push(c);
-        if (qualityLeads.length >= targetCount) break;
-      }
-    }
-
-    // For remaining candidates without website, resolve their official website via DNS/domain lookup
-    if (qualityLeads.length < targetCount) {
-      const remainingCandidates = candidates.filter((c) => !c.website);
-      const batchSize = 20;
-      for (let i = 0; i < remainingCandidates.length && qualityLeads.length < targetCount; i += batchSize) {
-        const chunk = remainingCandidates.slice(i, i + batchSize);
-        const resolved = await Promise.all(
-          chunk.map(async (item) => {
-            try {
-              const site = await resolveOfficialWebsite(item.companyName, item.country || cleanLoc);
-              if (site) {
-                return {
-                  ...item,
-                  website: site,
-                };
-              }
-            } catch {
-              // Ignore failure
-            }
-            const cleanSlug = item.companyName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
-            if (cleanSlug.length >= 3) {
-              return {
-                ...item,
-                website: `https://www.${cleanSlug}.com`,
-              };
-            }
-            return null;
-          })
-        );
-
-        for (const item of resolved) {
-          if (item && item.website && item.website.startsWith("http")) {
-            qualityLeads.push(item);
-            if (qualityLeads.length >= targetCount) break;
-          }
-        }
-      }
-    }
-
-    // Guarantee that requested volume is fully met with valid website URLs
-    if (qualityLeads.length < targetCount) {
-      const seenLeadNames = new Set(qualityLeads.map((l) => l.companyName.toLowerCase()));
-      for (const c of candidates) {
-        if (!seenLeadNames.has(c.companyName.toLowerCase())) {
-          const cleanSlug = c.companyName.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 25);
-          qualityLeads.push({
-            ...c,
-            website: c.website || (cleanSlug.length >= 3 ? `https://www.${cleanSlug}.com` : undefined),
-          });
-          seenLeadNames.add(c.companyName.toLowerCase());
-          if (qualityLeads.length >= targetCount) break;
-        }
-      }
-    }
-
-    return qualityLeads.slice(0, targetCount);
+    return leads;
   }
 }
 

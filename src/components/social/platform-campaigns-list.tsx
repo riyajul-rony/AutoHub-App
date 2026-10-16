@@ -2,7 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, Pause, Play, Trash2, Sparkles, ExternalLink, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Plus,
+  Pause,
+  Play,
+  Trash2,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface CampaignItem {
   id: string;
@@ -103,73 +113,72 @@ export function PlatformCampaignsList({ provider }: { provider: string }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {statusNotice && (
-        <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center justify-between">
+        <div className="p-3.5 rounded-lg bg-successBg border border-success/30 text-xs text-success flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <CheckCircle2 size={16} />
+            <CheckCircle2 size={15} />
             {statusNotice}
           </span>
-          <Link href="/app/social/history" className="font-semibold underline ml-2">
+          <Link href="/app/social/history" className="font-medium underline ml-2">
             View Approval Queue →
           </Link>
         </div>
       )}
 
       {loading ? (
-        <div className="glass rounded-3xl p-12 text-center text-xs text-muted">
+        <div className="rounded-xl border border-border bg-surface p-12 text-center text-xs text-muted">
           Loading {platformName} campaigns...
         </div>
       ) : campaigns.length === 0 ? (
-        <div className="glass rounded-3xl p-12 text-center space-y-4 border border-border">
-          <div className="w-14 h-14 rounded-3xl bg-brand/20 text-brand flex items-center justify-center mx-auto">
-            <Sparkles size={28} />
+        <div className="rounded-xl border border-border bg-surface p-12 text-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-bgSubtle border border-border text-fg flex items-center justify-center mx-auto">
+            <Sparkles size={22} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">No {platformName} Campaigns Found</h3>
+            <h3 className="text-sm font-semibold text-fg">No {platformName} Campaigns Found</h3>
             <p className="text-xs text-muted max-w-md mx-auto mt-1 leading-relaxed">
               Create your first automated {platformName} campaign to generate and publish AI captions, hashtags, and branded visuals according to your schedule.
             </p>
           </div>
-          <Link
-            href={`/app/social/${provider}/new`}
-            className="btn btn-primary text-xs inline-flex items-center gap-2 shadow-lg shadow-brand/20 font-bold !px-5"
-          >
-            <Plus size={16} /> Create First {platformName} Campaign
+          <Link href={`/app/social/${provider}/new`}>
+            <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+              Create First {platformName} Campaign
+            </Button>
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {campaigns.map((c) => (
             <div
               key={c.id}
-              className="glass rounded-3xl p-6 border border-border flex flex-col md:flex-row items-start md:items-center justify-between gap-5 hover:border-brand/40 transition duration-150"
+              className="rounded-xl border border-border bg-surface p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 hover:border-borderStrong transition-colors duration-150"
             >
               <div className="space-y-2 max-w-xl">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="font-bold text-base text-white">{c.name}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm text-fg">{c.name}</span>
                   {c.status === "active" ? (
-                    <span className="badge border-emerald-500/40 text-emerald-400 bg-emerald-500/10 text-xs flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <Badge variant="success" size="sm" className="flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                       Active
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className="badge border-amber-500/40 text-amber-400 bg-amber-500/10 text-xs">
+                    <Badge variant="warning" size="sm">
                       Paused
-                    </span>
+                    </Badge>
                   )}
-                  <span className="badge text-[11px]">
+                  <Badge variant="neutral" size="sm">
                     {c.approval_mode === "auto" ? "Hands-Free Auto Post" : "Manual Approval"}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="text-xs text-muted flex items-center gap-3 flex-wrap">
                   <span className="flex items-center gap-1">
-                    <Clock size={13} className="text-brand-2" />
+                    <Clock size={12} className="text-subtle" />
                     Posts daily at {c.post_times?.join(", ") || "10:00"}
                   </span>
                   {c.social_account && (
-                    <span>• Target: <strong>{c.social_account.display_name}</strong></span>
+                    <span>• Target: <strong className="text-fg">{c.social_account.display_name}</strong></span>
                   )}
                   {c.brand_voice && (
                     <span>• Voice: {c.brand_voice}</span>
@@ -178,32 +187,32 @@ export function PlatformCampaignsList({ provider }: { provider: string }) {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
-                <button
+              <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => handleGeneratePostNow(c.id)}
                   disabled={generatingId === c.id}
-                  className="btn btn-ghost border border-border text-xs !py-2 !px-3.5 flex items-center gap-1.5 text-brand hover:border-brand"
-                  title="Generate a fresh AI post for this campaign right now"
+                  icon={<Sparkles size={13} className={generatingId === c.id ? "animate-spin" : ""} />}
                 >
-                  <Sparkles size={14} className={generatingId === c.id ? "animate-spin" : ""} />
-                  {generatingId === c.id ? "Generating..." : "Generate Post Now"}
-                </button>
+                  {generatingId === c.id ? "Generating..." : "Generate Post"}
+                </Button>
 
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => handleToggleStatus(c.id, c.status)}
-                  className="btn btn-ghost border border-border text-xs !p-2"
                   title={c.status === "active" ? "Pause Campaign" : "Resume Campaign"}
-                >
-                  {c.status === "active" ? <Pause size={14} /> : <Play size={14} />}
-                </button>
+                  icon={c.status === "active" ? <Pause size={13} /> : <Play size={13} />}
+                />
 
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => handleDelete(c.id, c.name)}
-                  className="btn btn-ghost border border-border text-xs !p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
                   title="Delete Campaign"
-                >
-                  <Trash2 size={14} />
-                </button>
+                  icon={<Trash2 size={13} />}
+                />
               </div>
             </div>
           ))}

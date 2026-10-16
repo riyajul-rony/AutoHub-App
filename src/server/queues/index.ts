@@ -41,3 +41,31 @@ export function createQueue(name: string): Queue {
     },
   });
 }
+
+let socialPublishQueue: Queue | null = null;
+export function getSocialPublishQueue(): Queue {
+  if (!socialPublishQueue) {
+    socialPublishQueue = createQueue(QUEUE_NAMES.SOCIAL_PUBLISH);
+  }
+  return socialPublishQueue;
+}
+
+export async function queueSocialPublish(postRunId: string): Promise<boolean> {
+  try {
+    const queue = getSocialPublishQueue();
+    await queue.add(
+      "publish",
+      { postRunId },
+      {
+        jobId: postRunId,
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+      }
+    );
+    return true;
+  } catch (err) {
+    logger.warn({ err, postRunId }, "Failed to enqueue social publish job to Redis BullMQ");
+    return false;
+  }
+}
+

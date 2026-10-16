@@ -2,21 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { db, scoped } from "@/server/db";
 import { decrypt } from "@/server/crypto";
+import { getUserApiKey } from "@/server/api-keys/service";
 import { generateSocialPost } from "@/server/ai/social-generator";
 
 export async function POST(req: NextRequest) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: {
-        id: "00000000-0000-0000-0000-000000000001",
-        email: "admin@example.com",
-        role: "admin",
-      } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -43,8 +33,8 @@ export async function POST(req: NextRequest) {
     openai_key_id,
   } = body;
 
-  // Retrieve user's selected or default OpenAI key
-  let rawApiKey = process.env.OPENAI_API_KEY;
+  // Retrieve user's selected or personal OpenAI key
+  let rawApiKey: string | undefined;
 
   if (openai_key_id) {
     const keyRec = await db.api_keys.findFirst({
@@ -53,6 +43,10 @@ export async function POST(req: NextRequest) {
     if (keyRec) {
       rawApiKey = decrypt(keyRec.key_enc);
     }
+  }
+
+  if (!rawApiKey) {
+    rawApiKey = (await getUserApiKey(session.user.id, "openai")) || process.env.OPENAI_API_KEY;
   }
 
   if (!rawApiKey) {

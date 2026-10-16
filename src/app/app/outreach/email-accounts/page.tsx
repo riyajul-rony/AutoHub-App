@@ -1,54 +1,68 @@
 import Link from "next/link";
-import { ArrowLeft, Plus, CheckCircle2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { db } from "@/server/db";
+import { requireUser } from "@/server/auth/guards";
+import { EmailAccountsManager, EmailAccount } from "./email-accounts-manager";
 
-export default function EmailAccountsPage() {
-  const accounts = [
-    { email: "sales@mycompany.com", host: "smtp.hostinger.com", status: "active", sentLastHour: "12/25", sentToday: "84/150" },
-    { email: "contact@mycompany.com", host: "smtp.hostinger.com", status: "active", sentLastHour: "15/25", sentToday: "92/150" },
-  ];
+export const metadata = {
+  title: "Sender Inboxes & Accounts — AutoHub",
+  description: "Connect business SMTP/IMAP inboxes for automated outreach rotation.",
+};
+
+export default async function EmailAccountsPage() {
+  const user = await requireUser();
+
+  const accountsRaw = await db.email_accounts.findMany({
+    where: { user_id: user.id },
+    select: {
+      id: true,
+      label: true,
+      from_name: true,
+      from_email: true,
+      reply_to: true,
+      smtp_host: true,
+      smtp_port: true,
+      smtp_security: true,
+      smtp_username: true,
+      imap_host: true,
+      imap_port: true,
+      imap_security: true,
+      hourly_limit: true,
+      daily_limit: true,
+      status: true,
+      last_error: true,
+    },
+  });
+
+  const initialAccounts: EmailAccount[] = accountsRaw.map((a: any) => ({
+    id: a.id,
+    label: a.label,
+    from_name: a.from_name,
+    from_email: a.from_email,
+    reply_to: a.reply_to,
+    smtp_host: a.smtp_host,
+    smtp_port: a.smtp_port,
+    smtp_security: a.smtp_security,
+    smtp_username: a.smtp_username,
+    imap_host: a.imap_host,
+    imap_port: a.imap_port,
+    imap_security: a.imap_security,
+    hourly_limit: a.hourly_limit || 25,
+    daily_limit: a.daily_limit || 150,
+    status: a.status || "active",
+    last_error: a.last_error,
+  }));
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
+      {/* Navigation Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-muted">
         <Link href="/app/outreach" className="hover:underline flex items-center gap-1">
-          <ArrowLeft size={14} /> Back to Outreach
+          <ArrowLeft size={14} /> Back to Outreach Overview
         </Link>
       </div>
 
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Sender Email Accounts</h1>
-          <p className="mt-1 text-sm text-muted">
-            Connect business SMTP/IMAP or personal Gmail inboxes. Rotated automatically with hard 25/hr cap.
-          </p>
-        </div>
-        <button className="btn btn-primary self-start">
-          <Plus size={16} /> Add Email Account
-        </button>
-      </div>
-
-      <div className="glass rounded-3xl p-6 divide-y divide-border">
-        {accounts.map((a, i) => (
-          <div key={i} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-base">{a.email}</span>
-                <span className="badge border-accent-green/40 text-accent-green flex items-center gap-1">
-                  <CheckCircle2 size={12} /> Active
-                </span>
-              </div>
-              <div className="text-xs text-muted mt-1">
-                Server: {a.host} • Hourly Usage: {a.sentLastHour} • Today: {a.sentToday}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button className="btn btn-ghost text-xs !py-1.5">Test SMTP/IMAP</button>
-              <button className="btn btn-ghost text-xs !py-1.5 text-danger">Remove</button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <EmailAccountsManager initialAccounts={initialAccounts} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { resendVerificationAction } from "@/server/auth/actions";
@@ -5,8 +6,12 @@ import { db } from "@/server/db";
 import { sha256 } from "@/server/auth/token";
 import { getSessionUser } from "@/server/auth/session";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui";
 
-export const metadata = { title: "Verify email — AutoHub", description: "Verify your email address." };
+export const metadata = {
+  title: "Verify email — AutoHub",
+  description: "Verify your email address.",
+};
 
 export default async function VerifyEmailPage({
   searchParams,
@@ -45,55 +50,76 @@ export default async function VerifyEmailPage({
 
   return (
     <AuthShell
-      title={verified ? "Email verified!" : "Check your inbox"}
+      title={verified ? "Email verified" : "Check your inbox"}
       subtitle={
         verified
-          ? "Your email has been successfully verified."
-          : `We sent a verification link to ${sp.email ? decodeURIComponent(sp.email) : "your email address"}.`
+          ? "Your email address has been successfully verified."
+          : `We sent a verification link to ${
+              sp.email ? decodeURIComponent(sp.email) : "your email address"
+            }.`
       }
       footer={
         verified ? (
-          <Link href="/onboarding" className="text-brand-2 hover:underline">
-            Proceed to onboarding →
+          <Link href="/onboarding" className="font-semibold text-text hover:underline">
+            Proceed to workspace setup →
           </Link>
         ) : (
-          <Link href="/login" className="text-brand-2 hover:underline">
-            Back to login
+          <Link href="/login" className="font-semibold text-text hover:underline">
+            Back to log in
           </Link>
         )
       }
     >
       {verified ? (
-        <div className="flex flex-col items-center gap-4 py-4 text-center">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-accent-green/20 text-accent-green">
-            <CheckCircle2 size={28} />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2.5 p-3 rounded-[6px] border border-success/30 bg-success-bg text-success text-xs font-medium">
+            <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+            <span>Account verified! You can now complete your onboarding.</span>
           </div>
-          <p className="text-sm text-muted">
-            You can now access your AutoHub dashboard and set up automations.
-          </p>
-          <Link href="/onboarding" className="btn btn-primary w-full">
-            Continue to onboarding
+
+          <Link href="/onboarding" className="block w-full">
+            <Button variant="primary" size="md" className="w-full">
+              Continue to Onboarding
+            </Button>
           </Link>
         </div>
       ) : errorMsg ? (
-        <div className="flex flex-col items-center gap-4 py-4 text-center">
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-danger/20 text-danger">
-            <AlertCircle size={28} />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2.5 p-3 rounded-[6px] border border-danger/30 bg-danger-bg text-danger text-xs font-medium">
+            <AlertCircle className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+            <span>{errorMsg}</span>
           </div>
-          <p className="text-sm text-danger">{errorMsg}</p>
+
+          <Link href="/login" className="block w-full">
+            <Button variant="secondary" size="md" className="w-full">
+              Back to Login
+            </Button>
+          </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-muted">
-            Click the link in the email to activate your account. If you didn&apos;t receive it, check your spam folder or request a new one below.
+        <div className="space-y-4 text-xs">
+          <p className="text-text-muted leading-normal">
+            Click the link in the email to activate your account. If you don&apos;t see it within a few minutes, check your spam folder.
           </p>
-          {session && (
-            <form action={async () => {
-              "use server";
-              await resendVerificationAction();
-            }}>
-              <button className="btn btn-ghost w-full">Resend verification email</button>
+
+          {session?.user && (
+            <form
+              action={async () => {
+                "use server";
+                await resendVerificationAction();
+              }}
+              className="pt-2"
+            >
+              <Button type="submit" variant="secondary" size="md" className="w-full">
+                Resend verification email
+              </Button>
             </form>
+          )}
+
+          {sp.sent && (
+            <p className="text-center text-xs text-success font-medium">
+              A new verification link has been sent to your email.
+            </p>
           )}
         </div>
       )}

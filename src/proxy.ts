@@ -16,16 +16,6 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Auth pages redirect to /app if already logged in
-  const isAuthPage =
-    pathname === "/login" ||
-    pathname === "/signup" ||
-    pathname === "/forgot-password";
-
-  if (isAuthPage && sessionToken) {
-    return NextResponse.redirect(new URL("/app", request.url));
-  }
-
   return NextResponse.next();
 }
 
@@ -34,8 +24,5 @@ export const config = {
     "/app/:path*",
     "/onboarding/:path*",
     "/admin/:path*",
-    "/login",
-    "/signup",
-    "/forgot-password",
   ],
 };

@@ -8,6 +8,7 @@ export type RawLead = {
   operator?: string;
   facebookUrl?: string;
   instagramUrl?: string;
+  linkedinUrl?: string;
   address?: string;
   city?: string;
   country?: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search,
@@ -20,6 +21,7 @@ import {
   ShieldCheck,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
   Trash2,
   FileSpreadsheet,
   Filter,
@@ -46,6 +48,7 @@ export interface ComprehensiveLead {
   company_facebook?: string;
   company_instagram?: string;
   company_linkedin?: string;
+  company_twitter?: string;
   company_tiktok?: string;
   company_youtube?: string;
   company_location: string;
@@ -182,12 +185,18 @@ function hasLeadFieldValue(l: ComprehensiveLead, fieldId: LeadFieldId): boolean 
   return Boolean(val && val !== "Not Available" && val !== "—" && val.trim() !== "");
 }
 
-export function LiveLeadsFinder({ source: _source }: { source: string }) {
-  const [keyword, setKeyword] = useState("Dentist");
-  const [location, setLocation] = useState("Dhaka");
+export function LiveLeadsFinder({ source = "google_maps" }: { source?: string }) {
+  const isMeta = source === "meta_ads";
+  const isLinkedIn = source === "linkedin";
+
+  const defaultKw = isMeta ? "Fitness" : isLinkedIn ? "Software" : "Dentist";
+  const defaultLoc = isMeta ? "US" : isLinkedIn ? "New York" : "Dhaka";
+
+  const [keyword, setKeyword] = useState(defaultKw);
+  const [location, setLocation] = useState(defaultLoc);
   const [maxResults, setMaxResults] = useState(15);
   const [findEmails, setFindEmails] = useState(true);
-  const [onlyWithWebsite, setOnlyWithWebsite] = useState(true);
+  const [onlyWithWebsite, setOnlyWithWebsite] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [scraping, setScraping] = useState(false);
@@ -228,13 +237,11 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
     });
   }, [leads, requiredFields, filterMatchMode]);
 
-  // Google Places API Key state
-  const [googleKeyStatus, setGoogleKeyStatus] = useState<{ connected: boolean; key_last4: string | null } | null>(null);
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [keyInput, setKeyInput] = useState("");
-  const [keyLoading, setKeyLoading] = useState(false);
-  const [keyError, setKeyError] = useState<string | null>(null);
-  const [keySuccess, setKeySuccess] = useState<string | null>(null);
+  // Bright Data API Key connection state
+  const [brightDataStatus, setBrightDataStatus] = useState<{
+    connected: boolean;
+    key_last4: string | null;
+  } | null>(null);
 
   // Google Account & Sheets state
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
@@ -268,15 +275,19 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
       if (savedEmails !== null) setFindEmails(savedEmails === "true");
     } catch {}
 
-    // 1. Google Places Key status
-    fetch("/api/v1/leads/google-key")
+    // 1. Bright Data Key status
+    fetch("/api/v1/api-keys")
       .then((res) => res.json())
       .then((data) => {
-        if (data.data) {
-          setGoogleKeyStatus(data.data);
+        const keys = data?.data || [];
+        const bd = keys.find((k: any) => k.provider === "bright_data" && k.status === "active");
+        if (bd) {
+          setBrightDataStatus({ connected: true, key_last4: bd.key_last4 });
+        } else {
+          setBrightDataStatus({ connected: false, key_last4: null });
         }
       })
-      .catch(() => {});
+      .catch(() => setBrightDataStatus({ connected: false, key_last4: null }));
 
     // 2. Google Account OAuth status
     fetch("/api/v1/auth/google/status")
@@ -288,8 +299,11 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
       })
       .catch(() => {});
 
-    // 3. Check URL query params for oauth redirect
+    // 3. Check URL query params for oauth redirect & clean trailing ? from URL
     if (typeof window !== "undefined") {
+      if (window.location.href.endsWith("?")) {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("google_connected") === "true") {
         setTimeout(() => {
@@ -300,47 +314,24 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
     }
   }, []);
 
-  const handleConnectKey = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setKeyLoading(true);
-    setKeyError(null);
-    setKeySuccess(null);
+  // Native DOM fallback listener & global hook so extraction works reliably across all browser conditions
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (window as any).__extractLeads = () => handleSearch();
+    }
+    const btn = document.getElementById("extract-leads-button");
+    if (!btn) return;
+    const nativeClickHandler = (e: MouseEvent) => {
+      e.preventDefault();
+      handleSearch();
+    };
+    btn.addEventListener("click", nativeClickHandler);
+    return () => {
+      btn.removeEventListener("click", nativeClickHandler);
+    };
+  }, [keyword, location, maxResults, findEmails, onlyWithWebsite]);
 
-    try {
-      const res = await fetch("/api/v1/leads/google-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: keyInput }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to verify key");
-      }
-      setGoogleKeyStatus(data.data);
-      setKeySuccess("Google Places API key verified and connected successfully!");
-      setKeyInput("");
-      setTimeout(() => {
-        setShowKeyModal(false);
-        setKeySuccess(null);
-      }, 1500);
-    } catch (err: any) {
-      setKeyError(err.message);
-    } finally {
-      setKeyLoading(false);
-    }
-  };
 
-  const handleDisconnectKey = async () => {
-    if (!confirm("Are you sure you want to disconnect your Google Places API key? Searches will fall back to OpenStreetMap.")) {
-      return;
-    }
-    try {
-      await fetch("/api/v1/leads/google-key", { method: "DELETE" });
-      setGoogleKeyStatus({ connected: false, key_last4: null });
-    } catch (err: any) {
-      alert("Failed to disconnect key: " + err.message);
-    }
-  };
 
   const handleSaveGoogleConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -489,26 +480,29 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
   };
 
   // 1. Initial Google Maps Extraction
-  const handleSearch = async (e?: React.FormEvent | React.MouseEvent) => {
+  const handleSearch = async (e?: React.FormEvent | React.MouseEvent, overrideOnlyWeb?: boolean) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    const cleanKw = keyword.trim();
-    const cleanLoc = location.trim();
+    const kwEl = typeof document !== "undefined" ? (document.getElementById("lead-keyword-input") as HTMLInputElement | null) : null;
+    const locEl = typeof document !== "undefined" ? (document.getElementById("lead-location-input") as HTMLInputElement | null) : null;
+    const cleanKw = (keyword || kwEl?.value || "Dentist").trim();
+    const cleanLoc = (location || locEl?.value || "Dhaka").trim();
     if (!cleanKw || !cleanLoc) {
       setStatusMessage("Please specify both a search keyword and target location.");
       return;
     }
 
+    const activeOnlyWeb = overrideOnlyWeb !== undefined ? overrideOnlyWeb : onlyWithWebsite;
+
+    console.log("[AutoHub] Extracting leads via Bright Data:", { keyword: cleanKw, location: cleanLoc, source, maxResults, onlyWithWebsite: activeOnlyWeb });
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setLoading(true);
     setStatusMessage(
-      googleKeyStatus?.connected
-        ? `Searching official Google Places API (New) for genuine businesses in ${cleanLoc}...`
-        : `Searching genuine places for up to ${maxResults} businesses from OpenStreetMap & live web crawler...`
+      `Connecting to Bright Data Datasets API v3 for ${cleanKw} in ${cleanLoc}...`
     );
 
     try {
@@ -518,9 +512,10 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
         body: JSON.stringify({
           keyword: cleanKw,
           location: cleanLoc,
+          source,
           max_results: maxResults,
           find_emails: findEmails,
-          only_with_website: onlyWithWebsite,
+          only_with_website: activeOnlyWeb,
         }),
         signal: controller.signal,
       });
@@ -531,27 +526,23 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
       }
 
       const list: ComprehensiveLead[] = data.data?.leads || [];
+      const duplicatesSkipped = data.data?.duplicatesSkipped || 0;
+      const dupNote = duplicatesSkipped > 0 ? ` (${duplicatesSkipped} duplicates skipped)` : "";
+      console.log("[AutoHub] Received", list.length, "leads successfully");
       setLeads(list);
       if (list.length === 0) {
         setStatusMessage(
           onlyWithWebsite
             ? `0 matching leads with active websites found for "${cleanKw}" in "${cleanLoc}". Try switching Quality Leads Filter to ALL (OFF).`
-            : `No places found for "${cleanKw}" in "${cleanLoc}". Try broader keywords or city name.`
-        );
-      } else if (findEmails) {
-        setStatusMessage(
-          onlyWithWebsite
-            ? `Deep Web Scraping complete: Extracted ${list.length} quality leads with verified websites, full addresses, emails, phones & social media.`
-            : `Deep Web Scraping complete: Extracted ${list.length} leads with verified full addresses, emails, phones & social media.`
+            : `No places found for "${cleanKw}" in "${cleanLoc}". Try broader keywords or region.`
         );
       } else {
         setStatusMessage(
-          onlyWithWebsite
-            ? `Quality Map Scraper complete: Extracted ${list.length} leads with verified websites and contact details.`
-            : `Basic Map Scraper complete: Extracted ${list.length} leads with verified full addresses and contact details.`
+          `Bright Data extraction complete: Extracted ${list.length} leads${dupNote}.`
         );
       }
     } catch (err: any) {
+      console.error("[AutoHub] Search error:", err);
       if (err.name === "AbortError") {
         setStatusMessage("Search canceled by user.");
       } else {
@@ -677,93 +668,108 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
 
   return (
     <div className="space-y-6">
-      {/* Google Places API Key Banner / Connection Widget */}
-      <div className="glass rounded-3xl p-4 sm:p-5 border border-border/80">
+      {/* Bright Data API Status Banner */}
+      <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
               className={`p-2.5 rounded-2xl shrink-0 ${
-                googleKeyStatus?.connected
+                brightDataStatus?.connected
                   ? "bg-accent-green/15 text-accent-green border border-accent-green/30"
-                  : "bg-brand/10 text-brand border border-brand/20"
+                  : "bg-accent-amber/20 text-accent-amber border border-accent-amber/30"
               }`}
             >
-              {googleKeyStatus?.connected ? <ShieldCheck size={20} /> : <Key size={20} />}
+              {brightDataStatus?.connected ? <ShieldCheck size={20} /> : <AlertTriangle size={20} />}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-bold text-fg">
-                  {googleKeyStatus?.connected
-                    ? `Google Places API Connected (${googleKeyStatus.key_last4})`
-                    : "Google Places API (New) Key: Optional"}
+                  {brightDataStatus?.connected
+                    ? `Bright Data API Connected (••••${brightDataStatus.key_last4})`
+                    : "আগে Settings-এ Bright Data API key দাও"}
                 </h3>
-                {googleKeyStatus?.connected ? (
+                {brightDataStatus?.connected ? (
                   <span className="badge border-accent-green/40 text-accent-green text-[10px] px-2 py-0.5 font-medium">
                     Live Active
                   </span>
                 ) : (
-                  <span className="badge border-muted/30 text-muted text-[10px] px-2 py-0.5">
-                    Free Fallback Mode
+                  <span className="badge border-accent-amber/40 text-accent-amber text-[10px] px-2 py-0.5 font-medium">
+                    Key Required
                   </span>
                 )}
               </div>
               <p className="text-xs text-muted mt-0.5">
-                {googleKeyStatus?.connected
-                  ? "Searches run directly against official Google Places database with authentic ratings, review counts & verified business websites."
-                  : "Using free OpenStreetMap & public web crawler. Connect your Google Cloud API key for 100% genuine Google Maps places & ratings."}
+                {brightDataStatus?.connected
+                  ? `Searches run directly against Bright Data Datasets API v3 (${source.replace("_", " ").toUpperCase()}) using your personal balance.`
+                  : "AutoHub uses your personal Bright Data account to extract leads. Please add your key in Settings before running searches."}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end shrink-0">
-            {googleKeyStatus?.connected ? (
-              <button
-                type="button"
-                onClick={handleDisconnectKey}
-                className="btn btn-ghost text-xs text-accent-pink hover:bg-accent-pink/10 border border-accent-pink/30 flex items-center gap-1.5"
-                title="Disconnect your Google Places API Key"
-              >
-                <Trash2 size={13} /> Disconnect Key
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setKeyError(null);
-                  setKeySuccess(null);
-                  setShowKeyModal(true);
-                }}
-                className="btn btn-primary text-xs flex items-center gap-1.5"
-                title="Connect your personal Google Cloud Places API key"
-              >
-                <Sparkles size={13} /> Connect Google Key
-              </button>
-            )}
+            <Link
+              href="/app/settings/api-keys"
+              className={`text-xs flex items-center gap-1.5 ${
+                brightDataStatus?.connected
+                  ? "btn btn-ghost border border-border/60 hover:border-brand/40"
+                  : "btn btn-primary shadow-md shadow-brand/20"
+              }`}
+            >
+              <Key size={13} /> {brightDataStatus?.connected ? "Manage Keys" : "Add Bright Data Key"}
+            </Link>
           </div>
         </div>
       </div>
 
+      {/* Dynamic Bright Data Cost Estimation */}
+      <div className="rounded-xl px-5 py-3 border border-border bg-bgSubtle flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-2 text-fg">
+          <Sparkles size={15} className="text-warning shrink-0" />
+          <span>
+            <strong>Estimated Bright Data Credit Cost:</strong> ~${(maxResults * 0.0018).toFixed(3)} - ${(maxResults * 0.0022).toFixed(3)} USD
+            {" "}(for {maxResults} records, billed to your personal Bright Data balance)
+          </span>
+        </div>
+        <span className="text-[11px] text-muted self-end sm:self-auto">~$0.002 / lead rate</span>
+      </div>
+
       {/* Search Input Box */}
-      <div className="glass rounded-3xl p-6">
+      <div className="rounded-xl border border-border bg-surface p-6">
         <form
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            e.stopPropagation();
             handleSearch(e);
           }}
-          action="#"
-          method="dialog"
           className="space-y-4"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="label">Search Keyword / Niche</label>
+              <label className="label">
+                {isMeta
+                  ? "Ad Campaign Niche / Keyword"
+                  : isLinkedIn
+                  ? "Industry / Company Niche / Role"
+                  : "Search Keyword / Niche"}
+              </label>
               <input
                 type="text"
+                id="lead-keyword-input"
                 className="input"
-                required
-                placeholder="e.g. Real Estate Agency, Dental Clinic, Gym"
+                placeholder={
+                  isMeta
+                    ? "e.g. Cosmetic Dentistry, Fitness Apparel, Real Estate"
+                    : isLinkedIn
+                    ? "e.g. Software, Financial Services, Marketing Agency"
+                    : "e.g. Real Estate Agency, Dental Clinic, Gym"
+                }
                 value={keyword}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSearch(e);
+                  }
+                }}
                 onChange={(e) => {
                   setKeyword(e.target.value);
                   try { sessionStorage.setItem("autohub_lead_kw", e.target.value); } catch {}
@@ -772,13 +778,31 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
             </div>
 
             <div>
-              <label className="label">City / Target Location</label>
+              <label className="label">
+                {isMeta
+                  ? "Target Country / Region (ISO Code or Country)"
+                  : isLinkedIn
+                  ? "Target Location / Country"
+                  : "City / Target Location"}
+              </label>
               <input
                 type="text"
+                id="lead-location-input"
                 className="input"
-                required
-                placeholder="e.g. Dhaka, Chittagong, London"
+                placeholder={
+                  isMeta
+                    ? "e.g. US, BD, GB, CA"
+                    : isLinkedIn
+                    ? "e.g. New York, London, Dhaka"
+                    : "e.g. Dhaka, Chittagong, London"
+                }
                 value={location}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSearch(e);
+                  }
+                }}
                 onChange={(e) => {
                   setLocation(e.target.value);
                   try { sessionStorage.setItem("autohub_lead_loc", e.target.value); } catch {}
@@ -788,15 +812,15 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
           </div>
 
           {/* Quality Website Filter Toggle */}
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-surface/50 border border-white/5 hover:border-brand/30 transition-colors">
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-bgSubtle border border-border transition-colors">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-accent-green/10 border border-accent-green/20 flex items-center justify-center text-accent-green shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-success shrink-0">
                 <Globe size={16} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold text-fg">Quality Leads Filter (Website Required)</span>
-                  <span className="badge border-accent-green/30 text-accent-green text-[10px] px-1.5 py-0.2">
+                  <span className="badge border-success/30 text-success text-[10px] px-1.5 py-0.2">
                     High Quality Leads
                   </span>
                 </div>
@@ -809,8 +833,8 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
               <span
                 className={`text-[11px] font-bold tracking-wider px-2.5 py-1 rounded-full border transition-all ${
                   onlyWithWebsite
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm shadow-emerald-500/20"
-                    : "bg-slate-800 text-slate-400 border-slate-700"
+                    ? "bg-successBg text-success border-success/40"
+                    : "bg-surface text-muted border-border"
                 }`}
               >
                 {onlyWithWebsite ? "ACTIVE (ON)" : "ALL (OFF)"}
@@ -824,15 +848,15 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                   setOnlyWithWebsite(nextVal);
                   try { sessionStorage.setItem("autohub_lead_only_web", String(nextVal)); } catch {}
                 }}
-                className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary ${
                   onlyWithWebsite
-                    ? "bg-emerald-500 border-emerald-400 shadow-[0_0_14px_rgba(16,185,129,0.45)]"
-                    : "bg-slate-800 border-slate-600"
+                    ? "bg-primary border-primary"
+                    : "bg-bgSubtle border-border"
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5.5 w-5.5 transform rounded-full bg-white shadow-md transition duration-200 ease-in-out ${
-                    onlyWithWebsite ? "translate-x-6.5" : "translate-x-0.5"
+                  className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-surface shadow transition duration-200 ease-in-out ${
+                    onlyWithWebsite ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
               </button>
@@ -841,7 +865,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
 
           <div className="grid gap-4 sm:grid-cols-12 items-end pt-1">
             <div className="sm:col-span-3">
-              <label className="label font-medium text-slate-300">Max Leads</label>
+              <label className="label font-medium text-fg">Max Leads</label>
               <input
                 type="number"
                 className="input h-12 text-sm"
@@ -857,7 +881,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
             </div>
 
             <div className="sm:col-span-4">
-              <label className="label font-medium text-slate-300">Enrichment Mode</label>
+              <label className="label font-medium text-fg">Enrichment Mode</label>
               <select
                 className="input h-12 text-sm"
                 value={findEmails ? "yes" : "no"}
@@ -878,13 +902,9 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
 
             <div className="sm:col-span-5 flex items-center gap-2">
               <button
-                type="button"
+                type="submit"
                 id="extract-leads-button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleSearch(e);
-                }}
+                onClick={(e) => handleSearch(e)}
                 disabled={loading}
                 className="flex-1 h-12 px-6 rounded-xl text-base font-bold text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:via-indigo-500 hover:to-violet-500 shadow-[0_0_28px_rgba(79,70,229,0.6)] hover:shadow-[0_0_38px_rgba(99,102,241,0.85)] border border-indigo-400/50 hover:border-indigo-300 flex items-center justify-center gap-2.5 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
               >
@@ -914,15 +934,48 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
           </div>
         </form>
 
-        {statusMessage && (
-          <div className="mt-4 rounded-xl border border-brand/30 bg-brand/10 p-3 text-xs text-brand-2 flex items-center justify-between">
-            <span>{statusMessage}</span>
+        {/* Live Active Progress Indicator */}
+        {loading && (
+          <div className="mt-4 rounded-2xl border border-indigo-500/40 bg-indigo-950/30 p-4 space-y-2.5 animate-pulse">
+            <div className="flex items-center justify-between text-xs text-indigo-200">
+              <div className="flex items-center gap-2">
+                <Search size={14} className="animate-spin text-indigo-400" />
+                <span className="font-semibold">{statusMessage || "Extraction in progress..."}</span>
+              </div>
+              <span className="text-[10px] text-muted">This may take 10-25s depending on web crawling depth</span>
+            </div>
+            <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 via-indigo-400 to-violet-500 h-1.5 rounded-full w-full animate-pulse" />
+            </div>
+          </div>
+        )}
+
+        {/* Status Message Display */}
+        {!loading && statusMessage && (
+          <div className="mt-4 rounded-xl border border-brand/30 bg-brand/10 p-3.5 text-xs text-brand-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="shrink-0 text-amber-300" />
+              <span>{statusMessage}</span>
+            </div>
+            {onlyWithWebsite && leads.length === 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOnlyWithWebsite(false);
+                  try { sessionStorage.setItem("autohub_lead_only_web", "false"); } catch {}
+                  handleSearch(undefined, false);
+                }}
+                className="btn btn-primary text-xs !py-1 !px-3 shrink-0"
+              >
+                Turn OFF Filter &amp; Re-extract All
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {/* Results Table & Export Strip */}
-      <div className="glass rounded-3xl p-6 space-y-4">
+      <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
@@ -1388,17 +1441,20 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                           ) : null}
                           {founderSocials.length > 0 ? (
                             <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                              {founderSocials.map((s, idx) => (
-                                <a
-                                  key={idx}
-                                  href={s}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="px-1.5 py-0.5 rounded bg-surface-2 border border-border text-accent-pink text-[9px] hover:underline"
-                                >
-                                  Social {idx + 1}
-                                </a>
-                              ))}
+                              {founderSocials.map((s, idx) => {
+                                const url = s.startsWith("http") ? s : `https://${s}`;
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-1.5 py-0.5 rounded bg-surface-2 border border-border text-accent-pink text-[9px] hover:underline"
+                                  >
+                                    Social {idx + 1}
+                                  </a>
+                                );
+                              })}
                             </div>
                           ) : null}
                           {!l.founder_name && founderEmails.length === 0 && founderPhones.length === 0 && (
@@ -1439,17 +1495,20 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                           ) : null}
                           {managerSocials.length > 0 ? (
                             <div className="flex items-center gap-1 flex-wrap pt-0.5">
-                              {managerSocials.map((s, idx) => (
-                                <a
-                                  key={idx}
-                                  href={s}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="px-1.5 py-0.5 rounded bg-surface-2 border border-border text-brand-2 text-[9px] hover:underline"
-                                >
-                                  Social {idx + 1}
-                                </a>
-                              ))}
+                              {managerSocials.map((s, idx) => {
+                                const url = s.startsWith("http") ? s : `https://${s}`;
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-1.5 py-0.5 rounded bg-surface-2 border border-border text-brand-2 text-[9px] hover:underline"
+                                  >
+                                    Social {idx + 1}
+                                  </a>
+                                );
+                              })}
                             </div>
                           ) : null}
                           {!l.manager_name && managerEmails.length === 0 && managerPhones.length === 0 && (
@@ -1464,7 +1523,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {l.company_facebook && (
                             <a
-                              href={l.company_facebook}
+                              href={l.company_facebook.startsWith("http") ? l.company_facebook : `https://${l.company_facebook}`}
                               target="_blank"
                               rel="noreferrer"
                               className="px-2 py-1 rounded-md bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[10px] font-bold hover:bg-blue-500 hover:text-white transition-all shadow-xs"
@@ -1475,7 +1534,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                           )}
                           {l.company_instagram && (
                             <a
-                              href={l.company_instagram}
+                              href={l.company_instagram.startsWith("http") ? l.company_instagram : `https://${l.company_instagram}`}
                               target="_blank"
                               rel="noreferrer"
                               className="px-2 py-1 rounded-md bg-pink-500/15 text-pink-400 border border-pink-500/30 text-[10px] font-bold hover:bg-pink-500 hover:text-white transition-all shadow-xs"
@@ -1486,7 +1545,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                           )}
                           {l.company_linkedin && (
                             <a
-                              href={l.company_linkedin}
+                              href={l.company_linkedin.startsWith("http") ? l.company_linkedin : `https://${l.company_linkedin}`}
                               target="_blank"
                               rel="noreferrer"
                               className="px-2 py-1 rounded-md bg-sky-500/15 text-sky-400 border border-sky-500/30 text-[10px] font-bold hover:bg-sky-500 hover:text-white transition-all shadow-xs"
@@ -1495,9 +1554,20 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                               LI
                             </a>
                           )}
+                          {l.company_twitter && (
+                            <a
+                              href={l.company_twitter.startsWith("http") ? l.company_twitter : `https://${l.company_twitter}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2 py-1 rounded-md bg-neutral-500/15 text-neutral-300 border border-neutral-500/30 text-[10px] font-bold hover:bg-neutral-600 hover:text-white transition-all shadow-xs"
+                              title="X / Twitter"
+                            >
+                              X
+                            </a>
+                          )}
                           {l.company_tiktok && (
                             <a
-                              href={l.company_tiktok}
+                              href={l.company_tiktok.startsWith("http") ? l.company_tiktok : `https://${l.company_tiktok}`}
                               target="_blank"
                               rel="noreferrer"
                               className="px-2 py-1 rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/30 text-[10px] font-bold hover:bg-purple-500 hover:text-white transition-all shadow-xs"
@@ -1508,7 +1578,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                           )}
                           {l.company_youtube && (
                             <a
-                              href={l.company_youtube}
+                              href={l.company_youtube.startsWith("http") ? l.company_youtube : `https://${l.company_youtube}`}
                               target="_blank"
                               rel="noreferrer"
                               className="px-2 py-1 rounded-md bg-red-500/15 text-red-400 border border-red-500/30 text-[10px] font-bold hover:bg-red-500 hover:text-white transition-all shadow-xs"
@@ -1520,6 +1590,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                           {!l.company_facebook &&
                             !l.company_instagram &&
                             !l.company_linkedin &&
+                            !l.company_twitter &&
                             !l.company_tiktok &&
                             !l.company_youtube && (
                               <span className="text-muted text-[10px] italic">Not Available</span>
@@ -1550,7 +1621,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
       {/* Complete 18-Attribute Lead Inspector Modal */}
       {selectedLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="glass max-w-2xl w-full rounded-3xl p-6 border border-border shadow-2xl max-h-[90vh] overflow-y-auto space-y-6">
+          <div className="bg-surface max-w-2xl w-full rounded-xl p-6 border border-border shadow-2xl max-h-[90vh] overflow-y-auto space-y-6">
             <div className="flex items-start justify-between">
               <div>
                 <span className="badge border-brand/40 text-brand text-[10px]">18 Field Lead Inspector</span>
@@ -1634,6 +1705,11 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                         LinkedIn
                       </a>
                     )}
+                    {selectedLead.company_twitter && (
+                      <a href={selectedLead.company_twitter} target="_blank" rel="noreferrer" className="text-neutral-300 hover:underline">
+                        X / Twitter
+                      </a>
+                    )}
                     {selectedLead.company_tiktok && (
                       <a href={selectedLead.company_tiktok} target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">
                         TikTok
@@ -1647,6 +1723,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                     {!selectedLead.company_facebook &&
                       !selectedLead.company_instagram &&
                       !selectedLead.company_linkedin &&
+                      !selectedLead.company_twitter &&
                       !selectedLead.company_tiktok &&
                       !selectedLead.company_youtube && (
                         <span className="text-muted italic">Not Available</span>
@@ -1763,115 +1840,35 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
         </div>
       )}
 
-      {/* Google Key Connect Modal */}
-      {showKeyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="glass max-w-lg w-full rounded-3xl p-6 border border-border shadow-2xl space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="badge border-brand/40 text-brand text-[10px]">Google Cloud Places</span>
-                <h3 className="text-lg font-bold text-fg mt-1">Connect Google Places API Key</h3>
-                <p className="text-xs text-muted mt-0.5">
-                  Enter your Google Cloud API key with <strong>Places API (New)</strong> enabled.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowKeyModal(false)}
-                className="btn btn-ghost p-1.5 rounded-xl text-muted hover:text-fg"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            <form onSubmit={handleConnectKey} className="space-y-4">
-              <div>
-                <label className="label text-xs">Google API Key</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="AIzaSy..."
-                  value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  className="input font-mono text-xs"
-                  autoComplete="off"
-                />
-                <span className="text-[11px] text-muted mt-1 block">
-                  Keys are validated against Google Places API and securely encrypted using AES-256 before saving.
-                </span>
-              </div>
-
-              {keyError && (
-                <div className="p-3 rounded-xl border border-accent-pink/40 bg-accent-pink/10 text-accent-pink text-xs flex items-center gap-2">
-                  <AlertCircle size={14} className="shrink-0" />
-                  <span>{keyError}</span>
-                </div>
-              )}
-
-              {keySuccess && (
-                <div className="p-3 rounded-xl border border-accent-green/40 bg-accent-green/10 text-accent-green text-xs flex items-center gap-2">
-                  <Check size={14} className="shrink-0" />
-                  <span>{keySuccess}</span>
-                </div>
-              )}
-
-              <div className="p-3.5 rounded-2xl bg-surface-2/60 border border-border text-[11px] text-muted space-y-1.5">
-                <div className="font-semibold text-fg">How to get a free Google Places Key:</div>
-                <ol className="list-decimal list-inside space-y-1 text-[11px]">
-                  <li>Go to Google Cloud Console (console.cloud.google.com)</li>
-                  <li>In <strong>APIs & Services</strong>, enable <strong>Places API (New)</strong></li>
-                  <li>Go to <strong>Credentials</strong> → <strong>Create Credentials</strong> → <strong>API Key</strong></li>
-                  <li>Paste your key above and click <strong>Verify & Connect</strong></li>
-                </ol>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowKeyModal(false)}
-                  className="btn btn-ghost text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={keyLoading || !keyInput.trim()}
-                  className="btn btn-primary text-xs"
-                >
-                  {keyLoading ? "Verifying with Google..." : "Verify & Connect"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
 
 
       {/* Google Sheets Direct OAuth Connect Modal */}
       {showGoogleAuthModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="glass max-w-lg w-full rounded-3xl p-6 border border-border shadow-2xl space-y-4">
+          <div className="bg-surface max-w-lg w-full rounded-xl p-6 border border-border shadow-2xl space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                <div className="w-10 h-10 rounded-xl bg-bgSubtle border border-border flex items-center justify-center shrink-0">
                   <GoogleSheetsIcon className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-fg">Direct Google Sheets Sync</h3>
+                  <h3 className="text-base font-bold text-fg">Direct Google Sheets Sync</h3>
                   <p className="text-xs text-muted">Populate leads directly into your Google Drive</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowGoogleAuthModal(false)}
-                className="btn btn-ghost p-1.5 rounded-xl text-muted hover:text-fg"
+                className="p-1.5 rounded-lg border border-border text-muted hover:text-fg hover:bg-bgSubtle transition-colors"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-surface-2/60 border border-border text-xs text-slate-300 space-y-2">
+            <div className="p-3.5 rounded-lg bg-bgSubtle border border-border text-xs text-muted space-y-2">
               <p className="leading-relaxed">
-                Connect your Google Account to create spreadsheets directly inside your Google Drive with all <strong className="text-white">18 columns</strong> automatically populated — zero clipboard copying and zero manual pasting required!
+                Connect your Google Account to create spreadsheets directly inside your Google Drive with all <strong className="text-fg font-semibold">18 columns</strong> automatically populated — zero clipboard copying and zero manual pasting required!
               </p>
             </div>
 
@@ -1879,7 +1876,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
               <div className="space-y-3 pt-2">
                 <a
                   href="/api/v1/auth/google/start?returnTo=/app/leads/google_maps"
-                  className="w-full h-11 px-4 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center gap-2 shadow-lg transition-all"
+                  className="w-full h-10 px-4 rounded-lg text-xs font-medium bg-primary text-primaryText flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-opacity"
                 >
                   <GoogleSheetsIcon className="w-4 h-4" />
                   <span>Sign In with Google to Export Directly</span>
@@ -1888,7 +1885,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
             ) : (
               <form onSubmit={handleSaveGoogleConfig} className="space-y-3 pt-1">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-medium text-slate-300">Google OAuth Client ID</label>
+                  <label className="text-[11px] font-medium text-fg">Google OAuth Client ID</label>
                   <input
                     type="text"
                     required
@@ -1899,7 +1896,7 @@ export function LiveLeadsFinder({ source: _source }: { source: string }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] font-medium text-slate-300">Google OAuth Client Secret</label>
+                  <label className="text-[11px] font-medium text-fg">Google OAuth Client Secret</label>
                   <input
                     type="password"
                     required

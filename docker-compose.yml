@@ -2,11 +2,23 @@ services:
   caddy:
     image: caddy:2
     restart: unless-stopped
-    command: caddy reverse-proxy --from ${APP_DOMAIN} --to web:3000
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     ports: ["80:80", "443:443"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
     volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
     depends_on:
       - web
 
@@ -26,23 +38,43 @@ services:
       TZ: UTC
     volumes:
       - appdata:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
       retries: 5
+      start_period: 25s
 
   worker:
     image: ${DOCKER_IMAGE:-ghcr.io/autohub/autohub:latest}
     restart: unless-stopped
-    command: ["node", "-e", "require('./src/server/worker').startPlannerWorker(); require('./src/server/worker').startSocialPublishWorker();"]
-    environment: *app_env
+    command: ["node_modules/.bin/tsx", "src/server/worker/runner.ts"]
+    environment:
+      <<: *app_env
+      SERVICE_ROLE: worker
     volumes:
       - appdata:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
     depends_on:
       web:
         condition: service_healthy
@@ -56,6 +88,14 @@ services:
       POSTGRES_DB: autohub
     volumes:
       - pgdata:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U autohub"]
       interval: 10s
@@ -67,6 +107,14 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redisdata:/data
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s

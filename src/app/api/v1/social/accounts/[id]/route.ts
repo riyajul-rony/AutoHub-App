@@ -6,19 +6,19 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let session = await getSessionUser();
-  if (!session && process.env.NODE_ENV !== "production") {
-    session = {
-      sessionId: "dev-session",
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "admin@example.com", role: "admin" } as any,
-    };
-  }
-
+  const session = await getSessionUser();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
+
+  const existing = await db.social_accounts.findFirst({
+    where: scoped(session.user.id, { id }),
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "Account not found or not owned by you" }, { status: 404 });
+  }
 
   try {
     await db.social_accounts.delete({

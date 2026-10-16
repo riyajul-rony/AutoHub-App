@@ -1,7 +1,8 @@
-import { requireAdmin } from "@/server/auth/guards";
+import { requirePermission } from "@/server/auth/guards";
 import { db } from "@/server/db";
 import { getRedisConnection } from "@/server/queues";
 import { CheckCircle2, XCircle, ShieldCheck, Database, Server } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
   title: "System Health — AutoHub Admin",
@@ -19,7 +20,7 @@ async function checkDbHealth() {
 }
 
 export default async function AdminHealthPage() {
-  await requireAdmin();
+  await requirePermission("logs.read");
 
   const { ok: dbOk, latency: dbLatency } = await checkDbHealth();
 
@@ -39,71 +40,81 @@ export default async function AdminHealthPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-6">
+    <div className="mx-auto max-w-4xl space-y-8 p-4 sm:p-6">
       <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/20 text-brand">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand border border-brand/20">
           <ShieldCheck size={22} />
         </span>
         <div>
-          <h1 className="text-3xl font-bold">System Health & Status</h1>
-          <p className="text-xs text-muted">Admin panel monitoring services, databases, and queues.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-fg">System Health &amp; Status</h1>
+          <p className="text-xs sm:text-sm text-muted">Admin panel monitoring services, databases, and queues.</p>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="glass rounded-2xl p-6">
+        <div className="rounded-xl border border-border bg-surface p-6 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Database className="text-brand-2" size={24} />
-              <h2 className="font-semibold">PostgreSQL 16</h2>
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400">
+                <Database size={20} />
+              </span>
+              <div>
+                <h2 className="font-semibold text-fg">PostgreSQL 16</h2>
+                <span className="text-xs text-muted">Relational Database</span>
+              </div>
             </div>
             {dbOk ? (
-              <span className="badge border-accent-green/40 text-accent-green">
+              <Badge variant="success" className="gap-1 text-xs">
                 <CheckCircle2 size={13} /> UP ({dbLatency}ms)
-              </span>
+              </Badge>
             ) : (
-              <span className="badge border-danger/40 text-danger">
+              <Badge variant="danger" className="gap-1 text-xs">
                 <XCircle size={13} /> DOWN
-              </span>
+              </Badge>
             )}
           </div>
-          <p className="mt-3 text-xs text-muted">Primary database for campaigns, leads, and audit logs.</p>
+          <p className="text-xs text-muted">Primary database for campaigns, leads, and audit logs.</p>
         </div>
 
-        <div className="glass rounded-2xl p-6">
+        <div className="rounded-xl border border-border bg-surface p-6 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Server className="text-accent-pink" size={24} />
-              <h2 className="font-semibold">Redis 7 (BullMQ)</h2>
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-pink-50 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400">
+                <Server size={20} />
+              </span>
+              <div>
+                <h2 className="font-semibold text-fg">Redis 7 (BullMQ)</h2>
+                <span className="text-xs text-muted">Task Broker</span>
+              </div>
             </div>
             {redisOk ? (
-              <span className="badge border-accent-green/40 text-accent-green">
+              <Badge variant="success" className="gap-1 text-xs">
                 <CheckCircle2 size={13} /> CONNECTED
-              </span>
+              </Badge>
             ) : (
-              <span className="badge border-danger/40 text-danger">
+              <Badge variant="danger" className="gap-1 text-xs">
                 <XCircle size={13} /> UNREACHABLE
-              </span>
+              </Badge>
             )}
           </div>
-          <p className="mt-3 text-xs text-muted">In-memory message broker for asynchronous job execution.</p>
+          <p className="text-xs text-muted">In-memory message broker for asynchronous job execution.</p>
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-6">
-        <h2 className="text-lg font-bold">Database Totals</h2>
-        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-          <div className="rounded-xl bg-surface-2 p-4">
-            <div className="text-2xl font-bold">{userCount}</div>
-            <div className="text-xs text-muted">Total Users</div>
+      <div className="rounded-xl border border-border bg-surface p-6 space-y-4">
+        <h2 className="text-base font-semibold text-fg">Database Totals</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="rounded-lg bg-bgSubtle border border-border p-4">
+            <div className="text-2xl font-bold font-mono text-fg">{userCount.toLocaleString()}</div>
+            <div className="text-xs text-muted mt-1">Total Users</div>
           </div>
-          <div className="rounded-xl bg-surface-2 p-4">
-            <div className="text-2xl font-bold">{campaignCount}</div>
-            <div className="text-xs text-muted">Active Campaigns</div>
+          <div className="rounded-lg bg-bgSubtle border border-border p-4">
+            <div className="text-2xl font-bold font-mono text-fg">{campaignCount.toLocaleString()}</div>
+            <div className="text-xs text-muted mt-1">Active Campaigns</div>
           </div>
-          <div className="rounded-xl bg-surface-2 p-4">
-            <div className="text-2xl font-bold">{postRunCount}</div>
-            <div className="text-xs text-muted">Total Post Runs</div>
+          <div className="rounded-lg bg-bgSubtle border border-border p-4">
+            <div className="text-2xl font-bold font-mono text-fg">{postRunCount.toLocaleString()}</div>
+            <div className="text-xs text-muted mt-1">Total Post Runs</div>
           </div>
         </div>
       </div>

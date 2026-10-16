@@ -1,6 +1,8 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { CampaignSetupForm } from "@/components/social/campaign-setup-form";
+import { requireUser } from "@/server/auth/guards";
+import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata = {
   title: "New Campaign — AutoHub Social",
@@ -12,23 +14,25 @@ export default async function NewCampaignPage({
 }: {
   params: Promise<{ provider: string }>;
 }) {
+  await requireUser();
   const { provider } = await params;
   const platformName = provider.charAt(0).toUpperCase() + provider.slice(1);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-2 text-xs text-muted">
-        <Link href={`/app/social/${provider}`} className="hover:underline flex items-center gap-1">
+        <Link
+          href={`/app/social/${provider}`}
+          className="hover:text-fg transition-colors flex items-center gap-1.5 font-medium"
+        >
           <ArrowLeft size={14} /> Back to {platformName} Campaigns
         </Link>
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold">Create {platformName} Campaign</h1>
-        <p className="mt-1 text-sm text-muted">
-          Configure prompt direction, image style, daily schedule, and preview AI output.
-        </p>
-      </div>
+      <PageHeader
+        title={`Create ${platformName} Campaign`}
+        description="Configure prompt direction, image style, daily schedule, and preview AI output."
+      />
 
       <CampaignSetupForm provider={provider} />
     </div>

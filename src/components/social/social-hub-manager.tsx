@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Plus, CheckCircle2, Link2, Unlink, Sparkles, AlertCircle, X, ExternalLink } from "lucide-react";
+import {
+  CheckCircle2,
+  Link2,
+  Unlink,
+  AlertCircle,
+  X,
+  ExternalLink,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface SocialAccount {
   id: string;
@@ -18,7 +27,6 @@ interface PlatformConfig {
   name: string;
   desc: string;
   href: string;
-  color: string;
   defaultIdLabel: string;
 }
 
@@ -26,25 +34,22 @@ const PLATFORMS: PlatformConfig[] = [
   {
     id: "facebook",
     name: "Facebook",
-    desc: "Auto post to Facebook Pages with custom AI graphics and automated captions",
+    desc: "Auto post to Facebook Pages with custom AI graphics and automated captions.",
     href: "/app/social/facebook",
-    color: "from-blue-600 to-indigo-600",
     defaultIdLabel: "Facebook Page ID",
   },
   {
     id: "instagram",
     name: "Instagram",
-    desc: "Publish photos and carousel posts directly to connected Instagram Business accounts",
+    desc: "Publish photos and carousel posts directly to connected Instagram Business accounts.",
     href: "/app/social/instagram",
-    color: "from-pink-600 to-purple-600",
     defaultIdLabel: "Instagram Business Account ID",
   },
   {
     id: "linkedin",
     name: "LinkedIn",
-    desc: "Share professional thought-leadership articles and updates to personal profile or company page",
+    desc: "Share professional thought-leadership articles and updates to personal profile or company page.",
     href: "/app/social/linkedin",
-    color: "from-blue-500 to-cyan-600",
     defaultIdLabel: "LinkedIn Profile / Company URN",
   },
 ];
@@ -60,6 +65,8 @@ export function SocialHubManager() {
   const [accessToken, setAccessToken] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const loadAccounts = async () => {
     try {
@@ -77,6 +84,21 @@ export function SocialHubManager() {
 
   useEffect(() => {
     loadAccounts();
+
+    // Check for OAuth callback query parameters
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const connected = params.get("connected");
+      const count = params.get("count");
+      const err = params.get("error");
+      if (connected) {
+        setSuccessBanner(`Successfully connected ${connected.toUpperCase()} (${count || 1} account${Number(count) > 1 ? "s" : ""})!`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (err) {
+        setErrorBanner(err);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   const openConnectModal = (provider: "facebook" | "instagram" | "linkedin") => {
@@ -89,7 +111,8 @@ export function SocialHubManager() {
 
   const handleConnectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!modalProvider) return;
+    if (!modalProvider || !displayName || !externalId) return;
+
     setSubmitting(true);
     setErrorMessage("");
 
@@ -101,41 +124,74 @@ export function SocialHubManager() {
           provider: modalProvider,
           display_name: displayName,
           external_id: externalId,
-          access_token: accessToken,
+          access_token: accessToken || "mock_dev_token",
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || data.error) {
-        setErrorMessage(data.error || "Failed to connect account");
-        return;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to connect account");
       }
 
       setModalProvider(null);
-      await loadAccounts();
+      setSuccessBanner(`Connected ${displayName} (${modalProvider.toUpperCase()}) successfully!`);
+      loadAccounts();
     } catch (err: any) {
-      setErrorMessage(err.message || "An unexpected error occurred");
+      setErrorMessage(err.message || "Failed to connect account");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDisconnect = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
+    if (!confirm(`Are you sure you want to disconnect "${name}"?`)) return;
+
     try {
       const res = await fetch(`/api/v1/social/accounts/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setAccounts((prev) => prev.filter((a) => a.id !== id));
-      }
-    } catch {
-      alert("Failed to disconnect account");
+      if (!res.ok) throw new Error("Failed to disconnect");
+      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      setSuccessBanner(`Disconnected ${name}`);
+    } catch (err: any) {
+      setErrorBanner(err.message);
     }
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Success Notification Banner */}
+      {successBanner && (
+        <div className="p-3.5 rounded-lg bg-successBg border border-success/30 text-xs text-success flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={15} className="shrink-0" />
+            <span className="font-medium">{successBanner}</span>
+          </div>
+          <button
+            onClick={() => setSuccessBanner(null)}
+            className="text-success hover:underline text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Error Notification Banner */}
+      {errorBanner && (
+        <div className="p-3.5 rounded-lg bg-dangerBg border border-danger/30 text-xs text-danger flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={15} className="shrink-0" />
+            <span className="font-medium">{errorBanner}</span>
+          </div>
+          <button
+            onClick={() => setErrorBanner(null)}
+            className="text-danger hover:underline text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Platform Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3">
         {PLATFORMS.map((p) => {
           const connectedAccs = accounts.filter((a) => a.provider === p.id);
           const isConnected = connectedAccs.length > 0;
@@ -143,22 +199,20 @@ export function SocialHubManager() {
           return (
             <div
               key={p.id}
-              className="glass rounded-3xl p-6 flex flex-col justify-between border border-border/80 hover:border-brand/40 transition-all duration-200"
+              className="rounded-xl border border-border bg-surface p-5 flex flex-col justify-between hover:border-borderStrong transition-all duration-150"
             >
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-3 h-3 rounded-full bg-gradient-to-tr ${p.color}`} />
-                    <span className="font-bold text-lg text-white">{p.name}</span>
-                  </div>
+                  <span className="font-bold text-base text-fg">{p.name}</span>
                   {isConnected ? (
-                    <span className="badge border-emerald-500/40 text-emerald-400 bg-emerald-500/10 flex items-center gap-1.5 px-2.5 py-1 text-xs">
-                      <CheckCircle2 size={13} /> {connectedAccs.length} Connected
-                    </span>
+                    <Badge variant="success" size="sm" className="flex items-center gap-1">
+                      <CheckCircle2 size={12} />
+                      <span>{connectedAccs.length} Connected</span>
+                    </Badge>
                   ) : (
-                    <span className="badge border-border text-muted bg-surface-2/60 text-xs">
+                    <Badge variant="neutral" size="sm">
                       Not Connected
-                    </span>
+                    </Badge>
                   )}
                 </div>
 
@@ -166,22 +220,22 @@ export function SocialHubManager() {
 
                 {/* Connected Accounts List */}
                 {isConnected && (
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-1.5 pt-2">
                     {connectedAccs.map((acc) => (
                       <div
                         key={acc.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2/80 border border-border/60 text-xs"
+                        className="flex items-center justify-between p-2 rounded-lg bg-bgSubtle border border-border text-xs"
                       >
                         <div className="truncate pr-2">
-                          <span className="font-semibold text-fg block truncate">{acc.display_name}</span>
+                          <span className="font-medium text-fg block truncate">{acc.display_name}</span>
                           <span className="text-[10px] text-muted font-mono">ID: {acc.external_id}</span>
                         </div>
                         <button
                           onClick={() => handleDisconnect(acc.id, acc.display_name)}
-                          className="text-rose-400 hover:text-rose-300 p-1 rounded-lg hover:bg-rose-500/10 transition"
+                          className="text-danger hover:bg-dangerBg p-1 rounded-md transition-colors"
                           title="Disconnect Account"
                         >
-                          <Unlink size={14} />
+                          <Unlink size={13} />
                         </button>
                       </div>
                     ))}
@@ -190,19 +244,21 @@ export function SocialHubManager() {
               </div>
 
               {/* Bottom Actions */}
-              <div className="mt-6 pt-4 border-t border-border flex items-center justify-between gap-2">
-                <button
+              <div className="mt-5 pt-3.5 border-t border-border flex items-center justify-between gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => openConnectModal(p.id)}
-                  className="btn btn-ghost text-xs !py-1.5 !px-3 flex items-center gap-1.5 text-brand-2 hover:bg-brand/10"
+                  icon={<Link2 size={13} />}
                 >
-                  <Link2 size={14} /> {isConnected ? "Add Another Page" : "Connect Account"}
-                </button>
+                  {isConnected ? "Add Account" : "Connect"}
+                </Button>
 
-                <Link
-                  href={p.href}
-                  className="btn btn-ghost text-xs !py-1.5 !px-3 font-semibold hover:text-white"
-                >
-                  Manage Campaigns →
+                <Link href={p.href}>
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    <span>Manage</span>
+                    <span className="ml-1">→</span>
+                  </Button>
                 </Link>
               </div>
             </div>
@@ -212,15 +268,15 @@ export function SocialHubManager() {
 
       {/* Connect Account Modal */}
       {modalProvider && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="glass w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-6 border border-border shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-border pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface w-full max-w-lg rounded-xl p-6 space-y-5 border border-border shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-border pb-3.5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-brand/20 text-brand flex items-center justify-center font-bold">
-                  <Link2 size={20} />
+                <div className="w-9 h-9 rounded-lg bg-bgSubtle border border-border text-fg flex items-center justify-center font-bold">
+                  <Link2 size={18} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold">
+                  <h3 className="text-sm font-bold text-fg">
                     Connect {PLATFORMS.find((p) => p.id === modalProvider)?.name} Account
                   </h3>
                   <p className="text-xs text-muted">
@@ -230,39 +286,57 @@ export function SocialHubManager() {
               </div>
               <button
                 onClick={() => setModalProvider(null)}
-                className="btn btn-ghost p-1.5 rounded-xl text-muted hover:text-white"
+                className="p-1 rounded-lg border border-border text-muted hover:text-fg hover:bg-bgSubtle transition-colors"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             {errorMessage && (
-              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2">
-                <AlertCircle size={16} className="shrink-0" />
+              <div className="p-3 rounded-lg bg-dangerBg border border-danger/30 text-xs text-danger flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
-            <form onSubmit={handleConnectSubmit} className="space-y-4">
+            {/* Option A: Direct OAuth Connection */}
+            <div className="space-y-3">
+              <a
+                href={`/api/v1/social/oauth/${modalProvider}?action=authorize`}
+                className="w-full h-9 rounded-lg text-xs font-medium bg-primary text-primaryText flex items-center justify-center gap-2 shadow-sm hover:opacity-90 transition-opacity"
+              >
+                <Link2 size={14} />
+                <span>Connect via Official OAuth (1-Click)</span>
+              </a>
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-border"></div>
+                <span className="flex-shrink mx-3 text-[11px] text-muted">or connect manually with Page ID</span>
+                <div className="flex-grow border-t border-border"></div>
+              </div>
+            </div>
+
+            <form onSubmit={handleConnectSubmit} className="space-y-3.5">
               <div>
-                <label className="label text-xs font-semibold">Account / Page Display Name *</label>
+                <label className="text-xs font-medium text-fg block mb-1">
+                  Account / Page Display Name *
+                </label>
                 <input
                   type="text"
-                  className="input text-xs"
+                  className="input text-xs h-9 w-full"
                   required
-                  placeholder="e.g. AutoHub Real Estate"
+                  placeholder="e.g. AutoHub Studio"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                 />
               </div>
 
               <div>
-                <label className="label text-xs font-semibold">
+                <label className="text-xs font-medium text-fg block mb-1">
                   {PLATFORMS.find((p) => p.id === modalProvider)?.defaultIdLabel} *
                 </label>
                 <input
                   type="text"
-                  className="input text-xs font-mono"
+                  className="input text-xs font-mono h-9 w-full"
                   required
                   placeholder={
                     modalProvider === "facebook"
@@ -277,37 +351,36 @@ export function SocialHubManager() {
               </div>
 
               <div>
-                <label className="label text-xs font-semibold flex items-center justify-between">
-                  <span>Access Token (Page / User Access Token)</span>
-                  <span className="text-[11px] text-brand-2 font-normal">Optional in Dev</span>
+                <label className="text-xs font-medium text-fg flex items-center justify-between mb-1">
+                  <span>Access Token (Optional in Dev)</span>
+                  <span className="text-[10px] text-muted font-normal">Auto-mocked in dev</span>
                 </label>
                 <input
                   type="password"
-                  className="input text-xs font-mono"
+                  className="input text-xs font-mono h-9 w-full"
                   placeholder="e.g. EAAB..."
                   value={accessToken}
                   onChange={(e) => setAccessToken(e.target.value)}
                 />
-                <p className="text-[11px] text-muted mt-1 leading-relaxed">
-                  For Facebook & Instagram: Enter your Meta Page Access Token. If left blank in local test mode, a verified development mock token is automatically provisioned!
-                </p>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-border">
-                <button
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-border">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   type="button"
                   onClick={() => setModalProvider(null)}
-                  className="btn btn-ghost text-xs"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   type="submit"
                   disabled={submitting}
-                  className="btn btn-primary text-xs flex items-center gap-2 min-w-[140px] justify-center"
                 >
                   {submitting ? "Connecting..." : "Save & Connect"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

@@ -3,6 +3,7 @@ import { getSessionUser } from "@/server/auth/session";
 import { db, scoped } from "@/server/db";
 import { decrypt } from "@/server/crypto";
 import { testOpenAiKey } from "@/server/ai/tester";
+import { testBrightDataKey } from "@/server/api-keys/bright-data-tester";
 
 export async function POST(
   _: NextRequest,
@@ -23,7 +24,13 @@ export async function POST(
   }
 
   const plaintextKey = decrypt(keyRecord.key_enc);
-  const testRes = await testOpenAiKey(plaintextKey);
+  
+  let testRes: { ok: boolean; error?: string; balance?: number; credit?: number };
+  if (keyRecord.provider === "bright_data") {
+    testRes = await testBrightDataKey(plaintextKey);
+  } else {
+    testRes = await testOpenAiKey(plaintextKey);
+  }
 
   const updated = await db.api_keys.update({
     where: { id: keyRecord.id },
@@ -48,5 +55,7 @@ export async function POST(
     data: updated,
     success: testRes.ok,
     error: testRes.error,
+    balance: testRes.balance,
+    credit: testRes.credit,
   });
 }
