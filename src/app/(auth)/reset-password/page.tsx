@@ -9,8 +9,12 @@ export const metadata = {
   description: "Choose a new password.",
 };
 
-export default async function ResetPasswordPage({ searchParams }: PageProps<"/reset-password">) {
-  const sp = await searchParams;
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ token?: string | string[] }>;
+}) {
+  const sp = searchParams ? await searchParams : {};
   const token = typeof sp.token === "string" ? sp.token : "";
 
   return (

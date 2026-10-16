@@ -21,7 +21,11 @@ export const metadata: Metadata = {
     "High-precision lead generation, multi-account cold email outreach, automated follow-ups, and scheduled social distribution.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
