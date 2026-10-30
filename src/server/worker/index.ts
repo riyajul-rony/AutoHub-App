@@ -337,6 +337,8 @@ export function startMaintenanceWorker() {
   );
 }
 
+import { startLeadSearchWorker } from "./lead-search-worker";
+
 /**
  * Initializes and starts all AutoHub background workers:
  * 1. Planner (computes scheduled social runs)
@@ -345,6 +347,7 @@ export function startMaintenanceWorker() {
  * 4. Email Send (transports single recipient emails)
  * 5. Reply Poll (IMAP inboxes for stop-on-reply & bounces)
  * 6. Maintenance (archives old usage counters)
+ * 7. Lead Search (scrapes, enriches & deduplicates leads)
  */
 export function startAllWorkers() {
   logger.info("Starting all AutoHub background workers...");
@@ -354,9 +357,10 @@ export function startAllWorkers() {
   const emailSend = startEmailSendWorker();
   const replyPoll = startReplyPollWorker();
   const maintenance = startMaintenanceWorker();
+  const leadSearch = startLeadSearchWorker();
 
-  logger.info("All 6 AutoHub background workers are active.");
-  return { planner, social, emailDispatch, emailSend, replyPoll, maintenance };
+  logger.info("All 7 AutoHub background workers are active.");
+  return { planner, social, emailDispatch, emailSend, replyPoll, maintenance, leadSearch };
 }
 
 

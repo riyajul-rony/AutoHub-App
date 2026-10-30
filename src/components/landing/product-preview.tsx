@@ -153,7 +153,7 @@ export function ProductPreview() {
 
               <div className="flex items-center justify-between pt-2 border-t border-border text-[11px] text-muted">
                 <span className="flex items-center gap-1">
-                  <ShieldCheck size={13} className="text-success" /> Bright Data Proxy Pool active
+                  <ShieldCheck size={13} className="text-success" /> Cloud Scraping Network active
                 </span>
                 <span className="font-mono text-fg font-medium">100% deduplicated</span>
               </div>

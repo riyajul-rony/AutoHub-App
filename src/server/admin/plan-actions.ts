@@ -20,6 +20,8 @@ export interface PlanFormData {
   monthly_leads: number;
   monthly_social_posts: number;
   monthly_outreach_emails: number;
+  daily_outreach_emails?: number;
+  monthly_ai_outreach_emails?: number;
   max_social_accounts: number;
   max_email_accounts: number;
   max_campaigns: number;
@@ -29,6 +31,8 @@ export interface UserLimitOverridesData {
   monthly_leads?: number | null;
   monthly_social_posts?: number | null;
   monthly_outreach_emails?: number | null;
+  daily_outreach_emails?: number | null;
+  monthly_ai_outreach_emails?: number | null;
   max_social_accounts?: number | null;
   max_email_accounts?: number | null;
   max_campaigns?: number | null;
@@ -66,6 +70,8 @@ export async function createPlanAction(data: PlanFormData) {
       monthly_leads: Number(data.monthly_leads) || 100,
       monthly_social_posts: Number(data.monthly_social_posts) || 30,
       monthly_outreach_emails: Number(data.monthly_outreach_emails) || 100,
+      daily_outreach_emails: Number(data.daily_outreach_emails) || 50,
+      monthly_ai_outreach_emails: Number(data.monthly_ai_outreach_emails) || 50,
       max_social_accounts: Number(data.max_social_accounts) || 2,
       max_email_accounts: Number(data.max_email_accounts) || 1,
       max_campaigns: Number(data.max_campaigns) || 2,
@@ -114,6 +120,8 @@ export async function updatePlanAction(planId: string, data: Partial<PlanFormDat
   if (data.monthly_leads !== undefined) updatePayload.monthly_leads = Number(data.monthly_leads);
   if (data.monthly_social_posts !== undefined) updatePayload.monthly_social_posts = Number(data.monthly_social_posts);
   if (data.monthly_outreach_emails !== undefined) updatePayload.monthly_outreach_emails = Number(data.monthly_outreach_emails);
+  if (data.daily_outreach_emails !== undefined) updatePayload.daily_outreach_emails = Number(data.daily_outreach_emails);
+  if (data.monthly_ai_outreach_emails !== undefined) updatePayload.monthly_ai_outreach_emails = Number(data.monthly_ai_outreach_emails);
   if (data.max_social_accounts !== undefined) updatePayload.max_social_accounts = Number(data.max_social_accounts);
   if (data.max_email_accounts !== undefined) updatePayload.max_email_accounts = Number(data.max_email_accounts);
   if (data.max_campaigns !== undefined) updatePayload.max_campaigns = Number(data.max_campaigns);
@@ -233,6 +241,8 @@ export async function updateUserLimitOverridesAction(
     monthly_leads: overrides.monthly_leads != null && overrides.monthly_leads >= 0 ? Number(overrides.monthly_leads) : null,
     monthly_social_posts: overrides.monthly_social_posts != null && overrides.monthly_social_posts >= 0 ? Number(overrides.monthly_social_posts) : null,
     monthly_outreach_emails: overrides.monthly_outreach_emails != null && overrides.monthly_outreach_emails >= 0 ? Number(overrides.monthly_outreach_emails) : null,
+    daily_outreach_emails: overrides.daily_outreach_emails != null && overrides.daily_outreach_emails >= 0 ? Number(overrides.daily_outreach_emails) : null,
+    monthly_ai_outreach_emails: overrides.monthly_ai_outreach_emails != null && overrides.monthly_ai_outreach_emails >= 0 ? Number(overrides.monthly_ai_outreach_emails) : null,
     max_social_accounts: overrides.max_social_accounts != null && overrides.max_social_accounts >= 0 ? Number(overrides.max_social_accounts) : null,
     max_email_accounts: overrides.max_email_accounts != null && overrides.max_email_accounts >= 0 ? Number(overrides.max_email_accounts) : null,
     max_campaigns: overrides.max_campaigns != null && overrides.max_campaigns >= 0 ? Number(overrides.max_campaigns) : null,

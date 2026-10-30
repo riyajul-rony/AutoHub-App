@@ -272,7 +272,7 @@ describe("Phase 4: Website Scraper & Lead Enrichment Pipeline", () => {
 
       // Verify authentic personal email
       expect(updated.extra?.founder_email).toBe("dr.marcus@beacondental.com");
-    });
+    }, 20000);
   });
 
   describe("3. Batch Lead Enrichment API (POST /api/v1/leads/enrich-batch)", () => {

@@ -28,7 +28,6 @@ enum UserStatus {
 
 enum ApiKeyProvider {
   openai
-  bright_data
   google_places
 }
 
@@ -119,10 +118,18 @@ enum LeadSource {
   linkedin
 }
 
+enum ApifyKeyStatus {
+  active
+  disabled
+  cooldown
+}
+
 enum SearchStatus {
   queued
   running
+  enriching
   completed
+  partial
   failed
   cancelled
 }
@@ -190,6 +197,12 @@ enum OutreachStatus {
 enum RecipientSource {
   leads
   sheet
+  csv
+}
+
+enum TrackingEventType {
+  open
+  click
 }
 
 enum RecipientStatus {
@@ -314,6 +327,7 @@ model users {
   subscriptions         subscriptions[]
   payments              payments[]
   error_logs            error_logs[]
+  apify_usage_logs      apify_usage_logs[]
 
   @@index([created_at(sort: Desc)])
   @@index([role, status])
@@ -383,6 +397,7 @@ model api_keys {
   last_tested_at DateTime?      @db.Timestamptz
   last_test_ok   Boolean?
   status         ApiKeyStatus   @default(active)
+  metadata       Json?          @default("{}")
   created_at     DateTime       @default(now()) @db.Timestamptz
   user           users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -441,6 +456,7 @@ model email_accounts {
   from_name           String?
   from_email          String
   reply_to            String?
+  reply_inbox_account_id String?        @db.Uuid
   signature           String?
   smtp_host           String?
   smtp_port           Int?
@@ -455,6 +471,23 @@ model email_accounts {
   google_connection_id String?           @db.Uuid
   hourly_limit        Int                @default(25)
   daily_limit         Int                @default(150)
+  gap_seconds         Int                @default(120)
+  min_gap_seconds     Int                @default(180)
+  max_gap_seconds     Int                @default(420)
+  timezone            String             @default("UTC")
+  warmup_enabled      Boolean            @default(false)
+  warmup_day          Int                @default(1)
+  warmup_start_limit  Int                @default(10)
+  warmup_daily_increment Int             @default(5)
+  warmup_max_limit    Int                @default(50)
+  dns_spf_status      String?
+  dns_dkim_status     String?
+  dns_dmarc_status    String?
+  dns_checked_at      DateTime?          @db.Timestamptz
+  oauth_access_token_enc String?
+  oauth_refresh_token_enc String?
+  oauth_expires_at    DateTime?          @db.Timestamptz
+  oauth_scopes        String[]           @default([])
   status              EmailAccountStatus @default(active)
   last_error          String?
   last_polled_at      DateTime?          @db.Timestamptz
@@ -463,6 +496,8 @@ model email_accounts {
   created_at          DateTime           @default(now()) @db.Timestamptz
   user                users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   google_connection   google_connections? @relation(fields: [google_connection_id], references: [id])
+  reply_inbox         email_accounts?    @relation("AccountReplyInbox", fields: [reply_inbox_account_id], references: [id], onDelete: SetNull)
+  forwarded_accounts  email_accounts[]   @relation("AccountReplyInbox")
 
   campaign_accounts   outreach_campaign_accounts[]
   recipients          campaign_recipients[]
@@ -470,6 +505,7 @@ model email_accounts {
   sequences           followup_sequences[]
 
   @@unique([user_id, from_email])
+  @@index([reply_inbox_account_id])
   // Hard cap: never above 25/hour (spec 5.6). Enforced again in SQL migration CHECK.
 }
 
@@ -587,6 +623,8 @@ model lead_searches {
   provider_used     String?
   params            Json
   status            SearchStatus @default(queued)
+  progress_pct      Int          @default(0)
+  current_step      String?      @default("Queued")
   found_count       Int          @default(0)
   enriched_count    Int          @default(0)
   duplicates_skipped Int         @default(0)
@@ -595,11 +633,14 @@ model lead_searches {
   started_at        DateTime?    @db.Timestamptz
   finished_at       DateTime?    @db.Timestamptz
   created_at        DateTime     @default(now()) @db.Timestamptz
+  apify_key_id      String?      @db.Uuid
+  apify_key         apify_keys?  @relation(fields: [apify_key_id], references: [id], onDelete: SetNull)
   user              users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
   leads             leads[]
   export_jobs       export_jobs[]
 
   @@index([user_id, created_at(sort: Desc)])
+  @@index([apify_key_id])
 }
 
 model leads {
@@ -645,6 +686,24 @@ model leads {
   @@index([user_id, email])
   @@index([user_id, status])
   @@index([user_id, collected_at(sort: Desc)])
+}
+
+model apify_usage_logs {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String   @db.Uuid
+  module         String
+  actor_id       String
+  run_id         String
+  item_count     Int      @default(0)
+  estimated_cost Decimal  @default(0) @db.Decimal(10, 4)
+  actual_cost    Decimal? @db.Decimal(10, 4)
+  created_at     DateTime @default(now()) @db.Timestamptz
+
+  user           users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at(sort: Desc)])
+  @@index([run_id])
+  @@index([module])
 }
 
 model export_jobs {
@@ -699,6 +758,12 @@ model outreach_campaigns {
   timezone         String
   jitter_min_sec   Int             @default(60)
   jitter_max_sec   Int             @default(180)
+  tracking_open    Boolean         @default(false)
+  tracking_click   Boolean         @default(false)
+  preset_mode      String?
+  allocation_mode  String          @default("round_robin")
+  days_of_week     Int[]           @default([1, 2, 3, 4, 5])
+  daily_lead_limit Int?
   start_at         DateTime?       @db.Timestamptz
   launched_at      DateTime?       @db.Timestamptz
   completed_at     DateTime?       @db.Timestamptz
@@ -710,6 +775,8 @@ model outreach_campaigns {
   accounts         outreach_campaign_accounts[]
   recipients       campaign_recipients[]
   sequences        followup_sequences[]
+  campaign_steps   campaign_steps[]
+  tracking_events  tracking_events[]
 
   @@index([user_id, status])
   @@index([status])
@@ -747,6 +814,14 @@ model campaign_recipients {
   attempts            Int             @default(0)
   error               String?
   unsubscribe_token   String          @unique
+  preview_approved    Boolean         @default(true)
+  open_count          Int             @default(0)
+  click_count         Int             @default(0)
+  first_opened_at     DateTime?       @db.Timestamptz
+  first_clicked_at    DateTime?       @db.Timestamptz
+  last_opened_at      DateTime?       @db.Timestamptz
+  last_clicked_at     DateTime?       @db.Timestamptz
+  scheduled_at        DateTime?       @db.Timestamptz
   created_at          DateTime        @default(now()) @db.Timestamptz
 
   user                users              @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -754,6 +829,7 @@ model campaign_recipients {
   lead                leads?             @relation(fields: [lead_id], references: [id], onDelete: SetNull)
   assigned_account    email_accounts?    @relation(fields: [assigned_account_id], references: [id])
   messages            email_messages[]
+  tracking_events     tracking_events[]
 
   @@unique([campaign_id, email])
   @@unique([campaign_id, lead_id])
@@ -775,6 +851,8 @@ model email_messages {
   in_reply_to      String?
   subject          String?
   snippet          String?          @db.VarChar(200)
+  body_text        String?          @db.Text
+  headers          Json?
   status           MessageStatus
   sent_at          DateTime?        @db.Timestamptz
   error            String?
@@ -788,6 +866,41 @@ model email_messages {
   @@index([email_account_id, sent_at])
   @@index([user_id, direction, status])
   @@index([user_id, direction, sent_at])
+}
+
+model campaign_steps {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id      String             @db.Uuid
+  step_no          Int
+  delay_days       Int                @default(3)
+  mode             OutreachMode       @default(custom)
+  subject_template String?
+  body_template    String?
+  ai_instruction   String?
+  created_at       DateTime           @default(now()) @db.Timestamptz
+
+  campaign         outreach_campaigns @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@unique([campaign_id, step_no])
+  @@index([campaign_id])
+}
+
+model tracking_events {
+  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaign_id  String              @db.Uuid
+  recipient_id String              @db.Uuid
+  event_type   TrackingEventType
+  link_url     String?             @db.Text
+  ip_address   String?
+  user_agent   String?
+  created_at   DateTime            @default(now()) @db.Timestamptz
+
+  campaign     outreach_campaigns  @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+  recipient    campaign_recipients @relation(fields: [recipient_id], references: [id], onDelete: Cascade)
+
+  @@index([campaign_id, event_type])
+  @@index([recipient_id])
+  @@index([created_at(sort: Desc)])
 }
 
 model followup_sequences {
@@ -906,6 +1019,8 @@ model plans {
   monthly_leads           Int       @default(100)
   monthly_social_posts    Int       @default(30)
   monthly_outreach_emails Int       @default(100)
+  daily_outreach_emails   Int       @default(50)
+  monthly_ai_outreach_emails Int    @default(50)
   max_social_accounts     Int       @default(2)
   max_email_accounts      Int       @default(1)
   max_campaigns           Int       @default(2)
@@ -926,6 +1041,8 @@ model user_limit_overrides {
   monthly_leads           Int?
   monthly_social_posts    Int?
   monthly_outreach_emails Int?
+  daily_outreach_emails   Int?
+  monthly_ai_outreach_emails Int?
   max_social_accounts     Int?
   max_email_accounts      Int?
   max_campaigns           Int?
@@ -1010,6 +1127,29 @@ model processed_webhook_events {
   payload      Json?
 
   @@unique([provider, event_id])
+}
+
+model apify_keys {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  label               String
+  token_enc           String
+  masked_token        String
+  status              ApifyKeyStatus @default(active)
+  max_concurrent_jobs Int            @default(2)
+  cooldown_until      DateTime?      @db.Timestamptz
+  last_used_at        DateTime?      @db.Timestamptz
+  last_tested_at      DateTime?      @db.Timestamptz
+  last_test_result    Json?
+  last_error          String?
+  total_runs_today    Int            @default(0)
+  total_runs_all_time Int            @default(0)
+  created_at          DateTime       @default(now()) @db.Timestamptz
+  updated_at          DateTime       @updatedAt @db.Timestamptz
+
+  lead_searches       lead_searches[]
+
+  @@index([status])
+  @@index([created_at])
 }
 
 

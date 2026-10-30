@@ -7,7 +7,7 @@ import { SettingsNav } from "@/components/settings/settings-nav";
 
 export const metadata = {
   title: "API Keys — AutoHub Settings",
-  description: "Manage Bright Data and OpenAI API keys for AutoHub automations.",
+  description: "Manage OpenAI API keys for AutoHub automations.",
 };
 
 export default async function ApiKeysSettingsPage() {
@@ -22,6 +22,7 @@ export default async function ApiKeysSettingsPage() {
       label: true,
       key_last4: true,
       status: true,
+      metadata: true,
       last_tested_at: true,
       last_test_ok: true,
       created_at: true,
@@ -38,7 +39,7 @@ export default async function ApiKeysSettingsPage() {
     <div className="mx-auto max-w-4xl space-y-6 pb-16">
       <PageHeader
         title="API Keys & Services"
-        description="Connect your Bright Data API key to power Lead Generation, and your OpenAI key for automated AI copy and enrichment."
+        description="Connect your OpenAI API key for automated AI copy and campaign messaging."
       />
 
       <SettingsNav />

@@ -138,6 +138,13 @@ class LocalDevMockDb {
       const data = update || create;
       return localDevStore.upsertSystemSetting(where.key, data);
     },
+    deleteMany: async ({ where }: any = {}) => {
+      return localDevStore.deleteSystemSettings(where?.key ? (s: any) => s.key === where.key : undefined);
+    },
+    delete: async ({ where }: any) => {
+      localDevStore.deleteSystemSettings((s: any) => s.key === where.key);
+      return { key: where.key };
+    },
   };
 
   api_keys = {
@@ -227,9 +234,19 @@ class LocalDevMockDb {
 
   email_accounts = {
     findMany: async ({ where }: any = {}) => {
-      return localDevStore.getEmailAccounts(
-        (a) => (!where?.user_id || a.user_id === where.user_id) && (!where?.status || a.status === where.status)
-      );
+      return localDevStore.getEmailAccounts((a) => {
+        if (where?.user_id && a.user_id !== where.user_id) return false;
+        if (where?.status && a.status !== where.status) return false;
+        if (where?.OR && Array.isArray(where.OR)) {
+          const orMatch = where.OR.some((cond: any) => {
+            if (cond.reply_inbox_account_id && a.reply_inbox_account_id === cond.reply_inbox_account_id) return true;
+            if (cond.reply_to && a.reply_to?.toLowerCase() === cond.reply_to?.toLowerCase()) return true;
+            return false;
+          });
+          if (!orMatch) return false;
+        }
+        return true;
+      });
     },
     findFirst: async ({ where }: any = {}) => {
       return localDevStore.findEmailAccount(
@@ -310,9 +327,12 @@ class LocalDevMockDb {
       return localDevStore.findRecipient(
         (r) =>
           (!where?.id || r.id === where.id) &&
+          (!where?.user_id || r.user_id === where.user_id) &&
+          (!where?.thread_message_id || r.thread_message_id === where.thread_message_id) &&
           (!where?.unsubscribe_token || r.unsubscribe_token === where.unsubscribe_token) &&
           (!where?.email || r.email.toLowerCase() === where.email.toLowerCase()) &&
-          (!where?.campaign_id || r.campaign_id === where.campaign_id)
+          (!where?.campaign_id || r.campaign_id === where.campaign_id) &&
+          (!where?.assigned_account_id || (where.assigned_account_id?.in ? where.assigned_account_id.in.includes(r.assigned_account_id) : r.assigned_account_id === where.assigned_account_id))
       );
     },
     findUnique: async ({ where }: any = {}) => {
@@ -429,6 +449,56 @@ class LocalDevMockDb {
     },
   };
 
+  campaign_steps = {
+    findMany: async ({ where, orderBy }: any = {}) => {
+      let items = localDevStore.getCampaignSteps((s: any) => {
+        if (where?.campaign_id && s.campaign_id !== where.campaign_id) return false;
+        if (where?.step_no && s.step_no !== where.step_no) return false;
+        return true;
+      });
+      if (orderBy?.step_no === "asc") items = [...items].sort((a, b) => a.step_no - b.step_no);
+      return items;
+    },
+    findFirst: async ({ where }: any = {}) => {
+      return localDevStore.findCampaignStep((s: any) => {
+        if (where?.campaign_id && s.campaign_id !== where.campaign_id) return false;
+        if (where?.step_no && s.step_no !== where.step_no) return false;
+        return true;
+      });
+    },
+    create: async ({ data }: any) => localDevStore.saveCampaignStep(data),
+    createMany: async ({ data }: any) => {
+      if (Array.isArray(data)) {
+        data.forEach((d) => localDevStore.saveCampaignStep(d));
+      }
+      return { count: Array.isArray(data) ? data.length : 0 };
+    },
+    deleteMany: async ({ where }: any = {}) => {
+      return localDevStore.deleteCampaignSteps((s: any) => !where?.campaign_id || s.campaign_id === where.campaign_id);
+    },
+  };
+
+  tracking_events = {
+    findMany: async ({ where, take, orderBy }: any = {}) => {
+      let items = localDevStore.getTrackingEvents((e: any) => {
+        if (where?.campaign_id && e.campaign_id !== where.campaign_id) return false;
+        if (where?.recipient_id && e.recipient_id !== where.recipient_id) return false;
+        if (where?.event_type && e.event_type !== where.event_type) return false;
+        return true;
+      });
+      if (take) items = items.slice(0, take);
+      return items;
+    },
+    create: async ({ data }: any) => localDevStore.saveTrackingEvent(data),
+    count: async ({ where }: any = {}) => {
+      return localDevStore.getTrackingEvents((e: any) => {
+        if (where?.campaign_id && e.campaign_id !== where.campaign_id) return false;
+        if (where?.event_type && e.event_type !== where.event_type) return false;
+        return true;
+      }).length;
+    },
+  };
+
   lead_searches = {
     create: async ({ data }: any) => localDevStore.saveLeadSearch(data),
     update: async ({ where, data }: any) => {
@@ -447,6 +517,21 @@ class LocalDevMockDb {
     },
     count: async ({ where }: any = {}) => {
       return localDevStore.getLeadSearches((s) => !where?.user_id || s.user_id === where.user_id).length;
+    },
+  };
+
+  apify_usage_logs = {
+    create: async ({ data }: any) => localDevStore.saveApifyUsageLog(data),
+    findMany: async ({ where, take, orderBy }: any = {}) => {
+      let items = localDevStore.getApifyUsageLogs((l) => !where?.user_id || l.user_id === where.user_id);
+      if (orderBy?.created_at === "desc") {
+        items = [...items].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      }
+      if (take) items = items.slice(0, take);
+      return items;
+    },
+    count: async ({ where }: any = {}) => {
+      return localDevStore.getApifyUsageLogs((l) => !where?.user_id || l.user_id === where.user_id).length;
     },
   };
 
@@ -998,6 +1083,39 @@ class LocalDevMockDb {
         if (where?.created_at?.lt && new Date(err.created_at) < new Date(where.created_at.lt)) return true;
         return false;
       });
+    },
+  };
+
+  apify_keys = {
+    findMany: async ({ where, orderBy, take, skip }: any = {}) => {
+      let items = localDevStore.getApifyKeys((k) => {
+        if (where?.status && k.status !== where.status) return false;
+        return true;
+      });
+      if (orderBy?.created_at === "desc") {
+        items = [...items].sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      }
+      if (skip && typeof skip === "number") items = items.slice(skip);
+      if (take && typeof take === "number") items = items.slice(0, take);
+      return items;
+    },
+    findUnique: async ({ where }: any = {}) => {
+      return localDevStore.findApifyKey((k) => k.id === where?.id);
+    },
+    findFirst: async ({ where }: any = {}) => {
+      return localDevStore.findApifyKey((k) => {
+        if (where?.status && k.status !== where.status) return false;
+        return true;
+      });
+    },
+    create: async ({ data }: any) => localDevStore.saveApifyKey(data),
+    update: async ({ where, data }: any) => localDevStore.updateApifyKey(where?.id, data),
+    delete: async ({ where }: any) => localDevStore.deleteApifyKey(where?.id),
+    count: async ({ where }: any = {}) => {
+      return localDevStore.getApifyKeys((k) => {
+        if (where?.status && k.status !== where.status) return false;
+        return true;
+      }).length;
     },
   };
 

@@ -8,13 +8,12 @@ import {
   MapPin,
   Globe,
   AlertTriangle,
-  Key,
   Star,
   Building2,
 } from "lucide-react";
 import { db } from "@/server/db";
 import { requireUser } from "@/server/auth/guards";
-import { hasUserBrightDataKey } from "@/server/api-keys/service";
+import { isApifyConfigured } from "@/server/providers/leads/apify/config";
 import { Pagination } from "@/components/pagination";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +21,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Lead Generation — AutoHub",
-  description: "Extract verified business leads from Google Maps, Meta Ads Library, and LinkedIn.",
+  description: "Extract business leads from Google Maps, Meta Ads Library, and LinkedIn.",
 };
 
 const leadSources = [
@@ -40,7 +39,7 @@ const leadSources = [
   },
   {
     id: "linkedin",
-    title: "LinkedIn",
+    title: "LinkedIn (B2B)",
     desc: "Export company decision makers, job titles, and B2B professionals.",
     badge: "B2B",
   },
@@ -59,7 +58,7 @@ export default async function LeadsOverviewPage({
   const pageSize = 50;
   const skip = (currentPage - 1) * pageSize;
 
-  const [realLeads, totalLeadsCount, searches, hasBrightData] = await Promise.all([
+  const [realLeads, totalLeadsCount, searches, configured] = await Promise.all([
     db.leads.findMany({
       where: { user_id: userId },
       take: pageSize,
@@ -93,7 +92,7 @@ export default async function LeadsOverviewPage({
         params: true,
       },
     }),
-    hasUserBrightDataKey(userId),
+    isApifyConfigured(),
   ]);
 
   const leads = realLeads;
@@ -103,7 +102,7 @@ export default async function LeadsOverviewPage({
       {/* Page Header */}
       <PageHeader
         title="Lead Generation"
-        description="Extract verified leads with automated email finding, deduplication, and 1-click outreach."
+        description="Extract business leads with automated email finding, deduplication, and 1-click outreach."
         actions={
           <div className="flex items-center gap-2">
             <Link href="/app/outreach/new">
@@ -112,7 +111,7 @@ export default async function LeadsOverviewPage({
               </Button>
             </Link>
             <Link href="/app/leads/google_maps">
-              <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+              <Button variant="primary" size="sm" icon={<Plus size={14} />} disabled={!configured}>
                 New Search
               </Button>
             </Link>
@@ -120,27 +119,20 @@ export default async function LeadsOverviewPage({
         }
       />
 
-      {/* Bright Data Missing Warning Banner */}
-      {!hasBrightData && (
+      {/* Service Not Configured Banner */}
+      {!configured && (
         <div className="rounded-xl border border-warning/30 bg-warningBg p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface border border-warning/30 text-warning shrink-0">
               <AlertTriangle size={18} />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-fg">
-                Configure Bright Data API Key in Settings
-              </h3>
+              <h3 className="font-semibold text-sm text-fg">Service not configured, contact admin</h3>
               <p className="mt-0.5 text-xs text-muted leading-relaxed">
-                Lead Generation relies on your personal Bright Data account. Please configure and test your Bright Data API key before running searches.
+                The lead generation engine has not been configured with an active server provider key yet. Please contact your system administrator.
               </p>
             </div>
           </div>
-          <Link href="/app/settings/api-keys" className="shrink-0">
-            <Button variant="primary" size="sm" icon={<Key size={14} />}>
-              Configure API Key
-            </Button>
-          </Link>
         </div>
       )}
 
@@ -248,7 +240,7 @@ export default async function LeadsOverviewPage({
             </p>
             <div className="pt-2">
               <Link href="/app/leads/google_maps">
-                <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+                <Button variant="primary" size="sm" icon={<Plus size={14} />} disabled={!configured}>
                   Start First Search
                 </Button>
               </Link>

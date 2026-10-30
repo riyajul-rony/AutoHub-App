@@ -33,10 +33,10 @@ export default async function OutreachCampaignDetailPage({
     );
   }
 
-  const [recipientsRaw, accountsRaw] = await Promise.all([
+  const [recipientsRaw, accountsRaw, stepsRaw] = await Promise.all([
     db.campaign_recipients.findMany({
       where: { campaign_id: id, user_id: user.id },
-      take: 100,
+      take: 150,
     }),
     db.email_accounts.findMany({
       where: { user_id: user.id },
@@ -48,6 +48,12 @@ export default async function OutreachCampaignDetailPage({
         status: true,
       },
     }),
+    db.campaign_steps?.findMany
+      ? db.campaign_steps.findMany({
+          where: { campaign_id: id },
+          orderBy: { step_no: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   const total = recipientsRaw.length;
@@ -57,9 +63,13 @@ export default async function OutreachCampaignDetailPage({
   const unsubscribed = recipientsRaw.filter((r: any) => r.status === "unsubscribed").length;
   const failed = recipientsRaw.filter((r: any) => r.status === "failed").length;
   const queued = recipientsRaw.filter((r: any) => r.status === "queued" || r.status === "sending").length;
+  const opened = recipientsRaw.filter((r: any) => (r.open_count || 0) > 0).length;
+  const clicked = recipientsRaw.filter((r: any) => (r.click_count || 0) > 0).length;
 
   const replyRate = sent > 0 ? ((replied / sent) * 100).toFixed(1) : "0.0";
   const bounceRate = sent > 0 ? ((bounced / sent) * 100).toFixed(1) : "0.0";
+  const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(1) : "0.0";
+  const clickRate = sent > 0 ? ((clicked / sent) * 100).toFixed(1) : "0.0";
 
   const initialData: CampaignDetail = {
     campaign,
@@ -71,11 +81,16 @@ export default async function OutreachCampaignDetailPage({
       bounced,
       unsubscribed,
       failed,
+      opened,
+      clicked,
       replyRate,
       bounceRate,
+      openRate,
+      clickRate,
     },
     senderAccounts: accountsRaw,
     recipients: recipientsRaw,
+    steps: stepsRaw || [],
   };
 
   return (

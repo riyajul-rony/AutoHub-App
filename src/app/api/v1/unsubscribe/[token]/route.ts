@@ -10,10 +10,10 @@ async function processUnsubscribe(token: string) {
     return { error: "Invalid token", status: 404 };
   }
 
-  // 1. Mark recipient as unsubscribed
+  // 1. Mark recipient as unsubscribed and cancel pending followups
   await db.campaign_recipients.update({
     where: { id: recipient.id },
-    data: { status: "unsubscribed" },
+    data: { status: "unsubscribed", next_followup_at: null },
   });
 
   // 2. Add to suppressions

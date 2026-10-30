@@ -21,9 +21,9 @@ function contrastRatio(hex1, hex2) {
   const [r2, g2, b2] = hexToRgb(hex2);
   const l1 = luminance(r1, g1, b1);
   const l2 = luminance(r2, g2, b2);
-  const bright = Math.max(l1, l2);
+  const lighter = Math.max(l1, l2);
   const dark = Math.min(l1, l2);
-  return (bright + 0.05) / (dark + 0.05);
+  return (lighter + 0.05) / (dark + 0.05);
 }
 
 const tokens = {

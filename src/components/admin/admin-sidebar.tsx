@@ -17,6 +17,8 @@ import {
   ScrollText,
   Menu,
   X,
+  Database,
+  Cloud,
 } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -39,6 +41,8 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
   Users,
   Settings,
   Activity,
+  Database,
+  Cloud,
 };
 
 interface AdminSidebarProps {

@@ -46,7 +46,7 @@ const PLANS: PricingPlan[] = [
     yearlyPrice: 64,
     features: [
       "10,000 Verified Leads / month",
-      "Full Bright Data Enrichment (LinkedIn, Meta, Maps)",
+      "Full Multi-Source Enrichment (LinkedIn, Meta, Maps)",
       "5 Connected Email Accounts with Auto-Rotation",
       "AI Personalized Intro generator (OpenAI)",
       "10 Social Media Accounts (FB, IG, LinkedIn)",
@@ -65,7 +65,7 @@ const PLANS: PricingPlan[] = [
     yearlyPrice: 159,
     features: [
       "50,000+ Verified Leads / month",
-      "Bring Your Own Proxy (Bright Data / Residential)",
+      "Custom Scraping & Proxy Infrastructure",
       "25+ Connected Email Accounts with Warmup Jitter",
       "Unlimited Social Accounts & Custom Review Modes",
       "Custom Webhook & API integrations",

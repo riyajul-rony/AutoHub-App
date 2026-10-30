@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react";
 
 interface SidebarContextValue {
   collapsed: boolean;
@@ -58,12 +58,20 @@ export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 };
 
+export interface NavSubItem {
+  id: string;
+  label: string;
+  href: string;
+  badge?: string | number;
+}
+
 export interface NavItem {
   id: string;
   label: string;
   href: string;
   icon: React.ReactNode;
   badge?: string | number;
+  subItems?: NavSubItem[];
 }
 
 export interface NavSection {
@@ -86,6 +94,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // Auto-expand any group whose parent or subItem matches current pathname
+  useEffect(() => {
+    sections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.subItems && item.subItems.length > 0) {
+          const isMatched =
+            pathname === item.href ||
+            (item.href !== "/app" && pathname.startsWith(item.href)) ||
+            item.subItems.some(
+              (sub) => pathname === sub.href || (sub.href !== "/app" && pathname.startsWith(sub.href))
+            );
+          if (isMatched) {
+            setOpenGroups((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: true }));
+          }
+        }
+      });
+    });
+  }, [pathname, sections]);
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-surface border-r border-border select-none">
@@ -123,28 +151,116 @@ export const Sidebar: React.FC<SidebarProps> = ({
             ) : null}
 
             {section.items.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/app" && item.href !== "/admin" && pathname.startsWith(item.href));
+              const hasSubItems = Boolean(item.subItems && item.subItems.length > 0);
+              const isExactActive = pathname === item.href;
+              const isChildActive = Boolean(
+                hasSubItems &&
+                  item.subItems?.some(
+                    (sub) => pathname === sub.href || (sub.href !== "/app" && pathname.startsWith(sub.href))
+                  )
+              );
+              const isActive =
+                isExactActive ||
+                (item.href !== "/app" && item.href !== "/admin" && pathname.startsWith(item.href)) ||
+                isChildActive;
+
+              const isAutoOpen =
+                isExactActive ||
+                (item.href !== "/app" && pathname.startsWith(item.href)) ||
+                isChildActive;
+              const isOpen = openGroups[item.id] !== undefined ? openGroups[item.id] : isAutoOpen;
+
               return (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  title={collapsed ? item.label : undefined}
-                  className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-[6px] text-xs font-medium transition-colors ${
-                    isActive
-                      ? "bg-surface-hover text-text font-semibold border border-border/80"
-                      : "text-text-muted hover:text-text hover:bg-surface-hover/60 border border-transparent"
-                  } ${collapsed ? "justify-center px-0" : ""}`}
-                >
-                  <span className="shrink-0 flex items-center text-text-subtle">{item.icon}</span>
-                  {!collapsed ? (
-                    <span className="flex-1 truncate leading-tight">{item.label}</span>
+                <div key={item.id} className="space-y-0.5">
+                  <div className="flex items-center">
+                    <Link
+                      href={item.href}
+                      onClick={() => {
+                        if (hasSubItems) {
+                          setOpenGroups((prev) => ({ ...prev, [item.id]: true }));
+                        }
+                      }}
+                      title={collapsed ? item.label : undefined}
+                      className={`flex-1 flex items-center gap-2.5 px-2.5 py-1.5 rounded-[6px] text-xs font-medium transition-colors ${
+                        isActive
+                          ? "bg-surface-hover text-text font-semibold border border-border/80"
+                          : "text-text-muted hover:text-text hover:bg-surface-hover/60 border border-transparent"
+                      } ${collapsed ? "justify-center px-0" : ""}`}
+                    >
+                      <span className="shrink-0 flex items-center text-text-subtle">{item.icon}</span>
+                      {!collapsed ? (
+                        <span className="flex-1 truncate leading-tight">{item.label}</span>
+                      ) : null}
+                      {!collapsed && item.badge ? (
+                        <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-bg-subtle text-text-muted border border-border">
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </Link>
+
+                    {/* Expand/Collapse Chevron for items with subItems */}
+                    {!collapsed && hasSubItems ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpenGroups((prev) => ({
+                            ...prev,
+                            [item.id]: !isOpen,
+                          }));
+                        }}
+                        className="p-1.5 ml-1 rounded-[4px] text-text-subtle hover:text-text hover:bg-surface-hover/80 transition-colors"
+                        title={isOpen ? "Collapse submenu" : "Expand submenu"}
+                        aria-label={isOpen ? "Collapse submenu" : "Expand submenu"}
+                      >
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                          strokeWidth={1.5}
+                        />
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {/* Sub items collapsible list */}
+                  {!collapsed && hasSubItems ? (
+                    <div
+                      className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                        isOpen
+                          ? "max-h-60 opacity-100"
+                          : "max-h-0 opacity-0 pointer-events-none"
+                      }`}
+                    >
+                      <div className="ml-5 pl-2.5 border-l border-border/60 space-y-0.5 mt-0.5 py-0.5">
+                        {item.subItems!.map((sub) => {
+                          const isSubActive =
+                            pathname === sub.href ||
+                            (sub.href !== "/app" && pathname.startsWith(sub.href));
+                          return (
+                            <Link
+                              key={sub.id}
+                              href={sub.href}
+                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-[5px] text-xs font-medium transition-colors ${
+                                isSubActive
+                                  ? "bg-surface-hover text-text font-semibold border border-border/80 shadow-xs"
+                                  : "text-text-muted hover:text-text hover:bg-surface-hover/60 border border-transparent"
+                              }`}
+                            >
+                              <span className="truncate leading-tight">{sub.label}</span>
+                              {sub.badge ? (
+                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-bg-subtle text-text-muted border border-border">
+                                  {sub.badge}
+                                </span>
+                              ) : null}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ) : null}
-                  {!collapsed && item.badge ? (
-                    <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-bg-subtle text-text-muted border border-border">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </Link>
+                </div>
               );
             })}
           </div>

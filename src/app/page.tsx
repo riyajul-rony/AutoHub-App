@@ -169,7 +169,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-border flex items-center justify-between text-xs font-medium text-fg">
-                  <span>Bright Data Proxy Pool</span>
+                  <span>Cloud Scraping Engine</span>
                   <ArrowUpRight size={14} className="text-muted group-hover:text-fg transition-colors" />
                 </div>
               </div>
@@ -323,7 +323,7 @@ export default function HomePage() {
                           Zero-Knowledge Key Storage
                         </strong>
                         <span className="text-muted">
-                          Your Bright Data and OpenAI credentials are encrypted at rest with AES-256-GCM.
+                          Your third-party service credentials are encrypted at rest with AES-256-GCM.
                           Decrypted keys are never returned in public payloads.
                         </span>
                       </div>

@@ -413,3 +413,132 @@ export async function createAndPopulateGoogleSheet({
 
   return { spreadsheetId, spreadsheetUrl };
 }
+
+export interface GoogleDriveSheetItem {
+  id: string;
+  name: string;
+  modifiedTime?: string;
+  webViewLink?: string;
+}
+
+/**
+ * Lists the user's available Google Sheets from Google Drive.
+ */
+export async function listGoogleDriveSheets(accessToken: string): Promise<GoogleDriveSheetItem[]> {
+  const query = encodeURIComponent("mimeType='application/vnd.google-apps.spreadsheet' and trashed=false");
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}&orderBy=modifiedTime%20desc&pageSize=30&fields=files(id,name,modifiedTime,webViewLink)`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    logger.warn({ err }, "Failed to list Google Sheets from Drive");
+    throw new Error(err.error?.message || "Failed to fetch Google Spreadsheets from your account.");
+  }
+
+  const data = await res.json();
+  return (data.files || []).map((f: any) => ({
+    id: f.id,
+    name: f.name,
+    modifiedTime: f.modifiedTime,
+    webViewLink: f.webViewLink,
+  }));
+}
+
+/**
+ * Fetches sheet tabs, headers (column names), and sample rows from a Google Sheet.
+ */
+export async function fetchSheetHeadersAndRows({
+  accessToken,
+  spreadsheetId,
+  sheetName,
+  maxRows = 500,
+}: {
+  accessToken: string;
+  spreadsheetId: string;
+  sheetName?: string;
+  maxRows?: number;
+}): Promise<{
+  sheets: string[];
+  activeSheet: string;
+  headers: string[];
+  rows: Array<Record<string, string>>;
+  totalRows: number;
+}> {
+  // 1. Fetch metadata to discover tabs/sheets
+  const metaRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties(sheetId,title)`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (!metaRes.ok) {
+    const err = await metaRes.json().catch(() => ({}));
+    throw new Error(err.error?.message || "Could not read Google Spreadsheet metadata. Verify permissions.");
+  }
+
+  const metaData = await metaRes.json();
+  const sheets: string[] = (metaData.sheets || []).map((s: any) => s.properties?.title || "Sheet1");
+  const activeSheet = sheetName && sheets.includes(sheetName) ? sheetName : (sheets[0] || "Sheet1");
+
+  // 2. Fetch sheet values
+  const safeRange = encodeURIComponent(`${activeSheet}!A1:Z${Math.min(maxRows + 1, 1000)}`);
+  const valuesRes = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${safeRange}?valueRenderOption=FORMATTED_VALUE`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (!valuesRes.ok) {
+    const err = await valuesRes.json().catch(() => ({}));
+    throw new Error(err.error?.message || "Failed to read data from Google Sheet.");
+  }
+
+  const valuesData = await valuesRes.json();
+  const rawValues: string[][] = valuesData.values || [];
+
+  if (rawValues.length === 0) {
+    return {
+      sheets,
+      activeSheet,
+      headers: [],
+      rows: [],
+      totalRows: 0,
+    };
+  }
+
+  // Row 0 is header
+  const rawHeaders = rawValues[0] || [];
+  const headers = rawHeaders.map((h, i) => (h ? String(h).trim() : `Column_${i + 1}`)).filter(Boolean);
+
+  const rows: Array<Record<string, string>> = [];
+  for (let i = 1; i < rawValues.length; i++) {
+    const row = rawValues[i] || [];
+    const record: Record<string, string> = {};
+    let hasValue = false;
+    for (let c = 0; c < headers.length; c++) {
+      const val = row[c] !== undefined && row[c] !== null ? String(row[c]).trim() : "";
+      if (val) hasValue = true;
+      record[headers[c]] = val;
+    }
+    if (hasValue) {
+      rows.push(record);
+    }
+  }
+
+  return {
+    sheets,
+    activeSheet,
+    headers,
+    rows,
+    totalRows: rows.length,
+  };
+}
+

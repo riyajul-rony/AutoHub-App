@@ -57,7 +57,7 @@ export default async function EmailAccountsPage() {
     <div className="mx-auto max-w-6xl space-y-6">
       {/* Navigation Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-muted">
-        <Link href="/app/outreach" className="hover:underline flex items-center gap-1">
+        <Link href="/app/outreach?tab=accounts" className="hover:underline flex items-center gap-1">
           <ArrowLeft size={14} /> Back to Outreach Overview
         </Link>
       </div>

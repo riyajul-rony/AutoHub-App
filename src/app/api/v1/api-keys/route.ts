@@ -4,7 +4,6 @@ import { db, scoped } from "@/server/db";
 import { encrypt, last4 } from "@/server/crypto";
 import { apiKeyInputSchema } from "@/server/api-keys/types";
 import { testOpenAiKey } from "@/server/ai/tester";
-import { testBrightDataKey } from "@/server/api-keys/bright-data-tester";
 
 export async function GET() {
   const session = await getSessionUser();
@@ -21,6 +20,7 @@ export async function GET() {
       label: true,
       key_last4: true,
       status: true,
+      metadata: true,
       last_tested_at: true,
       last_test_ok: true,
       created_at: true,
@@ -50,12 +50,17 @@ export async function POST(req: NextRequest) {
 
   const { provider, label, key } = parsed.data;
 
-  // Test the key connection before saving
-  let testRes: { ok: boolean; error?: string };
-  if (provider === "bright_data") {
-    testRes = await testBrightDataKey(key);
-  } else {
-    testRes = await testOpenAiKey(key);
+  const cleanKey = key.trim();
+  const testRes = await testOpenAiKey(cleanKey);
+  const metadataToSave: Record<string, any> = {};
+
+  if (!testRes.ok) {
+    return NextResponse.json(
+      {
+        error: testRes.error || "Failed to verify API key connection.",
+      },
+      { status: 400 }
+    );
   }
 
   const created = await db.api_keys.create({
@@ -63,11 +68,12 @@ export async function POST(req: NextRequest) {
       user_id: session.user.id,
       provider,
       label,
-      key_enc: encrypt(key),
-      key_last4: last4(key),
+      key_enc: encrypt(cleanKey),
+      key_last4: last4(cleanKey),
+      metadata: metadataToSave,
       last_tested_at: new Date(),
-      last_test_ok: testRes.ok,
-      status: testRes.ok ? "active" : "invalid",
+      last_test_ok: true,
+      status: "active",
     },
     select: {
       id: true,
@@ -75,6 +81,7 @@ export async function POST(req: NextRequest) {
       label: true,
       key_last4: true,
       status: true,
+      metadata: true,
       last_tested_at: true,
       last_test_ok: true,
       created_at: true,
@@ -83,6 +90,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     data: created,
-    test_error: testRes.error,
   });
 }

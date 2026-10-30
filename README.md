@@ -14,13 +14,18 @@ Built with Next.js 16 (App Router), React 19, TypeScript, PostgreSQL 16 via Pris
    - User profile onboarding, password management, and account lifecycle.
 
 2. **Tenant API Key Management (Phase 2)**:
-   - Bring-Your-Own-Key (BYOK) for OpenAI and Bright Data.
+   - Bring-Your-Own-Key (BYOK) for OpenAI copy and personalization.
    - Stored using hardware-grade AES-256-GCM encryption (`key_enc`). Plaintext keys are never logged or sent to the browser.
    - Masked key management (`••••7890`) and real-time live API validation.
 
-3. **Lead Generation via Bright Data (Phase 3)**:
-   - Live scraping adapters for Google Maps, Meta Ads, and LinkedIn.
-   - SHA-256 deduplication and credit usage estimation before launching scraping jobs.
+3. **Lead Generation via Apify Cloud Scrapers (Phase 3)**:
+   - Admin-managed central Apify integration configured via `/admin/apify`.
+   - Token stored using AES-256-GCM encryption (`APP_ENCRYPTION_KEY`) with fallback to `APIFY_TOKEN` environment variable. Users never handle scraping keys.
+   - Swappable Actor IDs with safety limits & max USD charge controls:
+     - **Google Maps**: `compass/crawler-google-places` (multi-line input, parallel sub-searches, deduplication).
+     - **Meta Ads**: `apify/facebook-ads-scraper` (country filter, active ads only, advertiser grouping).
+     - **B2B Leads**: `code_crafter/leads-finder` (Apollo/ZoomInfo alternative, verified emails, seniority & company size filters).
+   - High-throughput parallel scraping with live cost estimates, audit logs, and zero client credential exposure.
 
 4. **Deep Website Scraper & Enrichment (Phase 4)**:
    - Fast, resilient deep crawler that discovers team/contact/about subpages.

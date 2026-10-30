@@ -5,6 +5,8 @@ import {
   LayoutDashboard,
   Share2,
   Search,
+  Layers,
+  Users,
   Mail,
   Repeat2,
   MessageSquareReply,
@@ -32,7 +34,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       title: "Automations",
       items: [
         { id: "social", label: "Social Auto Post", href: "/app/social", icon: <Share2 className="w-4 h-4" strokeWidth={1.5} /> },
-        { id: "leads", label: "Lead Generation", href: "/app/leads", icon: <Search className="w-4 h-4" strokeWidth={1.5} /> },
+        {
+          id: "leads",
+          label: "Lead Generation",
+          href: "/app/leads",
+          icon: <Search className="w-4 h-4" strokeWidth={1.5} />,
+          subItems: [
+            { id: "leads-gmaps", label: "Google Maps", href: "/app/leads/google_maps" },
+            { id: "leads-meta", label: "Meta Ads Library", href: "/app/leads/meta_ads" },
+            { id: "leads-linkedin", label: "LinkedIn (B2B)", href: "/app/leads/linkedin" },
+          ],
+        },
         { id: "outreach", label: "Cold Outreach", href: "/app/outreach", icon: <Mail className="w-4 h-4" strokeWidth={1.5} /> },
         { id: "followup", label: "Follow-up", href: "/app/followup", icon: <Repeat2 className="w-4 h-4" strokeWidth={1.5} /> },
       ],

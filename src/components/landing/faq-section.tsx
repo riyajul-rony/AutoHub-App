@@ -16,9 +16,9 @@ const FAQS: FAQItem[] = [
       "AutoHub employs a multi-tiered deliverability architecture: strict 25 email/hour sending caps per mailbox, randomized delay jitter between dispatches, automatic inbox rotation across multiple connected SMTP accounts, and custom unsubscribe headers to keep your sender reputation pristine.",
   },
   {
-    question: "Are my Bright Data and third-party API keys safe?",
+    question: "Are my third-party API keys and credentials safe?",
     answer:
-      "Yes. All sensitive credentials—including OpenAI keys, Bright Data credentials, and SMTP/IMAP passwords—are encrypted at rest using AES-256-GCM. We never expose decrypted keys in API payloads or browser responses, and your data is cryptographically isolated within your tenant.",
+      "Yes. All sensitive credentials—including OpenAI keys, Apify credentials, and SMTP/IMAP passwords—are encrypted at rest using AES-256-GCM. We never expose decrypted keys in API payloads or browser responses, and your data is cryptographically isolated within your tenant.",
   },
   {
     question: "How does the automated Stop-on-Reply mechanism work?",
@@ -28,7 +28,7 @@ const FAQS: FAQItem[] = [
   {
     question: "Can I extract leads from Google Maps, LinkedIn, and Meta Ads?",
     answer:
-      "Yes. AutoHub connects with Bright Data scrapers and official search APIs to pull live businesses, websites, contact names, and verified email addresses across Google Maps, LinkedIn company pages, and Meta Ads Library with automatic deduplication.",
+      "Yes. AutoHub connects with high-speed cloud scrapers and deep web enrichment algorithms to pull live businesses, websites, contact names, and verified email addresses across Google Maps, LinkedIn decision-makers, and Meta Ads Library with automatic deduplication.",
   },
   {
     question: "Can I export scraped leads to Google Sheets or CSV?",

@@ -17,7 +17,18 @@ export type RawLead = {
   reviewsCount?: number;
   latitude?: number;
   longitude?: number;
+  extra?: Record<string, any>;
 };
+
+export interface LinkedInDecisionMaker {
+  name: string;
+  title: string;
+  profileUrl: string;
+  linkedinId?: string;
+  isVerifiedRole?: boolean;
+  email?: string;
+  phone?: string;
+}
 
 export type LeadSearchParams = {
   keyword: string;
@@ -27,9 +38,16 @@ export type LeadSearchParams = {
   skipDuplicates?: boolean;
   userApiKey?: string;
   onlyWithWebsite?: boolean;
+  country?: string;
+  city?: string;
+  adStatus?: "active" | "all";
+  titles?: string[];
+  findDecisionMakers?: boolean;
+  maxDecisionMakers?: number;
 };
 
 export interface LeadSourceProvider {
   id: "google_maps" | "meta_ads" | "linkedin";
   search(params: LeadSearchParams): Promise<RawLead[]>;
 }
+

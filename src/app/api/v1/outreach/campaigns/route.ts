@@ -22,8 +22,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const result = await createOutreachCampaign(session.user.id, body);
     return NextResponse.json({ data: result }, { status: 201 });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create campaign";
-    return NextResponse.json({ error: message }, { status: 400 });
+  } catch (err: any) {
+    const message = err?.message || "Failed to create campaign";
+    const isQuotaExceeded =
+      err?.code === "PLAN_LIMIT_EXCEEDED" ||
+      err?.name === "PlanLimitExceededError" ||
+      message.includes("Plan quota exceeded");
+
+    const status = isQuotaExceeded ? 429 : 400;
+    return NextResponse.json(
+      {
+        error: message,
+        code: isQuotaExceeded ? "PLAN_LIMIT_EXCEEDED" : "BAD_REQUEST",
+        upgradeUrl: isQuotaExceeded ? "/app/settings/billing" : undefined,
+      },
+      { status }
+    );
   }
 }

@@ -10,6 +10,7 @@ import {
 import { db } from "@/server/db";
 import { requireUser } from "@/server/auth/guards";
 import { BatchEnrichButton, SingleLeadEnrichButton } from "@/components/leads/lead-enrichment-actions";
+import { PastSearchExportButton } from "@/components/leads/past-search-export-button";
 import { Pagination } from "@/components/pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,11 @@ export default async function SearchRunDetailPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          <PastSearchExportButton
+            leads={leads}
+            searchTitle={searchParamsData.keyword || "leads"}
+            source={search.source || "search"}
+          />
           <BatchEnrichButton unenrichedLeadIds={unenrichedIds} />
           <Link href={`/app/outreach/new?search_id=${search.id}`}>
             <Button variant="primary" size="sm" icon={<Send size={13} />}>

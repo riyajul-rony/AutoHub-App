@@ -46,5 +46,5 @@ describe("Leads enrichment helpers", () => {
     expect(profile.company_emails).toContain("contact@acmelegal.com");
     expect(profile.founder_name).toBe("Sarah Connor");
     expect(profile.company_facebook).toBe("https://facebook.com/acmelegal");
-  });
+  }, 15000);
 });

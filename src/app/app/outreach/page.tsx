@@ -1,164 +1,198 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import { Mail, Plus, Sparkles, Send, ChevronRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import { requireUser } from "@/server/auth/guards";
+import { db } from "@/server/db";
 import { listCampaigns } from "@/server/email/campaign-service";
 import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { OutreachDashboard, CampaignSummary } from "./outreach-dashboard";
+import type { EmailAccount } from "./email-accounts/email-accounts-manager";
 
 export const metadata = {
-  title: "Outreach — AutoHub",
-  description: "Create AI-personalized or custom cold outreach email campaigns with account rotation.",
+  title: "Cold Outreach — AutoHub",
+  description: "Multi-inbox rotation, human-like random pacing, and automatic stop-on-reply.",
 };
+
+function OutreachSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="h-10 w-64 bg-bgSubtle rounded-lg" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-24 bg-bgSubtle rounded-xl" />
+        ))}
+      </div>
+      <div className="h-96 bg-bgSubtle rounded-xl" />
+    </div>
+  );
+}
 
 export default async function OutreachOverviewPage() {
   const user = await requireUser();
-  const userId = user.id;
 
-  const realCampaigns = await listCampaigns(userId);
-  const campaigns = realCampaigns;
+  const [rawCampaigns, accountsRaw, repliesRaw, totalRepliesCount] = await Promise.all([
+    listCampaigns(user.id),
+    db.email_accounts.findMany({
+      where: { user_id: user.id },
+      select: {
+        id: true,
+        label: true,
+        provider: true,
+        from_name: true,
+        from_email: true,
+        reply_to: true,
+        signature: true,
+        smtp_host: true,
+        smtp_port: true,
+        smtp_security: true,
+        smtp_username: true,
+        imap_host: true,
+        imap_port: true,
+        imap_security: true,
+        hourly_limit: true,
+        daily_limit: true,
+        gap_seconds: true,
+        min_gap_seconds: true,
+        max_gap_seconds: true,
+        timezone: true,
+        warmup_enabled: true,
+        warmup_day: true,
+        warmup_start_limit: true,
+        warmup_daily_increment: true,
+        warmup_max_limit: true,
+        dns_spf_status: true,
+        dns_dkim_status: true,
+        dns_dmarc_status: true,
+        status: true,
+        last_error: true,
+        created_at: true,
+      },
+      orderBy: { created_at: "desc" },
+    }),
+    db.email_messages.findMany({
+      where: {
+        user_id: user.id,
+        direction: "in",
+      },
+      take: 20,
+      orderBy: { sent_at: "desc" },
+      select: {
+        id: true,
+        subject: true,
+        snippet: true,
+        in_reply_to: true,
+        sent_at: true,
+        recipient_id: true,
+        recipient: {
+          select: {
+            email: true,
+            name: true,
+            company: true,
+            campaign: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }),
+    db.email_messages.count({
+      where: {
+        user_id: user.id,
+        direction: "in",
+      },
+    }),
+  ]);
+
+  const initialCampaigns: CampaignSummary[] = rawCampaigns.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    mode: c.mode,
+    status: c.status,
+    timezone: c.timezone,
+    totalRecipients: c.totalRecipients || 0,
+    queuedCount: c.queuedCount || 0,
+    sentCount: c.sentCount || 0,
+    repliesCount: c.repliesCount || 0,
+    bouncedCount: c.bouncedCount || 0,
+    unsubscribedCount: c.unsubscribedCount || 0,
+    failedCount: c.failedCount || 0,
+    openedCount: c.openedCount || 0,
+    created_at: c.created_at ? new Date(c.created_at).toISOString() : undefined,
+    launched_at: c.launched_at ? new Date(c.launched_at).toISOString() : undefined,
+  }));
+
+  const initialAccounts: EmailAccount[] = accountsRaw.map((a: any) => ({
+    id: a.id,
+    label: a.label,
+    provider: a.provider || "smtp",
+    from_name: a.from_name,
+    from_email: a.from_email,
+    reply_to: a.reply_to,
+    signature: a.signature,
+    smtp_host: a.smtp_host,
+    smtp_port: a.smtp_port,
+    smtp_security: a.smtp_security,
+    smtp_username: a.smtp_username,
+    imap_host: a.imap_host,
+    imap_port: a.imap_port,
+    imap_security: a.imap_security,
+    hourly_limit: a.hourly_limit || 25,
+    daily_limit: a.daily_limit || 150,
+    gap_seconds: a.gap_seconds || 180,
+    min_gap_seconds: a.min_gap_seconds || 180,
+    max_gap_seconds: a.max_gap_seconds || 420,
+    timezone: a.timezone || "UTC",
+    warmup_enabled: a.warmup_enabled || false,
+    warmup_day: a.warmup_day || 1,
+    warmup_start_limit: a.warmup_start_limit || 10,
+    warmup_daily_increment: a.warmup_daily_increment || 5,
+    warmup_max_limit: a.warmup_max_limit || 50,
+    dns_spf_status: a.dns_spf_status,
+    dns_dkim_status: a.dns_dkim_status,
+    dns_dmarc_status: a.dns_dmarc_status,
+    status: a.status || "active",
+    last_error: a.last_error,
+    created_at: a.created_at ? new Date(a.created_at).toISOString() : undefined,
+  }));
+
+  const initialReplies = repliesRaw.map((r: any) => ({
+    id: r.id,
+    subject: r.subject || "(No Subject)",
+    snippet: r.snippet || "",
+    sent_at: r.sent_at ? new Date(r.sent_at).toISOString() : undefined,
+    recipientEmail: r.recipient?.email || "Unknown",
+    recipientName: r.recipient?.name || "",
+    recipientCompany: r.recipient?.company || "",
+    campaignId: r.recipient?.campaign?.id,
+    campaignName: r.recipient?.campaign?.name || "Direct Email",
+  }));
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Email Outreach"
-        description="Safe cold emailing with hard 25/hour account limit, multi-inbox rotation, and stop-on-reply."
+        title="Cold Outreach"
+        description="Automated multi-inbox cold emailing with human-like randomized delays and stop-on-reply protection."
         actions={
-          <div className="flex items-center gap-2">
-            <Link href="/app/outreach/email-accounts">
-              <Button variant="secondary" size="sm" icon={<Mail size={14} />}>
-                Sender Accounts
-              </Button>
-            </Link>
-            <Link href="/app/outreach/new?mode=ai">
-              <Button variant="primary" size="sm" icon={<Plus size={14} />}>
-                New Campaign
-              </Button>
-            </Link>
-          </div>
+          <Link href="/app/outreach/new">
+            <Button variant="primary" size="md" icon={<Plus size={16} />}>
+              New Campaign
+            </Button>
+          </Link>
         }
       />
 
-      {/* Campaign Mode Selection Cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/app/outreach/new?mode=ai"
-          className="rounded-xl border border-border bg-surface p-6 block hover:border-borderStrong transition-all duration-150 group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-bgSubtle border border-border text-fg">
-              <Sparkles size={20} />
-            </span>
-            <Badge variant="accent" size="sm">
-              AI Powered
-            </Badge>
-          </div>
-          <h2 className="mt-4 font-bold text-lg text-fg">AI Personalized Message</h2>
-          <p className="mt-1.5 text-xs text-muted leading-relaxed">
-            AI generates dynamic, customized email copy for each lead right before sending based on company details and website context.
-          </p>
-          <div className="mt-4 text-xs font-semibold text-fg flex items-center gap-1">
-            <span>Launch AI Wizard</span>
-            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/app/outreach/new?mode=custom"
-          className="rounded-xl border border-border bg-surface p-6 block hover:border-borderStrong transition-all duration-150 group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-bgSubtle border border-border text-fg">
-              <Send size={20} />
-            </span>
-            <Badge variant="neutral" size="sm">
-              Variable Template
-            </Badge>
-          </div>
-          <h2 className="mt-4 font-bold text-lg text-fg">Custom Message Template</h2>
-          <p className="mt-1.5 text-xs text-muted leading-relaxed">
-            Write your own high-performing email copy using variables like <code className="font-mono text-fg">{"{{first_name|there}}"}</code> and <code className="font-mono text-fg">{"{{company_name}}"}</code>.
-          </p>
-          <div className="mt-4 text-xs font-semibold text-fg flex items-center gap-1">
-            <span>Launch Custom Wizard</span>
-            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Active Campaigns Table */}
-      <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-fg">Campaigns ({campaigns.length})</h2>
-          <Badge variant="success" size="sm">
-            Active Inboxes Rotating
-          </Badge>
-        </div>
-
-        {campaigns.length === 0 ? (
-          <div className="py-12 text-center text-xs text-muted border border-dashed border-border rounded-lg space-y-2">
-            <Mail size={24} className="mx-auto text-muted" />
-            <div className="text-sm font-medium text-fg">No email campaigns created yet</div>
-            <p className="max-w-sm mx-auto">
-              Launch an AI-powered or custom template campaign to begin automated cold email dispatches.
-            </p>
-            <div className="pt-2">
-              <Link href="/app/outreach/new?mode=ai">
-                <Button variant="primary" size="sm" icon={<Plus size={14} />}>
-                  Create First Campaign
-                </Button>
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {campaigns.map((c: any) => (
-              <div
-                key={c.id}
-                className="py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-              >
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm text-fg">{c.name}</span>
-                    <Badge variant="neutral" size="sm" className="text-[10px] uppercase font-mono">
-                      {c.mode === "ai" ? "AI Mode" : "Template"}
-                    </Badge>
-                    <Badge
-                      variant={
-                        c.status === "running"
-                          ? "success"
-                          : c.status === "paused"
-                          ? "warning"
-                          : "neutral"
-                      }
-                      size="sm"
-                      className="text-[10px] uppercase"
-                    >
-                      {c.status}
-                    </Badge>
-                  </div>
-                  <div className="text-xs text-muted mt-1">
-                    Dispatched: {c.sentCount ?? 0}/{c.totalRecipients ?? 0} leads • Responses: {c.repliesCount ?? 0}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link href={`/app/followup/${c.id}`}>
-                    <Button variant="secondary" size="sm">
-                      Follow-up
-                    </Button>
-                  </Link>
-                  <Link href={`/app/outreach/${c.id}`}>
-                    <Button variant="secondary" size="sm" icon={<ChevronRight size={13} />}>
-                      Analytics & Logs
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <Suspense fallback={<OutreachSkeleton />}>
+        <OutreachDashboard
+          initialCampaigns={initialCampaigns}
+          initialAccounts={initialAccounts}
+          initialReplies={initialReplies}
+          totalRepliesCount={totalRepliesCount}
+        />
+      </Suspense>
     </div>
   );
 }

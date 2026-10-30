@@ -22,10 +22,10 @@ export default async function UnsubscribePage({
   let alreadyUnsubscribed = false;
 
   if (recipient) {
-    // 1. Mark recipient status as unsubscribed
+    // 1. Mark recipient status as unsubscribed and cancel any scheduled followups
     await db.campaign_recipients.update({
       where: { id: recipient.id },
-      data: { status: "unsubscribed" },
+      data: { status: "unsubscribed", next_followup_at: null },
     });
 
     // 2. Add to suppressions list so NO future campaigns can ever email them

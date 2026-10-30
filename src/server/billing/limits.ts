@@ -4,6 +4,8 @@ export type PlanLimitResource =
   | "monthly_leads"
   | "monthly_social_posts"
   | "monthly_outreach_emails"
+  | "daily_outreach_emails"
+  | "monthly_ai_outreach_emails"
   | "max_social_accounts"
   | "max_email_accounts"
   | "max_campaigns";
@@ -12,6 +14,8 @@ export interface PlanLimits {
   monthly_leads: number;
   monthly_social_posts: number;
   monthly_outreach_emails: number;
+  daily_outreach_emails: number;
+  monthly_ai_outreach_emails: number;
   max_social_accounts: number;
   max_email_accounts: number;
   max_campaigns: number;
@@ -40,6 +44,8 @@ export interface UserUsageSummary {
     monthly_leads?: number | null;
     monthly_social_posts?: number | null;
     monthly_outreach_emails?: number | null;
+    daily_outreach_emails?: number | null;
+    monthly_ai_outreach_emails?: number | null;
     max_social_accounts?: number | null;
     max_email_accounts?: number | null;
     max_campaigns?: number | null;
@@ -50,6 +56,8 @@ const DEFAULT_FREE_LIMITS: PlanLimits = {
   monthly_leads: 100,
   monthly_social_posts: 30,
   monthly_outreach_emails: 100,
+  daily_outreach_emails: 50,
+  monthly_ai_outreach_emails: 50,
   max_social_accounts: 2,
   max_email_accounts: 1,
   max_campaigns: 2,
@@ -59,6 +67,8 @@ const RESOURCE_LABELS: Record<PlanLimitResource, string> = {
   monthly_leads: "Monthly Leads",
   monthly_social_posts: "Monthly Social Posts",
   monthly_outreach_emails: "Monthly Outreach Emails",
+  daily_outreach_emails: "Daily Outreach Emails",
+  monthly_ai_outreach_emails: "Monthly AI Personalized Emails",
   max_social_accounts: "Connected Social Accounts",
   max_email_accounts: "Connected Email Inboxes",
   max_campaigns: "Active Campaigns",
@@ -76,6 +86,8 @@ export interface EffectiveLimitsResult extends PlanLimits {
     monthly_leads?: number | null;
     monthly_social_posts?: number | null;
     monthly_outreach_emails?: number | null;
+    daily_outreach_emails?: number | null;
+    monthly_ai_outreach_emails?: number | null;
     max_social_accounts?: number | null;
     max_email_accounts?: number | null;
     max_campaigns?: number | null;
@@ -104,6 +116,8 @@ export async function getEffectiveLimits(userId: string): Promise<EffectiveLimit
         monthly_leads: Number(plan.monthly_leads),
         monthly_social_posts: Number(plan.monthly_social_posts),
         monthly_outreach_emails: Number(plan.monthly_outreach_emails),
+        daily_outreach_emails: Number(plan.daily_outreach_emails ?? DEFAULT_FREE_LIMITS.daily_outreach_emails),
+        monthly_ai_outreach_emails: Number(plan.monthly_ai_outreach_emails ?? DEFAULT_FREE_LIMITS.monthly_ai_outreach_emails),
         max_social_accounts: Number(plan.max_social_accounts),
         max_email_accounts: Number(plan.max_email_accounts),
         max_campaigns: Number(plan.max_campaigns),
@@ -119,6 +133,8 @@ export async function getEffectiveLimits(userId: string): Promise<EffectiveLimit
     monthly_leads: overrides?.monthly_leads != null ? overrides.monthly_leads : baseLimits.monthly_leads,
     monthly_social_posts: overrides?.monthly_social_posts != null ? overrides.monthly_social_posts : baseLimits.monthly_social_posts,
     monthly_outreach_emails: overrides?.monthly_outreach_emails != null ? overrides.monthly_outreach_emails : baseLimits.monthly_outreach_emails,
+    daily_outreach_emails: overrides?.daily_outreach_emails != null ? overrides.daily_outreach_emails : baseLimits.daily_outreach_emails,
+    monthly_ai_outreach_emails: overrides?.monthly_ai_outreach_emails != null ? overrides.monthly_ai_outreach_emails : baseLimits.monthly_ai_outreach_emails,
     max_social_accounts: overrides?.max_social_accounts != null ? overrides.max_social_accounts : baseLimits.max_social_accounts,
     max_email_accounts: overrides?.max_email_accounts != null ? overrides.max_email_accounts : baseLimits.max_email_accounts,
     max_campaigns: overrides?.max_campaigns != null ? overrides.max_campaigns : baseLimits.max_campaigns,
@@ -134,6 +150,8 @@ export async function getEffectiveLimits(userId: string): Promise<EffectiveLimit
           monthly_leads: overrides.monthly_leads,
           monthly_social_posts: overrides.monthly_social_posts,
           monthly_outreach_emails: overrides.monthly_outreach_emails,
+          daily_outreach_emails: overrides.daily_outreach_emails,
+          monthly_ai_outreach_emails: overrides.monthly_ai_outreach_emails,
           max_social_accounts: overrides.max_social_accounts,
           max_email_accounts: overrides.max_email_accounts,
           max_campaigns: overrides.max_campaigns,
@@ -150,6 +168,7 @@ export async function getUserUsageAndLimits(userId: string): Promise<UserUsageSu
 
   const now = new Date();
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
   // Query usage counts and usage_counters in parallel
@@ -157,6 +176,7 @@ export async function getUserUsageAndLimits(userId: string): Promise<UserUsageSu
     leadsCount,
     postsCount,
     outreachEmailsCount,
+    todayEmailsCount,
     socialAccountsCount,
     emailAccountsCount,
     socialCampaignsCount,
@@ -177,6 +197,13 @@ export async function getUserUsageAndLimits(userId: string): Promise<UserUsageSu
       where: {
         user_id: userId,
         sent_at: { gte: startOfMonth },
+        direction: "out" as any,
+      },
+    }).catch(() => 0),
+    db.email_messages.count({
+      where: {
+        user_id: userId,
+        sent_at: { gte: startOfDay },
         direction: "out" as any,
       },
     }).catch(() => 0),
@@ -205,6 +232,8 @@ export async function getUserUsageAndLimits(userId: string): Promise<UserUsageSu
   const effectiveLeads = Math.max(counterMap["monthly_leads"] || 0, leadsCount);
   const effectivePosts = Math.max(counterMap["monthly_social_posts"] || 0, postsCount);
   const effectiveOutreach = Math.max(counterMap["monthly_outreach_emails"] || 0, outreachEmailsCount);
+  const effectiveDaily = Math.max(counterMap["daily_outreach_emails"] || 0, todayEmailsCount);
+  const effectiveAi = counterMap["monthly_ai_outreach_emails"] || 0;
   const activeCampaignsCount = socialCampaignsCount + outreachCampaignsCount;
 
   function buildQuota(current: number, limit: number): ResourceUsage {
@@ -233,6 +262,8 @@ export async function getUserUsageAndLimits(userId: string): Promise<UserUsageSu
       monthly_leads: buildQuota(effectiveLeads, effective.monthly_leads),
       monthly_social_posts: buildQuota(effectivePosts, effective.monthly_social_posts),
       monthly_outreach_emails: buildQuota(effectiveOutreach, effective.monthly_outreach_emails),
+      daily_outreach_emails: buildQuota(effectiveDaily, effective.daily_outreach_emails),
+      monthly_ai_outreach_emails: buildQuota(effectiveAi, effective.monthly_ai_outreach_emails),
       max_social_accounts: buildQuota(socialAccountsCount, effective.max_social_accounts),
       max_email_accounts: buildQuota(emailAccountsCount, effective.max_email_accounts),
       max_campaigns: buildQuota(activeCampaignsCount, effective.max_campaigns),
@@ -277,6 +308,29 @@ export async function checkLimit(
   };
 }
 
+export class PlanLimitExceededError extends Error {
+  code = "PLAN_LIMIT_EXCEEDED";
+  resource: PlanLimitResource;
+  current: number;
+  limit: number;
+  remaining: number;
+
+  constructor(
+    resource: PlanLimitResource,
+    message: string,
+    current: number,
+    limit: number,
+    remaining: number
+  ) {
+    super(message);
+    this.name = "PlanLimitExceededError";
+    this.resource = resource;
+    this.current = current;
+    this.limit = limit;
+    this.remaining = remaining;
+  }
+}
+
 /**
  * Assert that a user has sufficient quota. Throws an Error with a user-friendly message if exhausted.
  */
@@ -287,6 +341,12 @@ export async function assertLimit(
 ): Promise<void> {
   const result = await checkLimit(userId, resource, increment);
   if (!result.allowed) {
-    throw new Error(result.message);
+    throw new PlanLimitExceededError(
+      resource,
+      result.message || `Plan quota exceeded for ${resource}`,
+      result.current,
+      result.limit,
+      result.remaining
+    );
   }
 }

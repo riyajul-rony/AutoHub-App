@@ -5,6 +5,11 @@ import {
   createAndPopulateGoogleSheet,
 } from "@/server/integrations/google-sheets";
 import { logger } from "@/server/logger";
+import {
+  STANDARD_EXPORT_HEADERS,
+  formatLeadRowForExport,
+  cleanFieldValue,
+} from "@/server/providers/leads/export-helpers";
 
 function formatField(val: any): string {
   if (Array.isArray(val)) {
@@ -56,47 +61,8 @@ export async function POST(req: NextRequest) {
   }
 
   const sheetTitle = title || `AutoHub Leads (${new Date().toISOString().slice(0, 10)})`;
-  const defaultHeaders = [
-    "Company Name",
-    "Company Emails",
-    "Company Phones",
-    "Company Website",
-    "Company Facebook",
-    "Company Instagram",
-    "Company LinkedIn",
-    "Company TikTok",
-    "Company YouTube",
-    "Company Location",
-    "Founder Name",
-    "Founder Emails",
-    "Founder Phones",
-    "Founder Socials",
-    "Manager Name",
-    "Manager Emails",
-    "Manager Phones",
-    "Manager Socials",
-  ];
-
-  const defaultRows = leads.map((l: any) => [
-    formatField(l.company_name),
-    formatField(l.company_emails),
-    formatField(l.company_phones),
-    formatField(l.company_website || l.website),
-    formatField(l.company_facebook),
-    formatField(l.company_instagram),
-    formatField(l.company_linkedin),
-    formatField(l.company_tiktok),
-    formatField(l.company_youtube),
-    formatField(l.company_location || l.address || l.city),
-    formatField(l.founder_name),
-    formatField(l.founder_emails),
-    formatField(l.founder_phones),
-    formatField(l.founder_socials),
-    formatField(l.manager_name),
-    formatField(l.manager_emails),
-    formatField(l.manager_phones),
-    formatField(l.manager_socials),
-  ]);
+  const defaultHeaders = STANDARD_EXPORT_HEADERS;
+  const defaultRows = leads.map((l: any) => formatLeadRowForExport(l).map((val) => cleanFieldValue(val)));
 
   const finalHeaders = Array.isArray(body.headers) && body.headers.length > 0 ? body.headers : defaultHeaders;
   const finalRows = Array.isArray(body.rows) && body.rows.length > 0 ? body.rows : defaultRows;

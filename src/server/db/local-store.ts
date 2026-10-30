@@ -29,6 +29,8 @@ interface StoreSchema {
   campaign_recipients: any[];
   email_messages: any[];
   followup_sequences: any[];
+  campaign_steps: any[];
+  tracking_events: any[];
   suppressions: any[];
   lead_searches: any[];
   leads: any[];
@@ -42,6 +44,8 @@ interface StoreSchema {
   processed_webhook_events: any[];
   error_logs: any[];
   system_settings: any[];
+  apify_usage_logs: any[];
+  apify_keys: any[];
 }
 
 function getInitialStore(): StoreSchema {
@@ -57,6 +61,8 @@ function getInitialStore(): StoreSchema {
     campaign_recipients: [],
     email_messages: [],
     followup_sequences: [],
+    campaign_steps: [],
+    tracking_events: [],
     suppressions: [],
     lead_searches: [],
     leads: [],
@@ -70,6 +76,8 @@ function getInitialStore(): StoreSchema {
     processed_webhook_events: [],
     error_logs: [],
     system_settings: [],
+    apify_usage_logs: [],
+    apify_keys: [],
   };
 }
 
@@ -117,6 +125,8 @@ function loadStore(): StoreSchema {
         processed_webhook_events: parsed.processed_webhook_events || [],
         error_logs: parsed.error_logs || [],
         system_settings: parsed.system_settings || [],
+        apify_usage_logs: parsed.apify_usage_logs || [],
+        apify_keys: parsed.apify_keys || [],
       };
       return inMemoryStore!;
     }
@@ -497,6 +507,65 @@ export const localDevStore = {
     }
     saveStore();
     return item;
+  },
+
+  // --- Campaign Steps (Follow-up Steps) ---
+  getCampaignSteps: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.campaign_steps) store.campaign_steps = [];
+    return filter ? store.campaign_steps.filter(filter) : store.campaign_steps;
+  },
+  findCampaignStep: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.campaign_steps) store.campaign_steps = [];
+    return store.campaign_steps.find(filter) || null;
+  },
+  saveCampaignStep: (item: any) => {
+    const store = loadStore();
+    if (!store.campaign_steps) store.campaign_steps = [];
+    const idx = store.campaign_steps.findIndex(
+      (s) => (item.id && s.id === item.id) || (s.campaign_id === item.campaign_id && s.step_no === item.step_no)
+    );
+    if (idx >= 0) {
+      store.campaign_steps[idx] = { ...store.campaign_steps[idx], ...item };
+    } else {
+      store.campaign_steps.push({
+        id: item.id || `cs-${Math.random().toString(36).slice(2, 10)}`,
+        created_at: new Date().toISOString(),
+        delay_days: 3,
+        mode: "custom",
+        ...item,
+      });
+    }
+    saveStore();
+    return idx >= 0 ? store.campaign_steps[idx] : store.campaign_steps[store.campaign_steps.length - 1];
+  },
+  deleteCampaignSteps: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.campaign_steps) store.campaign_steps = [];
+    const beforeCount = store.campaign_steps.length;
+    store.campaign_steps = filter ? store.campaign_steps.filter((s) => !filter(s)) : [];
+    saveStore();
+    return { count: beforeCount - store.campaign_steps.length };
+  },
+
+  // --- Tracking Events ---
+  getTrackingEvents: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.tracking_events) store.tracking_events = [];
+    return filter ? store.tracking_events.filter(filter) : store.tracking_events;
+  },
+  saveTrackingEvent: (item: any) => {
+    const store = loadStore();
+    if (!store.tracking_events) store.tracking_events = [];
+    const newEvent = {
+      id: item.id || `te-${Math.random().toString(36).slice(2, 10)}`,
+      created_at: new Date().toISOString(),
+      ...item,
+    };
+    store.tracking_events.push(newEvent);
+    saveStore();
+    return newEvent;
   },
 
   // --- Lead Searches ---
@@ -1049,5 +1118,126 @@ export const localDevStore = {
     }
     saveStore();
     return item;
+  },
+  deleteSystemSettings: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.system_settings) store.system_settings = [];
+    if (!filter) {
+      const count = store.system_settings.length;
+      store.system_settings = [];
+      saveStore();
+      return { count };
+    }
+    const beforeCount = store.system_settings.length;
+    store.system_settings = store.system_settings.filter((item) => !filter(item));
+    saveStore();
+    return { count: beforeCount - store.system_settings.length };
+  },
+
+  // Apify Usage Logs
+  getApifyUsageLogs: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.apify_usage_logs) store.apify_usage_logs = [];
+    return filter ? store.apify_usage_logs.filter(filter) : [...store.apify_usage_logs];
+  },
+  saveApifyUsageLog: (item: any) => {
+    const store = loadStore();
+    if (!store.apify_usage_logs) store.apify_usage_logs = [];
+    const newLog = {
+      id: item.id || `usage_log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      created_at: new Date().toISOString(),
+      ...item,
+    };
+    store.apify_usage_logs.push(newLog);
+    saveStore();
+    return newLog;
+  },
+
+  // Apify Key Pool
+  getApifyKeys: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.apify_keys) store.apify_keys = [];
+    return filter ? store.apify_keys.filter(filter) : [...store.apify_keys];
+  },
+  findApifyKey: (predicate: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.apify_keys) store.apify_keys = [];
+    return store.apify_keys.find(predicate) || null;
+  },
+  saveApifyKey: (item: any) => {
+    const store = loadStore();
+    if (!store.apify_keys) store.apify_keys = [];
+    const newKey = {
+      id: item.id || `apify_key_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      label: item.label || "Default Key",
+      token_enc: item.token_enc,
+      token_last4: item.token_last4,
+      account_email: item.account_email || null,
+      plan_name: item.plan_name || null,
+      status: item.status || "active",
+      max_concurrent_jobs: item.max_concurrent_jobs ?? 2,
+      cooldown_until: item.cooldown_until || null,
+      last_error_reason: item.last_error_reason || null,
+      last_used_at: item.last_used_at || null,
+      total_runs: item.total_runs ?? 0,
+      total_cost_usd: item.total_cost_usd ?? 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      ...item,
+    };
+    store.apify_keys.push(newKey);
+    saveStore();
+    return newKey;
+  },
+  updateApifyKey: (id: string, updates: any) => {
+    const store = loadStore();
+    if (!store.apify_keys) store.apify_keys = [];
+    const idx = store.apify_keys.findIndex((k) => k.id === id);
+    if (idx < 0) return null;
+    const current = store.apify_keys[idx];
+    const resolved: any = { ...current };
+    for (const [key, val] of Object.entries(updates)) {
+      if (val && typeof val === "object" && !Array.isArray(val) && !(val instanceof Date)) {
+        if ("increment" in val && typeof (val as any).increment === "number") {
+          const curNum = Number(resolved[key]) || 0;
+          resolved[key] = curNum + (val as any).increment;
+        } else if ("decrement" in val && typeof (val as any).decrement === "number") {
+          const curNum = Number(resolved[key]) || 0;
+          resolved[key] = curNum - (val as any).decrement;
+        } else if ("set" in val) {
+          resolved[key] = (val as any).set;
+        } else {
+          resolved[key] = val;
+        }
+      } else {
+        resolved[key] = val;
+      }
+    }
+    resolved.updated_at = new Date().toISOString();
+    store.apify_keys[idx] = resolved;
+    saveStore();
+    return store.apify_keys[idx];
+  },
+  deleteApifyKey: (id: string) => {
+    const store = loadStore();
+    if (!store.apify_keys) store.apify_keys = [];
+    const before = store.apify_keys.length;
+    store.apify_keys = store.apify_keys.filter((k) => k.id !== id);
+    saveStore();
+    return store.apify_keys.length < before;
+  },
+  deleteApifyKeys: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.apify_keys) store.apify_keys = [];
+    if (!filter) {
+      const count = store.apify_keys.length;
+      store.apify_keys = [];
+      saveStore();
+      return { count };
+    }
+    const beforeCount = store.apify_keys.length;
+    store.apify_keys = store.apify_keys.filter((item) => !filter(item));
+    saveStore();
+    return { count: beforeCount - store.apify_keys.length };
   },
 };

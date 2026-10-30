@@ -257,6 +257,14 @@ export function cleanExtractedEmail(raw: string): string | null {
   if (!raw || !raw.includes("@")) return null;
   let cleaned = raw.toLowerCase().trim().replace(/%20/g, "").replace(/\s+/g, "");
 
+  // Drop image filenames & assets disguised as emails (e.g. logo@2x.png, icon@3x.jpg)
+  if (/\.(png|jpe?g|gif|webp|svg|ico|css|js|woff2?|pdf|tiff?|bmp)$/i.test(cleaned)) {
+    return null;
+  }
+  if (/@\d+x\./i.test(cleaned)) {
+    return null;
+  }
+
   // Strip leading non-alphanumeric
   cleaned = cleaned.replace(/^[^a-z0-9]+/, "");
 
@@ -267,6 +275,9 @@ export function cleanExtractedEmail(raw: string): string | null {
   cleaned = cleaned.replace(/(\.(?:com|org|net|edu|gov|io|co|uk|us|biz|info|ca|de|fr|au|nl|bd|me|app))[a-z]{3,}$/i, "$1");
 
   if (/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,14}$/i.test(cleaned)) {
+    const domain = cleaned.split("@")[1];
+    const junkDomains = ["example.com", "sample.com", "test.com", "domain.com", "email.com", "sentry.io"];
+    if (junkDomains.includes(domain)) return null;
     return cleaned;
   }
   return null;
@@ -1401,23 +1412,12 @@ export async function scrapeFullCompanyProfile(
     }
   }
 
-  // 9. Verified Executive Corporate Direct Emails via Domain MX Records
-  if (baseHostname && (founderName || managerName)) {
+  // 9. Verify domain mail server (MX records) for genuinely discovered emails
+  if (baseHostname && (compEmails.size > 0 || founderEmails.size > 0 || managerEmails.size > 0)) {
     try {
       const mxRecords = await dnsPromises.resolveMx(baseHostname).catch(() => []);
-      if (mxRecords && mxRecords.length > 0) {
-        if (founderName && founderEmails.size === 0) {
-          const fFirst = founderName.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
-          if (fFirst.length >= 2) {
-            founderEmails.add(`${fFirst}@${baseHostname}`);
-          }
-        }
-        if (managerName && managerEmails.size === 0) {
-          const mFirst = managerName.split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, "");
-          if (mFirst.length >= 2) {
-            managerEmails.add(`${mFirst}@${baseHostname}`);
-          }
-        }
+      if (!mxRecords || mxRecords.length === 0) {
+        // Domain has no active MX records
       }
     } catch {}
   }

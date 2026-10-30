@@ -26,19 +26,3 @@ export async function getUserApiKey(
   }
 }
 
-/**
- * Specifically returns decrypted Bright Data API key for scraping jobs.
- */
-export async function getUserBrightDataKey(userId: string): Promise<string | null> {
-  return getUserApiKey(userId, "bright_data");
-}
-
-/**
- * Checks whether user has an active Bright Data key configured.
- */
-export async function hasUserBrightDataKey(userId: string): Promise<boolean> {
-  const count = await db.api_keys.count({
-    where: scoped(userId, { provider: "bright_data", status: "active" }),
-  });
-  return count > 0;
-}

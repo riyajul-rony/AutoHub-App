@@ -253,7 +253,7 @@ export default async function AdminDashboardPage() {
               <div>
                 <div className="text-xs text-muted">Cloud Scraper Engine</div>
                 <div className="text-sm font-semibold text-fg mt-0.5">
-                  Bright Data API v3
+                  Apify Cloud Scraper API
                 </div>
               </div>
               <CheckCircle2 size={16} className="text-accent-green" />
