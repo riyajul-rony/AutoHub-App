@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/guards";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata = {
-  title: "Post History & Approval Queue — AutoHub",
+  title: "Post History & Approval Queue — Lead Reach AI",
   description: "Review, approve, and track published social media posts.",
 };
 

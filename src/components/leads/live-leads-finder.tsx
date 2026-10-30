@@ -657,25 +657,25 @@ export function LiveLeadsFinder({
   useEffect(() => {
     // Restore non-keyword filter settings if previously stored
     try {
-      const savedMetaCountry = sessionStorage.getItem("autohub_lead_meta_country");
+      const savedMetaCountry = sessionStorage.getItem("leadreach_lead_meta_country") || sessionStorage.getItem("autohub_lead_meta_country");
       if (savedMetaCountry) setMetaCountry(savedMetaCountry);
-      const savedMetaCity = sessionStorage.getItem("autohub_lead_meta_city");
+      const savedMetaCity = sessionStorage.getItem("leadreach_lead_meta_city") || sessionStorage.getItem("autohub_lead_meta_city");
       if (savedMetaCity) setMetaCity(savedMetaCity);
-      const savedMetaStatus = sessionStorage.getItem("autohub_lead_meta_status");
+      const savedMetaStatus = sessionStorage.getItem("leadreach_lead_meta_status") || sessionStorage.getItem("autohub_lead_meta_status");
       if (savedMetaStatus) setMetaAdStatus(savedMetaStatus as "active" | "all");
-      const savedEmails = sessionStorage.getItem("autohub_lead_emails");
+      const savedEmails = sessionStorage.getItem("leadreach_lead_emails") ?? sessionStorage.getItem("autohub_lead_emails");
       if (savedEmails !== null) setFindEmails(savedEmails === "true");
-      const savedLiTitles = sessionStorage.getItem("autohub_lead_li_titles");
+      const savedLiTitles = sessionStorage.getItem("leadreach_lead_li_titles") || sessionStorage.getItem("autohub_lead_li_titles");
       if (savedLiTitles) {
         try { setSelectedTitles(JSON.parse(savedLiTitles)); } catch {}
       }
-      const savedLiCountry = sessionStorage.getItem("autohub_lead_li_country");
+      const savedLiCountry = sessionStorage.getItem("leadreach_lead_li_country") || sessionStorage.getItem("autohub_lead_li_country");
       if (savedLiCountry) setLinkedinCountry(savedLiCountry);
-      const savedLiCity = sessionStorage.getItem("autohub_lead_li_city");
+      const savedLiCity = sessionStorage.getItem("leadreach_lead_li_city") || sessionStorage.getItem("autohub_lead_li_city");
       if (savedLiCity) setLinkedinCity(savedLiCity);
-      const savedLiDm = sessionStorage.getItem("autohub_lead_li_dm");
+      const savedLiDm = sessionStorage.getItem("leadreach_lead_li_dm") ?? sessionStorage.getItem("autohub_lead_li_dm");
       if (savedLiDm !== null) setFindDecisionMakers(savedLiDm === "true");
-      const savedLiMaxDm = sessionStorage.getItem("autohub_lead_li_max_dm");
+      const savedLiMaxDm = sessionStorage.getItem("leadreach_lead_li_max_dm") || sessionStorage.getItem("autohub_lead_li_max_dm");
       if (savedLiMaxDm) setMaxDecisionMakers(Number(savedLiMaxDm) || 3);
     } catch {}
 
@@ -797,7 +797,7 @@ export function LiveLeadsFinder({
             leads: activeExportLeads,
             headers: STANDARD_EXPORT_HEADERS,
             rows: exportRows,
-            title: `AutoHub Leads - ${keyword || "Search"} in ${location || "Region"} (${new Date().toLocaleDateString()})`,
+            title: `Lead Reach AI Leads - ${keyword || "Search"} in ${location || "Region"} (${new Date().toLocaleDateString()})`,
           }),
         });
 
@@ -875,23 +875,23 @@ export function LiveLeadsFinder({
 
     if (isGoogleMaps) {
       if (!cleanKw) {
-        errors.keyword = "Keyword লিখুন";
+        errors.keyword = "Please enter a keyword";
       }
       if (!cleanLoc) {
-        errors.location = "Location লিখুন";
+        errors.location = "Please enter a location";
       }
     } else if (isMeta) {
       if (!cleanKw) {
-        errors.keyword = "Keyword লিখুন";
+        errors.keyword = "Please enter a keyword";
       }
     } else if (isLinkedIn) {
       if (!cleanKw && selectedTitles.length === 0 && !linkedinIndustry.trim() && !linkedinState.trim()) {
-        errors.keyword = "Keyword, Job Title অথবা Industry নির্বাচন করুন";
+        errors.keyword = "Please select a Keyword, Job Title, or Industry";
       }
     }
 
     if (isNaN(numMax) || numMax < 1 || numMax > currentMaxLimit) {
-      errors.maxResults = `১ থেকে ${currentMaxLimit}-এর মধ্যে একটা সংখ্যা লিখুন`;
+      errors.maxResults = `Please enter a number between 1 and ${currentMaxLimit}`;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -995,23 +995,23 @@ export function LiveLeadsFinder({
               if (pollLeads.length === 0) {
                 if (searchMeta.error) {
                   setStatusMessage(searchMeta.error);
-                } else if (searchMeta.current_step && searchMeta.current_step.includes("Apify কী-তে Paid Plan")) {
+                } else if (searchMeta.current_step && (searchMeta.current_step.includes("requires a Paid Plan") || searchMeta.current_step.includes("Paid Plan"))) {
                   setStatusMessage(searchMeta.current_step);
                 } else if (isLinkedIn) {
                   const suggestions: string[] = [];
                   if (keyword) suggestions.push(`Keywords ("${keyword}")`);
                   if (linkedinCity) suggestions.push(`City ("${linkedinCity}")`);
                   if (selectedTitles.length > 0 && selectedSeniority.length > 0) {
-                    suggestions.push("Seniority ও Job Titles উভয়ের কড়াকড়ি");
+                    suggestions.push("strict Seniority and Job Title filters");
                   }
                   const tip = suggestions.length > 0
-                    ? ` — ফিল্টার শিথিল করতে ${suggestions.join(" বা ")} সরিয়ে চেষ্টা করুন।`
-                    : " — অনুগ্রহ করে ফিল্টার কিছুটা শিথিল করে চেষ্টা করুন।";
-                  setStatusMessage(`এই ফিল্টারে কোনো B2B লিড পাওয়া যায়নি${tip}`);
+                    ? ` — Try broadening your search by relaxing ${suggestions.join(" or ")}.`
+                    : " — Please broaden your filters and try again.";
+                  setStatusMessage(`No B2B leads matched these criteria${tip}`);
                 } else if (isMeta) {
-                  setStatusMessage("Meta Ad Library-তে এই কিওয়ার্ডে কোনো বিজ্ঞাপন পাওয়া যায়নি। ভিন্ন কিওয়ার্ড দিয়ে চেষ্টা করুন।");
+                  setStatusMessage("No active ads found in Meta Ad Library for this keyword. Try a different keyword.");
                 } else {
-                  setStatusMessage("Google Maps-এ কোনো প্রতিষ্ঠান পাওয়া যায়নি। ভিন্ন কিওয়ার্ড বা লোকেশন দিয়ে চেষ্টা করুন।");
+                  setStatusMessage("No businesses found on Google Maps. Try a different keyword or location.");
                 }
               } else {
                 setStatusMessage(
@@ -1021,7 +1021,7 @@ export function LiveLeadsFinder({
             } else if (searchMeta.status === "failed") {
               stopPolling();
               setLoading(false);
-              const errMsg = searchMeta.error || searchMeta.current_step || "Scraper চালাতে সমস্যা হয়েছে, একটু পরে চেষ্টা করুন";
+              const errMsg = searchMeta.error || searchMeta.current_step || "Scraper encountered an issue. Please try again shortly.";
               setStatusMessage(errMsg);
             } else if (searchMeta.status === "cancelled") {
               stopPolling();
@@ -1195,7 +1195,7 @@ export function LiveLeadsFinder({
                     type="text"
                     id="lead-keyword-input"
                     className="input h-11 w-full text-sm placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                    placeholder="যেমন: Real Estate, Restaurant, Gym"
+                    placeholder="e.g. Real Estate, Restaurant, Gym"
                     value={keyword}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -1222,7 +1222,7 @@ export function LiveLeadsFinder({
                     value={metaCountry}
                     onChange={(e) => {
                       setMetaCountry(e.target.value);
-                      try { sessionStorage.setItem("autohub_lead_meta_country", e.target.value); } catch {}
+                      try { sessionStorage.setItem("leadreach_lead_meta_country", e.target.value); } catch {}
                     }}
                   >
                     {META_COUNTRIES.map((c) => (
@@ -1243,7 +1243,7 @@ export function LiveLeadsFinder({
                     onChange={(e) => {
                       const val = e.target.value as "active" | "all";
                       setMetaAdStatus(val);
-                      try { sessionStorage.setItem("autohub_lead_meta_status", val); } catch {}
+                      try { sessionStorage.setItem("leadreach_lead_meta_status", val); } catch {}
                     }}
                   >
                     <option value="active" className="bg-surface">
@@ -1348,7 +1348,7 @@ export function LiveLeadsFinder({
                     type="text"
                     list="b2b-industries-list"
                     className="input h-11 w-full text-sm placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                    placeholder="যেমন: Computer Software, Real Estate, Marketing"
+                    placeholder="e.g. Computer Software, Real Estate, Marketing"
                     value={linkedinIndustry}
                     onChange={(e) => setLinkedinIndustry(e.target.value)}
                   />
@@ -1374,7 +1374,7 @@ export function LiveLeadsFinder({
                     type="text"
                     id="lead-keyword-input"
                     className="input h-11 w-full text-sm placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                    placeholder="যেমন: AI SaaS, Solar installer, Digital Agency"
+                    placeholder="e.g. AI SaaS, Solar Installer, Digital Agency"
                     value={keyword}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -1417,7 +1417,7 @@ export function LiveLeadsFinder({
                   <input
                     type="text"
                     className="input h-10 text-sm placeholder:text-muted"
-                    placeholder="যেমন: NY, CA, TX, FL"
+                    placeholder="e.g. NY, CA, TX, FL"
                     value={linkedinState}
                     onChange={(e) => setLinkedinState(e.target.value)}
                   />
@@ -1428,7 +1428,7 @@ export function LiveLeadsFinder({
                   <input
                     type="text"
                     className="input h-10 text-sm placeholder:text-muted"
-                    placeholder="যেমন: New York, Austin, Chicago"
+                    placeholder="e.g. New York, Austin, Chicago"
                     value={linkedinCity}
                     onChange={(e) => setLinkedinCity(e.target.value)}
                   />
@@ -1558,7 +1558,7 @@ export function LiveLeadsFinder({
                             ? selectedTitles.filter((t) => t !== title)
                             : [...selectedTitles, title];
                           setSelectedTitles(updated);
-                          try { sessionStorage.setItem("autohub_lead_li_titles", JSON.stringify(updated)); } catch {}
+                          try { sessionStorage.setItem("leadreach_lead_li_titles", JSON.stringify(updated)); } catch {}
                         }}
                         className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
                           isSelected
@@ -1589,7 +1589,7 @@ export function LiveLeadsFinder({
                           const updated = [...selectedTitles, trimmed];
                           setSelectedTitles(updated);
                           setCustomTitleInput("");
-                          try { sessionStorage.setItem("autohub_lead_li_titles", JSON.stringify(updated)); } catch {}
+                          try { sessionStorage.setItem("leadreach_lead_li_titles", JSON.stringify(updated)); } catch {}
                         }
                       }
                     }}
@@ -1602,7 +1602,7 @@ export function LiveLeadsFinder({
                         const updated = [...selectedTitles, trimmed];
                         setSelectedTitles(updated);
                         setCustomTitleInput("");
-                        try { sessionStorage.setItem("autohub_lead_li_titles", JSON.stringify(updated)); } catch {}
+                        try { sessionStorage.setItem("leadreach_lead_li_titles", JSON.stringify(updated)); } catch {}
                       }
                     }}
                     className="btn btn-ghost border border-border text-xs !py-1 !px-2.5 text-muted hover:text-fg"
@@ -1615,10 +1615,10 @@ export function LiveLeadsFinder({
               {/* Seniority & Job Titles Mutual Constraint Tip */}
               <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-bgSubtle border border-border text-[11px] text-muted">
                 <span className="badge border-brand/40 text-brand text-[10px] px-1.5 py-0.5 font-semibold shrink-0">
-                  টিপস
+                  Tip
                 </span>
                 <span>
-                  Seniority ও Job Titles উভয় ফিল্টার একসাথে দিলে কোয়ারি অতিরিক্ত সংকুচিত হতে পারে। বেশি লিড পেতে যেকোনো একটি ব্যবহার করুন বা ১-ক্লিক প্রেসেট বেছে নিন।
+                  Combining strict Seniority and Job Title filters simultaneously may overly restrict results. To maximize lead volume, use one or select a 1-click preset.
                 </span>
               </div>
 
@@ -1641,7 +1641,7 @@ export function LiveLeadsFinder({
                   id="lead-keyword-input"
                   type="text"
                   className="input h-11 w-full text-sm placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  placeholder="যেমন: Real Estate, Restaurant, Gym"
+                  placeholder="e.g. Real Estate, Restaurant, Gym"
                   value={keyword}
                   onChange={(e) => {
                     setKeyword(e.target.value);
@@ -1664,7 +1664,7 @@ export function LiveLeadsFinder({
                   id="lead-location-input"
                   type="text"
                   className="input h-11 w-full text-sm placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  placeholder="যেমন: New York, Austin TX"
+                  placeholder="e.g. New York, Austin TX"
                   value={location}
                   onChange={(e) => {
                     setLocation(e.target.value);
@@ -1690,7 +1690,7 @@ export function LiveLeadsFinder({
                 type="text"
                 inputMode="numeric"
                 className="input h-11 w-full text-sm font-mono placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                placeholder="যেমন: 25"
+                placeholder="e.g. 25"
                 value={maxResultsStr}
                 onChange={(e) => {
                   const cleaned = e.target.value.replace(/[^0-9]/g, "");
@@ -1710,7 +1710,7 @@ export function LiveLeadsFinder({
               )}
               {isLinkedIn && parseInt(maxResultsStr || "0", 10) > 100 && (
                 <p className="text-amber-500 text-[11px] mt-1 font-medium">
-                  Note: Free Apify প্ল্যানে actor সীমা প্রতি রানে সর্বোচ্চ ১০০ লিড; ১০০-এর বেশি চাইলে পেইড প্ল্যান প্রয়োজন হতে পারে।
+                  Note: The Free Apify plan limits extraction to 100 leads per run; volumes above 100 require a paid Apify plan.
                 </p>
               )}
             </div>
@@ -1727,7 +1727,7 @@ export function LiveLeadsFinder({
                   onChange={(e) => {
                     const nextBool = e.target.value === "yes";
                     setFindEmails(nextBool);
-                    try { sessionStorage.setItem("autohub_lead_emails", String(nextBool)); } catch {}
+                    try { sessionStorage.setItem("leadreach_lead_emails", String(nextBool)); } catch {}
                   }}
                 >
                   <option value="yes" className="bg-surface">
@@ -1777,7 +1777,7 @@ export function LiveLeadsFinder({
         <div className="mt-3 pt-3 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] text-muted">
           <span>
             {isLinkedIn
-              ? "Notice: AgenticData (Apollo & ZoomInfo Replacement) দিয়ে B2B লিড স্ক্র্যাপ হচ্ছে ($0.50/1k)। ভেরিফায়েড ইমেইল ও মোবাইল সহ।"
+              ? "Notice: Scraping B2B leads via AgenticData (Apollo & ZoomInfo Alternative) at $0.50/1k — includes verified business emails and direct mobile numbers."
               : "Notice: Lead generation runs server-side with strict per-job spend safety limits."}
           </span>
           <span>Automated tenant deduplication skips duplicate contacts.</span>
@@ -2571,12 +2571,12 @@ export function LiveLeadsFinder({
                         if (selectedTitles.length > 0 && selectedSeniority.length > 0) {
                           setSelectedTitles([]);
                         }
-                        setStatusMessage("ফিল্টার শিথিল করা হয়েছে (Keywords ও City সরানো হয়েছে)। এবার 'Extract Leads' এ ক্লিক করে আবার অনুসন্ধান চালান।");
+                        setStatusMessage("Filters relaxed (Keywords and City cleared). Click 'Extract Leads' to re-run your search.");
                       }}
                       className="btn btn-outline text-xs px-3.5 py-1.5 mt-2 flex items-center gap-1.5 text-brand border-brand/40 hover:bg-brand/10 transition-colors cursor-pointer"
                     >
                       <RotateCcw size={12} />
-                      <span>ফিল্টার শিথিল করুন (Relax Filters)</span>
+                      <span>Relax Filters</span>
                     </button>
                   )}
                 </div>

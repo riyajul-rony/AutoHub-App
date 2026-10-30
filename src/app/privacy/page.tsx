@@ -3,8 +3,8 @@ import { Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Privacy Policy — AutoHub",
-  description: "Privacy Policy and data protection terms for AutoHub automation platform.",
+  title: "Privacy Policy — Lead Reach AI",
+  description: "Privacy Policy and data protection terms for Lead Reach AI automation platform.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
         <div className="flex items-center justify-between border-b border-border pb-6">
           <Link href="/">
             <Button variant="ghost" size="sm">
-              <ArrowLeft size={14} className="mr-1.5" /> Back to AutoHub
+              <ArrowLeft size={14} className="mr-1.5" /> Back to Lead Reach AI
             </Button>
           </Link>
           <span className="text-xs text-muted">Last Updated: October 2026</span>
@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-fg">Privacy Policy</h1>
           <p className="text-sm text-muted">
-            AutoHub is committed to protecting your privacy and handling your data transparently.
+            Lead Reach AI is committed to protecting your privacy and handling your data transparently.
           </p>
         </div>
 
@@ -34,14 +34,14 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-fg">1. Information We Collect</h2>
             <p>
-              When you use AutoHub, we may collect account registration data (name, email, business name), API keys encrypted with AES-256-GCM, connected social accounts (Meta / Facebook / Instagram / LinkedIn authentication tokens), and email credentials (SMTP / IMAP credentials).
+              When you use Lead Reach AI, we may collect account registration data (name, email, business name), API keys encrypted with AES-256-GCM, connected social accounts (Meta / Facebook / Instagram / LinkedIn authentication tokens), and email credentials (SMTP / IMAP credentials).
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-fg">2. Google API Data &amp; Scopes</h2>
             <p>
-              AutoHub adheres to the Google API Services User Data Policy, including the Limited Use requirements. When you connect Google Sheets or Google Places, data accessed is used exclusively to export generated leads or query public business information requested by you. We do not sell, rent, or transfer your Google user data to third parties.
+              Lead Reach AI adheres to the Google API Services User Data Policy, including the Limited Use requirements. When you connect Google Sheets or Google Places, data accessed is used exclusively to export generated leads or query public business information requested by you. We do not sell, rent, or transfer your Google user data to third parties.
             </p>
           </section>
 
@@ -55,7 +55,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-2">
             <h2 className="text-base font-semibold text-fg">4. Email Outreach &amp; Recipient Privacy</h2>
             <p>
-              Emails dispatched through AutoHub follow strict anti-spam guidelines, including an enforced hard limit of 25 emails per hour per account, automated random jitter delays, mandatory CAN-SPAM physical sender addresses, and one-click RFC 8058 unsubscribe mechanisms. Recipients who unsubscribe are immediately added to suppression lists and permanently excluded from future campaigns.
+              Emails dispatched through Lead Reach AI follow strict anti-spam guidelines, including an enforced hard limit of 25 emails per hour per account, automated random jitter delays, mandatory CAN-SPAM physical sender addresses, and one-click RFC 8058 unsubscribe mechanisms. Recipients who unsubscribe are immediately added to suppression lists and permanently excluded from future campaigns.
             </p>
           </section>
 
@@ -66,7 +66,7 @@ export default function PrivacyPolicyPage() {
               <Link href="/data-deletion" className="text-brand hover:underline font-medium">
                 Data Deletion Instructions
               </Link>{" "}
-              or contacting privacy@autohub.app.
+              or contacting privacy@leadreachai.cerkitlabs.tech.
             </p>
           </section>
         </div>

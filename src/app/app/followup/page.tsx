@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Followup Sequences — AutoHub",
+  title: "Followup Sequences — Lead Reach AI",
   description: "Automate sequence followup emails in the same thread until the prospect replies.",
 };
 

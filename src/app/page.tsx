@@ -25,7 +25,7 @@ import { PricingSection } from "@/components/landing/pricing-section";
 import { FAQSection } from "@/components/landing/faq-section";
 
 export const metadata = {
-  title: "AutoHub — Modern B2B Growth & Multi-Tenant Automation Platform",
+  title: "Lead Reach AI — Modern B2B Growth & Multi-Tenant Automation Platform",
   description:
     "Unified Lead Extraction, Cold Email Outreach with 25/hr rate-limiting, Stop-on-Reply IMAP sequences, and Multi-Channel Social Scheduling.",
 };
@@ -43,7 +43,7 @@ export default function HomePage() {
             {/* Pill Announcement */}
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1 text-xs font-medium text-muted hover:text-fg transition-colors mb-6 shadow-sm">
               <span className="flex h-2 w-2 rounded-full bg-success" />
-              <span className="text-fg font-semibold">AutoHub 2.0</span>
+              <span className="text-fg font-semibold">Lead Reach AI</span>
               <span className="text-subtle">•</span>
               <span>Intelligent B2B Growth Engine</span>
               <ArrowRight size={12} className="text-muted" />
@@ -57,7 +57,7 @@ export default function HomePage() {
 
             {/* Subheading */}
             <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-muted leading-relaxed">
-              AutoHub unifies live lead scraping, AI-personalized cold outreach, multi-channel social
+              Lead Reach AI unifies live lead scraping, AI-personalized cold outreach, multi-channel social
               publishing, and automated follow-up sequences in a single, tenant-isolated cloud engine.
             </p>
 
@@ -149,7 +149,7 @@ export default function HomePage() {
                 Four enterprise modules, zero duct tape
               </h2>
               <p className="mt-3 text-sm sm:text-base text-muted">
-                Replace 4 separate subscription tools. AutoHub connects each stage of your sales
+                Replace 4 separate subscription tools. Lead Reach AI connects each stage of your sales
                 pipeline into a continuous automated loop.
               </p>
             </div>
@@ -270,7 +270,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-lg font-bold text-fg">Scrape & Personalize</h3>
                 <p className="text-xs text-muted leading-relaxed">
-                  AutoHub pulls verified company websites and emails. AI dynamically renders
+                  Lead Reach AI pulls verified company websites and emails. AI dynamically renders
                   customized opening icebreakers based on live prospect data.
                 </p>
                 <div className="pt-2 text-[11px] font-mono text-muted">
@@ -415,7 +415,7 @@ export default function HomePage() {
               Ready to put your growth on autopilot?
             </h2>
             <p className="mx-auto max-w-xl text-sm sm:text-base text-muted leading-relaxed">
-              Join high-performing teams using AutoHub to extract verified leads, send personalized
+              Join high-performing teams using Lead Reach AI to extract verified leads, send personalized
               outreach, and scale social presence from a single dashboard.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -449,7 +449,7 @@ export default function HomePage() {
                 <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primaryText font-bold shadow-sm">
                   <Zap size={15} />
                 </span>
-                <span className="font-bold text-base text-fg">AutoHub</span>
+                <span className="font-bold text-base text-fg">Lead Reach AI</span>
               </div>
               <p className="text-xs text-muted max-w-xs leading-relaxed">
                 The modern revenue automation platform uniting live lead discovery, safe cold email
@@ -496,7 +496,7 @@ export default function HomePage() {
           </div>
 
           <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>© {new Date().getFullYear()} AutoHub Inc. All rights reserved.</div>
+            <div>© {new Date().getFullYear()} Cerkit Labs. All rights reserved.</div>
             <div className="text-subtle">
               Engineered with Next.js App Router, TypeScript, Prisma & Redis.
             </div>

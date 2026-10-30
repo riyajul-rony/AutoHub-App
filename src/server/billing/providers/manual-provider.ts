@@ -64,7 +64,7 @@ export class ManualPaymentProvider implements PaymentProvider {
     const customInstructions = (await getConfig("MANUAL_PAYMENT_INSTRUCTIONS" as any)) || `
       Please send ${options.currency} ${options.amount} to our official accounts:
       - bKash / Nagad: 01700-000000 (Personal)
-      - Bank Transfer: AutoHub Ltd, AC: 123456789, Routing: 987654321
+      - Bank Transfer: Cerkit Labs / Lead Reach AI, AC: 123456789, Routing: 987654321
       Include your Invoice #${invoiceNumber} in the reference, then notify admin.
     `;
 

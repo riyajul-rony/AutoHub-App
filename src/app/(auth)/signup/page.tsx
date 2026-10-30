@@ -10,8 +10,8 @@ import { db } from "@/server/db";
 import { Button } from "@/components/ui";
 
 export const metadata = {
-  title: "Sign up — AutoHub",
-  description: "Create your AutoHub account.",
+  title: "Sign up — Lead Reach AI",
+  description: "Create your Lead Reach AI account.",
 };
 export const dynamic = "force-dynamic";
 

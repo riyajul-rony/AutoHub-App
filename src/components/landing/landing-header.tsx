@@ -18,7 +18,7 @@ export function LandingHeader() {
             <Zap size={18} />
           </span>
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-lg tracking-tight text-fg">AutoHub</span>
+            <span className="font-bold text-lg tracking-tight text-fg">Lead Reach AI</span>
             <span className="rounded border border-border bg-bgSubtle px-1.5 py-0.2 text-[10px] font-mono font-medium text-muted">
               2.0
             </span>

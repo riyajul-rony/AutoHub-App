@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/guards";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata = {
-  title: "New Campaign — AutoHub Social",
+  title: "New Campaign — Lead Reach AI Social",
   description: "Configure new AI automated posting campaign.",
 };
 

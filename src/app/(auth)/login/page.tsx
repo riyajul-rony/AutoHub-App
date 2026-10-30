@@ -6,8 +6,8 @@ import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { loginAction } from "@/server/auth/actions";
 
 export const metadata = {
-  title: "Log in — AutoHub",
-  description: "Log in to your AutoHub account.",
+  title: "Log in — Lead Reach AI",
+  description: "Log in to your Lead Reach AI account.",
 };
 
 export default async function LoginPage({

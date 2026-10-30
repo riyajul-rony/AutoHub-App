@@ -280,7 +280,7 @@ export function SocialHubManager() {
                     Connect {PLATFORMS.find((p) => p.id === modalProvider)?.name} Account
                   </h3>
                   <p className="text-xs text-muted">
-                    Authorize AutoHub to publish automated posts and AI media.
+                    Authorize Lead Reach AI to publish automated posts and AI media.
                   </p>
                 </div>
               </div>
@@ -324,7 +324,7 @@ export function SocialHubManager() {
                   type="text"
                   className="input text-xs h-9 w-full"
                   required
-                  placeholder="e.g. AutoHub Studio"
+                  placeholder="e.g. Lead Reach AI Studio"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                 />

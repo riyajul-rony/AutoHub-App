@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { UsageChart, TimelineDataPoint } from "./usage-chart";
 
 export const metadata = {
-  title: "Usage Analytics — AutoHub Admin",
+  title: "Usage Analytics — Lead Reach AI Admin",
   description: "Monitor tenant resource consumption, quotas, and quota alerts.",
 };
 

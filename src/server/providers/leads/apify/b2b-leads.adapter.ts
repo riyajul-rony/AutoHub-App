@@ -249,10 +249,10 @@ export function filterOrPrioritizeByLocation(
 export function formatB2BApifyError(err: any): string {
   const raw = err?.message || String(err);
   if (raw.includes("rate limit") || raw.includes("429")) {
-    return "Apify rate limit reached. AutoHub will automatically rotate keys or retry.";
+    return "Apify rate limit reached. Lead Reach AI will automatically rotate keys or retry.";
   }
   if (raw.includes("credit") || raw.includes("usage limit") || raw.includes("Monthly usage limit")) {
-    return "Apify মাসিক ক্রেডিট সীমা শেষ হয়ে গেছে। অনুগ্রহ করে অ্যাডমিন প্যানেল থেকে নতুন Apify কী যোগ করুন।";
+    return "Apify monthly credit limit reached. Please add a funded Apify API key in the admin panel.";
   }
   return raw;
 }

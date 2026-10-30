@@ -287,7 +287,7 @@ export function OutreachDashboard({
                   <span className="text-[11px] font-bold uppercase tracking-wider">Reply Rate</span>
                   <InfoTooltip
                     title="Genuine Prospect Replies"
-                    content="Percentage of leads who replied to your emails. AutoHub's IMAP stop-on-reply engine automatically halts follow-ups when someone responds."
+                    content="Percentage of leads who replied to your emails. Lead Reach AI's IMAP stop-on-reply engine automatically halts follow-ups when someone responds."
                   />
                 </div>
                 <TrendingUp size={15} className="text-emerald-500" />
@@ -304,7 +304,7 @@ export function OutreachDashboard({
                   <span className="text-[11px] font-bold uppercase tracking-wider">Bounce Rate</span>
                   <InfoTooltip
                     title="Bounce Protection"
-                    content="Emails sent to invalid or deleted addresses. AutoHub suppresses them automatically so your sender reputation remains pristine."
+                    content="Emails sent to invalid or deleted addresses. Lead Reach AI suppresses them automatically so your sender reputation remains pristine."
                   />
                 </div>
                 <AlertTriangle
@@ -322,7 +322,7 @@ export function OutreachDashboard({
                   <span className="text-[11px] font-bold uppercase tracking-wider">Do-Not-Email</span>
                   <InfoTooltip
                     title="Do-Not-Email List (Suppression)"
-                    content="Prospects who clicked unsubscribe or asked not to be contacted. AutoHub strictly prevents any further emails from being sent to them."
+                    content="Prospects who clicked unsubscribe or asked not to be contacted. Lead Reach AI strictly prevents any further emails from being sent to them."
                   />
                 </div>
                 <UserX size={15} />
@@ -429,7 +429,7 @@ export function OutreachDashboard({
                       Create your first cold outreach campaign in 3 steps
                     </h3>
                     <p className="text-xs text-muted leading-relaxed">
-                      AutoHub safely dispatches emails with multi-inbox rotation, human-like random pacing, and automatic stop-on-reply protection.
+                      Lead Reach AI safely dispatches emails with multi-inbox rotation, human-like random pacing, and automatic stop-on-reply protection.
                     </p>
                   </div>
 
@@ -649,7 +649,7 @@ export function OutreachDashboard({
                   </Badge>
                 </h3>
                 <p className="text-[11px] text-muted">
-                  AutoHub monitors your connected inboxes. When a prospect replies, scheduled followups are instantly halted.
+                  Lead Reach AI monitors your connected inboxes. When a prospect replies, scheduled followups are instantly halted.
                 </p>
               </div>
             </div>

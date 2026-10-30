@@ -27,7 +27,7 @@ export function CampaignSetupForm({ provider }: { provider: string }) {
   // Campaign fields
   const [name, setName] = useState("Daily Brand Tips & Updates");
   const [category, setCategory] = useState("Real Estate");
-  const [businessName, setBusinessName] = useState("AutoHub Properties");
+  const [businessName, setBusinessName] = useState("Lead Reach AI Properties");
   const [description, setDescription] = useState("Luxury residential and modern commercial apartments.");
   const [voice, setVoice] = useState("Professional");
   const [prompt, setPrompt] = useState("Weekly luxury home decor and architectural highlights.");

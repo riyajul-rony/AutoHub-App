@@ -14,7 +14,7 @@ vi.mock("nodemailer", () => ({
     createTransport: vi.fn(() => ({
       verify: vi.fn().mockResolvedValue(true),
       sendMail: async (mailOptions: any) => ({
-        messageId: `<mock-${Date.now()}@autohub.io>`,
+        messageId: `<mock-${Date.now()}@leadreach.io>`,
         accepted: [mailOptions.to],
       }),
       close: vi.fn(),
@@ -253,7 +253,7 @@ describe("Phase 5: Sending Engine & BullMQ Scheduler", () => {
         data: {
           user_id: testUserId,
           label: "Gap Paced Inbox",
-          from_email: "gap_tester@autohub-mail.com",
+          from_email: "gap_tester@leadreach-mail.com",
           from_name: "Paced Tester",
           smtp_host: "localhost",
           smtp_port: 1025,

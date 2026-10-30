@@ -132,7 +132,7 @@ export function AdminSidebar({ navItems, admin }: AdminSidebarProps) {
             </div>
             <div>
               <div className="font-bold text-sm text-fg leading-tight">Control Center</div>
-              <div className="text-[10px] text-muted font-normal">AutoHub 2.0</div>
+              <div className="text-[10px] text-muted font-normal">Lead Reach AI</div>
             </div>
           </Link>
           <div className="md:hidden">

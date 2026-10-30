@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AutoHub — Modern B2B Marketing & Cold Outreach Engine",
+  title: "Lead Reach AI — Modern B2B Marketing & Cold Outreach Engine",
   description:
     "High-precision lead generation, multi-account cold email outreach, automated follow-ups, and scheduled social distribution.",
 };
@@ -36,7 +36,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('autohub_theme');var theme=(t==='dark')?'dark':'light';document.documentElement.setAttribute('data-theme',theme);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('leadreach_theme')||localStorage.getItem('autohub_theme');var theme=(t==='dark')?'dark':'light';document.documentElement.setAttribute('data-theme',theme);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
           }}
         />
       </head>

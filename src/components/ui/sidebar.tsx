@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
                 A
               </span>
-              {!collapsed ? <span>AutoHub</span> : null}
+              {!collapsed ? <span>Lead Reach AI</span> : null}
             </Link>
           )}
         </div>

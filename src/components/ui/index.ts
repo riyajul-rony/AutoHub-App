@@ -1,5 +1,5 @@
 // src/components/ui/index.ts
-// Central barrel export for AutoHub Linear/Notion minimal design system
+// Central barrel export for Lead Reach AI Linear/Notion minimal design system
 
 export * from "./button";
 export * from "./input";

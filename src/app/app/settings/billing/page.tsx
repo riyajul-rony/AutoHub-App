@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "Plan & Resource Limits — AutoHub",
+  title: "Plan & Resource Limits — Lead Reach AI",
   description: "View your subscription tier, resource quotas, and current month usage.",
 };
 

@@ -336,7 +336,7 @@ export function SendingSpeedCard({
             <span className="badge text-[10px]">Read-only</span>
             <InfoTooltip
               title="Hourly Speed Calculation"
-              content="Calculated from your shortest wait time (60 min / min wait). AutoHub strictly enforces a hard cap of 25 emails/hour per sender inbox to protect deliverability."
+              content="Calculated from your shortest wait time (60 min / min wait). Lead Reach AI strictly enforces a hard cap of 25 emails/hour per sender inbox to protect deliverability."
             />
           </div>
           <p className="text-[11px] text-muted">

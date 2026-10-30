@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export const metadata = {
-  title: "Control Center — AutoHub Admin",
+  title: "Control Center — Lead Reach AI Admin",
   description: "Global administrative controls and platform metrics.",
 };
 
@@ -118,7 +118,7 @@ export default async function AdminDashboardPage() {
             </Badge>
           </div>
           <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl text-fg">
-            AutoHub Control Center
+            Lead Reach AI Control Center
           </h1>
           <p className="mt-1 text-xs text-muted max-w-2xl">
             Manage global infrastructure, system OAuth credentials, registered tenants, and platform security.

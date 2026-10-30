@@ -8,7 +8,7 @@ import { cacheRemember } from "@/server/cache";
 import { PageHeader, Card, CardContent, Badge } from "@/components/ui";
 
 export const metadata = {
-  title: "Hub — AutoHub",
+  title: "Hub — Lead Reach AI",
   description: "Select an automation engine to get started.",
 };
 

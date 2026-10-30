@@ -1,5 +1,5 @@
 /**
- * Universal export formatters and utilities for AutoHub Leads
+ * Universal export formatters and utilities for Lead Reach AI Leads
  * Supports RFC-4180 CSV with UTF-8 BOM, plain TSV, and rich HTML clipboard tables.
  */
 

@@ -3,8 +3,8 @@ import { Trash2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "User Data Deletion — AutoHub",
-  description: "Instructions and request form for deleting your data from AutoHub.",
+  title: "User Data Deletion — Lead Reach AI",
+  description: "Instructions and request form for deleting your data from Lead Reach AI.",
 };
 
 export default function DataDeletionPage() {
@@ -14,7 +14,7 @@ export default function DataDeletionPage() {
         <div className="flex items-center justify-between border-b border-border pb-6">
           <Link href="/">
             <Button variant="ghost" size="sm">
-              <ArrowLeft size={14} className="mr-1.5" /> Back to AutoHub
+              <ArrowLeft size={14} className="mr-1.5" /> Back to Lead Reach AI
             </Button>
           </Link>
           <span className="text-xs text-muted">Meta Platform Compliant</span>
@@ -36,20 +36,20 @@ export default function DataDeletionPage() {
             <ol className="list-decimal list-inside space-y-2 pl-2">
               <li>Log into your Facebook account and go to <strong>Settings &amp; Privacy &gt; Settings</strong>.</li>
               <li>Navigate to <strong>Apps and Websites</strong> to see all apps connected to your account.</li>
-              <li>Locate <strong>AutoHub</strong> and click <strong>Remove</strong>.</li>
-              <li>Check the box to delete all posts, videos, or events that AutoHub published on your behalf, and confirm removal.</li>
+              <li>Locate <strong>Lead Reach AI</strong> and click <strong>Remove</strong>.</li>
+              <li>Check the box to delete all posts, videos, or events that Lead Reach AI published on your behalf, and confirm removal.</li>
             </ol>
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-semibold text-fg">How to request full deletion from AutoHub directly:</h2>
+            <h2 className="text-base font-semibold text-fg">How to request full deletion from Lead Reach AI directly:</h2>
             <p>
-              If you wish to delete your entire AutoHub workspace, gathered leads, campaign history, and encrypted credentials:
+              If you wish to delete your entire Lead Reach AI workspace, gathered leads, campaign history, and encrypted credentials:
             </p>
             <div className="p-4 rounded-lg bg-bgSubtle border border-border space-y-2">
               <div className="font-semibold text-fg">Direct Deletion Request</div>
               <p>
-                Send an email from your registered account to <strong className="text-brand">privacy@autohub.app</strong> with the subject line <em>&quot;Request for Data Deletion&quot;</em>. All records, leads, and tokens are permanently purged within 48 hours.
+                Send an email from your registered account to <strong className="text-brand">privacy@leadreachai.cerkitlabs.tech</strong> with the subject line <em>&quot;Request for Data Deletion&quot;</em>. All records, leads, and tokens are permanently purged within 48 hours.
               </p>
             </div>
           </section>

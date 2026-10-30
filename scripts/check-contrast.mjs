@@ -78,7 +78,7 @@ const tokens = {
 function runAudit() {
   let failed = false;
   console.log('====================================================');
-  console.log('   AutoHub Design System Contrast Audit (WCAG AA)   ');
+  console.log('  Lead Reach AI Design System Contrast Audit (WCAG AA)  ');
   console.log('====================================================\n');
 
   for (const theme of ['light', 'dark']) {

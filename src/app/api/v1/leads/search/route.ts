@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json(
       {
-        error: `১ থেকে ${adminLimit}-এর মধ্যে একটা সংখ্যা লিখুন (Max leads must be between 1 and ${adminLimit}).`,
+        error: `Please enter a number between 1 and ${adminLimit}.`,
       },
       { status: 422 }
     );
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
 
     if (titles.length === 0 && !keyword && !industry && !state && !city) {
       return NextResponse.json(
-        { error: "কমপক্ষে একটি Job Title, Industry, Keyword অথবা Location প্রদান করুন।" },
+        { error: "Please provide at least one Job Title, Industry, Keyword, or Location." },
         { status: 422 }
       );
     }

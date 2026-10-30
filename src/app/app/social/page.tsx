@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Social Media Auto Post — AutoHub",
+  title: "Social Media Auto Post — Lead Reach AI",
   description: "Schedule AI-driven posts across Facebook, Instagram, and LinkedIn.",
 };
 

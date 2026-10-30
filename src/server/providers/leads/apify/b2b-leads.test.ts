@@ -80,7 +80,7 @@ describe("B2B Leads AgenticData Adapter", () => {
     it("handles monthly usage limit errors gracefully", () => {
       const err = new Error("Monthly usage limit exceeded for current billing cycle");
       const friendly = formatB2BApifyError(err);
-      expect(friendly).toContain("Apify মাসিক ক্রেডিট সীমা");
+      expect(friendly).toContain("Apify monthly credit limit reached");
     });
   });
 });

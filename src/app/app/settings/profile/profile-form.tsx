@@ -16,9 +16,9 @@ interface ProfileFormProps {
 
 export function ProfileForm({ initialValues }: ProfileFormProps) {
   const [fullName, setFullName] = useState(initialValues?.name || "Riyajul Islam Rony");
-  const [businessName, setBusinessName] = useState(initialValues?.businessName || "AutoHub Studio");
+  const [businessName, setBusinessName] = useState(initialValues?.businessName || "Lead Reach AI Studio");
   const [timezone, setTimezone] = useState("Asia/Dhaka");
-  const [senderLegalName, setSenderLegalName] = useState("AutoHub Studio Ltd.");
+  const [senderLegalName, setSenderLegalName] = useState("Lead Reach AI Studio Ltd.");
   const [senderAddress, setSenderAddress] = useState("Road 11, Banani, Dhaka-1213, Bangladesh");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);

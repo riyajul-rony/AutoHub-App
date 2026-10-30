@@ -5,8 +5,8 @@ import { CheckCircle2, XCircle, ShieldCheck, Database, Server } from "lucide-rea
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "System Health — AutoHub Admin",
-  description: "Monitor AutoHub database, queues, and container services.",
+  title: "System Health — Lead Reach AI Admin",
+  description: "Monitor Lead Reach AI database, queues, and container services.",
 };
 
 async function checkDbHealth() {

@@ -22,7 +22,7 @@ import { ManualPaymentDialog } from "./manual-payment-dialog";
 import { CancelSubscriptionButton, RefundPaymentButton } from "./subscription-actions-menu";
 
 export const metadata = {
-  title: "Billing & Revenue — AutoHub Admin",
+  title: "Billing & Revenue — Lead Reach AI Admin",
   description: "Monitor subscriptions, MRR, invoices, and record manual payments.",
 };
 

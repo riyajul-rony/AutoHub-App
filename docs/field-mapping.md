@@ -1,6 +1,6 @@
-# AutoHub Lead Schema: 18-Field Data Mapping
+# Lead Reach AI Lead Schema: 18-Field Data Mapping
 
-This document details the mapping between AutoHub's standardized 18-field lead schema (used across the results table, enrichment modes, CSV/TSV/HTML exports, and Google Sheets synchronization) and its data sources: Apify Actors, the custom Deep Web Scraper, and manual/enrichment fallbacks.
+This document details the mapping between Lead Reach AI's standardized 18-field lead schema (used across the results table, enrichment modes, CSV/TSV/HTML exports, and Google Sheets synchronization) and its data sources: Apify Actors, the custom Deep Web Scraper, and manual/enrichment fallbacks.
 
 ---
 

@@ -125,7 +125,7 @@ describe("Phase 6: Compliance, Unsubscribe & Reply Detection", () => {
       });
 
       const prospectEmail = "lead_buyer@enterprise.com";
-      const threadMessageId = "<autohub_zoho_test_456@domain.com>";
+      const threadMessageId = "<leadreach_zoho_test_456@domain.com>";
 
       const recipient = await db.campaign_recipients.create({
         data: {

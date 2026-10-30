@@ -4,8 +4,8 @@ import { getConfig, getAppUrl } from "@/server/config";
 import { encrypt, decrypt } from "@/server/crypto";
 import { logger } from "@/server/logger";
 
-const COOKIE_NAME = "autohub_google_conn";
-const DEV_KEY_B64 = Buffer.alloc(32, "autohub-dev-google-sheets").toString("base64");
+const COOKIE_NAME = "leadreach_google_conn";
+const DEV_KEY_B64 = Buffer.alloc(32, "leadreach-dev-google-sheets").toString("base64");
 
 function encKey(): string | undefined {
   if (process.env.APP_ENCRYPTION_KEY) return undefined;

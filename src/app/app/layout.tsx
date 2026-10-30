@@ -90,7 +90,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar
             breadcrumbs={[
-              { label: "AutoHub", href: "/app" },
+              { label: "Lead Reach AI", href: "/app" },
               { label: "Workspace" },
             ]}
             userSlot={

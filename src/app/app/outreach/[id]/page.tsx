@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/guards";
 import { CampaignDetailClient, CampaignDetail } from "./campaign-detail-client";
 
 export const metadata = {
-  title: "Campaign Details — AutoHub",
+  title: "Campaign Details — Lead Reach AI",
   description: "Real-time metrics, sent logs, and sender inbox health.",
 };
 

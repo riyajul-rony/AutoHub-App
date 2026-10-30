@@ -340,7 +340,7 @@ export function startMaintenanceWorker() {
 import { startLeadSearchWorker } from "./lead-search-worker";
 
 /**
- * Initializes and starts all AutoHub background workers:
+ * Initializes and starts all Lead Reach AI background workers:
  * 1. Planner (computes scheduled social runs)
  * 2. Social Publish (executes social media posts)
  * 3. Email Dispatch (outreach loop & followup sequences)
@@ -350,7 +350,7 @@ import { startLeadSearchWorker } from "./lead-search-worker";
  * 7. Lead Search (scrapes, enriches & deduplicates leads)
  */
 export function startAllWorkers() {
-  logger.info("Starting all AutoHub background workers...");
+  logger.info("Starting all Lead Reach AI background workers...");
   const planner = startPlannerWorker();
   const social = startSocialPublishWorker();
   const emailDispatch = startEmailDispatchWorker();
@@ -359,7 +359,7 @@ export function startAllWorkers() {
   const maintenance = startMaintenanceWorker();
   const leadSearch = startLeadSearchWorker();
 
-  logger.info("All 7 AutoHub background workers are active.");
+  logger.info("All 7 Lead Reach AI background workers are active.");
   return { planner, social, emailDispatch, emailSend, replyPoll, maintenance, leadSearch };
 }
 

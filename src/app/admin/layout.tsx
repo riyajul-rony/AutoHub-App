@@ -7,8 +7,8 @@ import { AdminSidebar, AdminNavItem } from "@/components/admin/admin-sidebar";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Admin Panel — AutoHub",
-  description: "Global control center for AutoHub automation platform.",
+  title: "Admin Panel — Lead Reach AI",
+  description: "Global control center for Lead Reach AI automation platform.",
 };
 
 interface NavConfigItem {

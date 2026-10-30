@@ -9,7 +9,7 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui";
 
 export const metadata = {
-  title: "Verify email — AutoHub",
+  title: "Verify email — Lead Reach AI",
   description: "Verify your email address.",
 };
 

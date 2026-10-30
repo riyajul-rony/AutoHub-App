@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 
 export const metadata = {
-  title: "API Keys — AutoHub Settings",
-  description: "Manage OpenAI API keys for AutoHub automations.",
+  title: "API Keys — Lead Reach AI Settings",
+  description: "Manage OpenAI API keys for Lead Reach AI automations.",
 };
 
 export default async function ApiKeysSettingsPage() {

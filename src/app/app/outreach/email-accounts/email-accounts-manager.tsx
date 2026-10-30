@@ -94,7 +94,7 @@ const PROVIDER_PRESETS = [
   {
     id: "zoho",
     name: "Zoho Mail",
-    hint: "India account হলে smtp.zoho.in, business domain এ smtppro.zoho.com লাগতে পারে।",
+    hint: "For India accounts use smtp.zoho.in; for custom business domains use smtppro.zoho.com.",
     smtp_host: "smtp.zoho.com",
     smtp_port: 465,
     ssl: true,
@@ -774,7 +774,7 @@ export function EmailAccountsManager({
       <div className="p-4 rounded-xl border border-border bg-surface text-xs text-muted space-y-1.5 flex items-start gap-3">
         <ShieldCheck size={18} className="text-primary mt-0.5 shrink-0" />
         <div>
-          <span className="font-semibold text-fg">Cold Outreach Safety Engine:</span> AutoHub strictly enforces a hard limit of <strong>25 emails per hour</strong> per inbox, randomized jitter gaps, and automated multi-inbox rotation.
+          <span className="font-semibold text-fg">Cold Outreach Safety Engine:</span> Lead Reach AI strictly enforces a hard limit of <strong>25 emails per hour</strong> per inbox, randomized jitter gaps, and automated multi-inbox rotation.
           <div>
             Need help configuring Gmail?{" "}
             <button
@@ -1160,7 +1160,7 @@ export function EmailAccountsManager({
                       ))}
                   </select>
                   <p className="text-[10px] text-muted mt-0.5">
-                    AutoHub monitors this connected inbox to automatically detect prospect replies and stop follow-ups.
+                    Lead Reach AI monitors this connected inbox to automatically detect prospect replies and stop follow-ups.
                   </p>
                 </div>
               </div>
@@ -1325,12 +1325,12 @@ export function EmailAccountsManager({
                 <div className="p-3 rounded-lg bg-bgSubtle border border-border space-y-1">
                   <div className="font-semibold text-fg">Step 3: Name and Generate</div>
                   <p>
-                    In the app name box, type <strong>AutoHub Outreach</strong> and click <strong>Create</strong>.
+                    In the app name box, type <strong>Lead Reach AI Outreach</strong> and click <strong>Create</strong>.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-lg bg-bgSubtle border border-border space-y-1">
-                  <div className="font-semibold text-fg">Step 4: Copy into AutoHub</div>
+                  <div className="font-semibold text-fg">Step 4: Copy into Lead Reach AI</div>
                   <p>
                     Copy the yellow 16-character code (e.g. <code className="bg-surface px-1 py-0.5 rounded font-mono text-fg">abcd efgh ijkl mnop</code>) and paste it into the password field above.
                   </p>

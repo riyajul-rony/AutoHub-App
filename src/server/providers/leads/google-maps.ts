@@ -138,7 +138,7 @@ export async function resolveLocationCoordinates(location: string): Promise<{ la
   try {
     const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`;
     const res = await fetch(geoUrl, {
-      headers: { "User-Agent": "AutoHubLeadFinder/2.0" },
+      headers: { "User-Agent": "LeadReachAILeadFinder/2.0" },
       signal: AbortSignal.timeout(2500),
     });
     if (res.ok) {
@@ -257,7 +257,7 @@ export class GoogleMapsProvider implements LeadSourceProvider {
     // Depth: 1 depth level roughly yields 20 listings in Google Maps
     const depth = Math.min(Math.max(1, Math.ceil(targetCount / 15)), 10);
     const jobPayload = {
-      name: `autohub_${Date.now()}`,
+      name: `leadreach_${Date.now()}`,
       keywords: [searchQuery],
       lang: "en",
       zoom: 15,

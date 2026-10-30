@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/guards";
 import { OutreachWizard } from "./outreach-wizard";
 
 export const metadata = {
-  title: "New Outreach Campaign — AutoHub",
+  title: "New Outreach Campaign — Lead Reach AI",
   description: "Configure rotating sender inboxes, personalized AI copy, and safety limits.",
 };
 

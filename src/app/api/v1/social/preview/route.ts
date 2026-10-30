@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       data: {
         caption: `🚀 Transform your ${business_category || "business"} today!\n\n${prompt || "Consistency and innovation are the keys to long-term success."}\n\n👉 ${cta_text || "Leave a comment below!"}`,
-        hashtags: ["#Automation", "#Growth", "#BusinessTips", "#AutoHub"],
+        hashtags: ["#Automation", "#Growth", "#BusinessTips", "#LeadReachAI"],
         imagePrompt: `${business_category || "Modern office"} with sleek lighting, ultra-detailed`,
         imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
       },

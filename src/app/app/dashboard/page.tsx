@@ -29,7 +29,7 @@ import {
 } from "@/components/ui";
 
 export const metadata = {
-  title: "Dashboard — AutoHub",
+  title: "Dashboard — Lead Reach AI",
   description: "Monitor your automations, leads, and outreach campaigns in real time.",
 };
 

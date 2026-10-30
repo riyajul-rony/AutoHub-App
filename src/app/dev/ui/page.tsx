@@ -65,7 +65,7 @@ function DevUiContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-border gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-text">AutoHub Design System</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-text">Lead Reach AI Design System</h1>
             <Badge variant="accent" size="sm">
               Phase 1 Showcase
             </Badge>

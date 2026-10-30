@@ -2,7 +2,7 @@ import { CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
 import { db } from "@/server/db";
 
 export const metadata = {
-  title: "Unsubscribe Confirmation — AutoHub",
+  title: "Unsubscribe Confirmation — Lead Reach AI",
   description: "You have been successfully removed from future outreach emails.",
 };
 
@@ -91,7 +91,7 @@ export default async function UnsubscribePage({
         )}
 
         <div className="pt-2 text-[11px] text-muted">
-          Powered by AutoHub &bull; Safe &amp; Compliant Cold Outreach
+          Powered by Lead Reach AI &bull; Safe &amp; Compliant Cold Outreach
         </div>
       </div>
     </div>

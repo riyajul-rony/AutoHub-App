@@ -10,7 +10,7 @@ import { OutreachDashboard, CampaignSummary } from "./outreach-dashboard";
 import type { EmailAccount } from "./email-accounts/email-accounts-manager";
 
 export const metadata = {
-  title: "Cold Outreach — AutoHub",
+  title: "Cold Outreach — Lead Reach AI",
   description: "Multi-inbox rotation, human-like random pacing, and automatic stop-on-reply.",
 };
 

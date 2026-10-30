@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = {
-  title: "User Profile & Tenant Inspection — AutoHub Admin",
+  title: "User Profile & Tenant Inspection — Lead Reach AI Admin",
   description: "Comprehensive user account inspection, usage metrics, and security controls.",
 };
 

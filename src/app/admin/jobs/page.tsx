@@ -19,7 +19,7 @@ import { QueueCard } from "./queue-card";
 import { FailedJobRow } from "./failed-job-row";
 
 export const metadata = {
-  title: "Queues & Jobs — AutoHub Admin",
+  title: "Queues & Jobs — Lead Reach AI Admin",
   description: "Monitor BullMQ queues, workers, and resolve failed execution runs.",
 };
 
@@ -82,7 +82,7 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
           <div>
             <div className="font-semibold">Redis Connection Degraded / Mock Mode Active</div>
             <div className="text-muted mt-0.5">
-              AutoHub is operating with internal fallback workers. Connect a live Redis instance to view production job streams.
+              Lead Reach AI is operating with internal fallback workers. Connect a live Redis instance to view production job streams.
             </div>
           </div>
         </div>

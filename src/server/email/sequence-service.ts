@@ -199,7 +199,7 @@ export async function sendSingleRecipientFollowup(
   const legalAddress =
     campaign.source_ref?.sender_address_footer ||
     account.signature ||
-    "AutoHub Verified Cold Outreach";
+    "Lead Reach AI Verified Cold Outreach";
 
   let finalSubject = "";
   let finalBody = "";
@@ -305,9 +305,9 @@ export async function sendSingleRecipientFollowup(
         ...(threadHeader ? { "In-Reply-To": threadHeader, References: threadHeader } : {}),
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        "X-AutoHub-Campaign-Id": campaign.id,
-        "X-AutoHub-Recipient-Id": recipient.id,
-        "X-AutoHub-Step-No": String(step.step_no),
+        "X-LeadReachAI-Campaign-Id": campaign.id,
+        "X-LeadReachAI-Recipient-Id": recipient.id,
+        "X-LeadReachAI-Step-No": String(step.step_no),
       },
     });
 

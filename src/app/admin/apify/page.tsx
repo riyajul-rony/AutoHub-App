@@ -12,7 +12,7 @@ import { ApifyAdminForm } from "./apify-admin-form";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Apify Integration — AutoHub Admin",
+  title: "Apify Integration — Lead Reach AI Admin",
   description: "Server-side Apify API token, actor configurations, and lead generation limits.",
 };
 

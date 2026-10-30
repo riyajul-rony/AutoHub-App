@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/guards";
 import { EmailAccountsManager, EmailAccount } from "./email-accounts-manager";
 
 export const metadata = {
-  title: "Sender Inboxes & Accounts — AutoHub",
+  title: "Sender Inboxes & Accounts — Lead Reach AI",
   description: "Connect business SMTP/IMAP inboxes for automated outreach rotation.",
 };
 

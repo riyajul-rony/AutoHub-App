@@ -6,7 +6,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "Plans & Limits — AutoHub Admin",
+  title: "Plans & Limits — Lead Reach AI Admin",
   description: "Configure subscription plans, feature packages, and global resource limits.",
 };
 

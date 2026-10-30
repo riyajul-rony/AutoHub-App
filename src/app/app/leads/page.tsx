@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Lead Generation — AutoHub",
+  title: "Lead Generation — Lead Reach AI",
   description: "Extract business leads from Google Maps, Meta Ads Library, and LinkedIn.",
 };
 

@@ -17,7 +17,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = "" }) => {
     if (current === "dark" || current === "light") {
       setTheme(current);
     } else {
-      const stored = localStorage.getItem("autohub_theme") as "light" | "dark";
+      const stored = (localStorage.getItem("leadreach_theme") || localStorage.getItem("autohub_theme")) as "light" | "dark";
       if (stored === "dark" || stored === "light") {
         setTheme(stored);
         document.documentElement.setAttribute("data-theme", stored);
@@ -30,7 +30,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = "" }) => {
     setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
     try {
-      localStorage.setItem("autohub_theme", next);
+      localStorage.setItem("leadreach_theme", next);
     } catch {
       // Ignore quota errors
     }

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Security Settings — AutoHub",
+  title: "Security Settings — Lead Reach AI",
   description: "Manage your password, encryption settings, and security audits.",
 };
 

@@ -39,7 +39,7 @@ vi.mock("nodemailer", () => ({
       sendMail: async (mailOptions: any) => {
         sentMailMock(mailOptions);
         return {
-          messageId: `<mock-${Date.now()}@autohub.io>`,
+          messageId: `<mock-${Date.now()}@leadreach.io>`,
           accepted: [mailOptions.to],
         };
       },
@@ -64,7 +64,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
     sessionId: "sess-tenant1",
     user: {
       id: "33333333-3333-3333-3333-333333333333",
-      email: "tenant1@autohub.io",
+      email: "tenant1@leadreach.io",
       role: "user",
     },
   };
@@ -73,7 +73,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
     sessionId: "sess-tenant2",
     user: {
       id: "44444444-4444-4444-4444-444444444444",
-      email: "tenant2@autohub.io",
+      email: "tenant2@leadreach.io",
       role: "user",
     },
   };
@@ -89,12 +89,12 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
       const rawPassword = "super_secret_smtp_pass_123";
       const account = await createEmailAccount(tenant1.user.id, {
         label: "Primary Google Workspace",
-        from_name: "Riyajul from AutoHub",
-        from_email: "riyajul@autohub.io",
+        from_name: "Riyajul from Lead Reach AI",
+        from_email: "riyajul@leadreach.io",
         smtp_host: "smtp.gmail.com",
         smtp_port: 587,
         smtp_security: "tls",
-        smtp_username: "riyajul@autohub.io",
+        smtp_username: "riyajul@leadreach.io",
         smtp_password: rawPassword,
         imap_host: "imap.gmail.com",
         imap_port: 993,
@@ -104,7 +104,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
       });
 
       expect(account.id).toBeDefined();
-      expect(account.from_email).toBe("riyajul@autohub.io");
+      expect(account.from_email).toBe("riyajul@leadreach.io");
       expect(account.hourly_limit).toBe(25); // Spec 5.6 hard cap
       expect((account as any).smtp_password_enc).toBeUndefined(); // Never exposed to client
       expect(account.has_smtp_password).toBe(true);
@@ -203,7 +203,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
         subjectTemplate: "Question regarding {{company_name}}",
         bodyTemplate: "Hi {{first_name}},\n\nWanted to connect about {{company_name}}.",
         timezone: "Asia/Dhaka",
-        senderAddressFooter: "AutoHub Inc, 123 Tech Blvd, Suite 400",
+        senderAddressFooter: "Cerkit Labs, Lead Reach AI",
         recipients: [
           { email: "lead1@target.com", name: "Karim Ahmed", company: "Karim Dental" },
           { email: "suppressed@target.com", name: "Should Skip", company: "Skipped Inc" },
@@ -257,7 +257,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
         recipientSource: "manual",
         subjectTemplate: "Quick partnership idea for {{company_name}}",
         bodyTemplate: "Hello {{first_name}},\n\nWould love to collaborate.",
-        senderAddressFooter: "AutoHub Global Corp, Tower 4, Singapore",
+        senderAddressFooter: "Cerkit Labs, Tower 4, Singapore",
         timezone: "UTC",
         recipients: [
           { email: "prospect@acme.com", name: "John Doe", company: "Acme Corp" },
@@ -284,7 +284,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
       expect(callArgs.to).toBe("prospect@acme.com");
       expect(callArgs.subject).toBe("Quick partnership idea for Acme Corp");
       expect(callArgs.text).toContain("Hello John,");
-      expect(callArgs.text).toContain("AutoHub Global Corp, Tower 4, Singapore");
+      expect(callArgs.text).toContain("Cerkit Labs, Tower 4, Singapore");
       expect(callArgs.text).toContain(`/u/${recipient.unsubscribe_token}`);
       expect(callArgs.headers["List-Unsubscribe"]).toBe(`<http://localhost:3000/u/${recipient.unsubscribe_token}>`);
       expect(callArgs.headers["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
@@ -462,7 +462,7 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
       expect(call.text).toContain("Hi Sarah,\n\nJust bumping my previous note.");
       expect(call.headers["In-Reply-To"]).toBe("<msg_initial_12345@company.com>");
       expect(call.headers["References"]).toBe("<msg_initial_12345@company.com>");
-      expect(call.headers["X-AutoHub-Step-No"]).toBe("1");
+      expect(call.headers["X-LeadReachAI-Step-No"]).toBe("1");
 
       // Verify recipient updated to current_step: 1
       const updatedRec = await db.campaign_recipients.findFirst({

@@ -25,7 +25,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
     sessionId: "sess-user1",
     user: {
       id: "11111111-1111-1111-1111-111111111111",
-      email: "tenant1@autohub.io",
+      email: "tenant1@leadreach.io",
       role: "user",
     },
   };
@@ -34,7 +34,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
     sessionId: "sess-user2",
     user: {
       id: "22222222-2222-2222-2222-222222222222",
-      email: "tenant2@autohub.io",
+      email: "tenant2@leadreach.io",
       role: "user",
     },
   };
@@ -53,7 +53,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: "facebook",
-          display_name: "AutoHub Motors Dhaka",
+          display_name: "Lead Reach AI Motors Dhaka",
           external_id: "page_dhaka_01",
           access_token: rawToken,
         }),
@@ -63,7 +63,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
       const json = await res.json();
 
       expect(res.status).toBe(200);
-      expect(json.data.display_name).toBe("AutoHub Motors Dhaka");
+      expect(json.data.display_name).toBe("Lead Reach AI Motors Dhaka");
       expect(json.data.external_id).toBe("page_dhaka_01");
 
       // Verify token in DB is strictly encrypted (starts with v1:) and can be decrypted
@@ -143,7 +143,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
         body: JSON.stringify({
           name: "Daily Motivation & Car Tips",
           social_account_id: user1Account.id,
-          business_name: "AutoHub Motors",
+          business_name: "Lead Reach AI Motors",
           business_category: "Automotive",
           post_times: ["09:00", "18:00"],
           approval_mode: "approve",
@@ -178,7 +178,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          business_name: "AutoHub Properties",
+          business_name: "Lead Reach AI Properties",
           business_category: "Real Estate",
           prompt: "Luxury duplex apartments in Gulshan",
         }),
@@ -265,7 +265,7 @@ describe("Phase 5: Social Media Auto Post (Facebook, Instagram, LinkedIn)", () =
 
     it("publishes to Instagram with simulated test token", async () => {
       const result = await instagramProvider.publish("mock_ig_token", "ig_acc_999", {
-        caption: "Special showroom showcase 🚗 #AutoHub",
+        caption: "Special showroom showcase 🚗 #LeadReachAI",
         imageUrl: "https://example.com/car.jpg",
       });
 

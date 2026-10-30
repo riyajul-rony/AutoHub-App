@@ -21,7 +21,7 @@ export function AuthShell({
           <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
             A
           </span>
-          <span>AutoHub</span>
+          <span>Lead Reach AI</span>
         </Link>
         <ThemeToggle />
       </div>
@@ -48,7 +48,7 @@ export function AuthShell({
 
       {/* Bottom Copyright */}
       <div className="w-full max-w-md mx-auto text-center text-[11px] text-text-subtle">
-        <span>© {new Date().getFullYear()} AutoHub. All rights reserved.</span>
+        <span>© {new Date().getFullYear()} Cerkit Labs. All rights reserved.</span>
       </div>
     </main>
   );

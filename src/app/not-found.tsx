@@ -3,7 +3,7 @@ import { FileQuestion, ArrowLeft, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "404 - Page Not Found — AutoHub",
+  title: "404 - Page Not Found — Lead Reach AI",
   description: "The page you are looking for does not exist.",
 };
 

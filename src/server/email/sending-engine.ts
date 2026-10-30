@@ -311,7 +311,7 @@ export async function sendSingleRecipientEmail(recipientId: string) {
   const legalAddress =
     (campaign.source_ref as any)?.sender_address_footer ||
     account.signature ||
-    "AutoHub Verified Cold Outreach, 123 Innovation Way, Suite 400";
+    "Lead Reach AI Verified Cold Outreach, Cerkit Labs";
 
   let finalSubject = "";
   let finalBody = "";
@@ -450,8 +450,8 @@ export async function sendSingleRecipientEmail(recipientId: string) {
       const headers: Record<string, string> = {
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-        "X-AutoHub-Campaign-Id": campaign.id,
-        "X-AutoHub-Recipient-Id": recipient.id,
+        "X-LeadReachAI-Campaign-Id": campaign.id,
+        "X-LeadReachAI-Recipient-Id": recipient.id,
       };
 
       const result = await sendViaGmailApi(accessToken, {
@@ -496,8 +496,8 @@ export async function sendSingleRecipientEmail(recipientId: string) {
         headers: {
           "List-Unsubscribe": `<${unsubscribeUrl}>`,
           "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-          "X-AutoHub-Campaign-Id": campaign.id,
-          "X-AutoHub-Recipient-Id": recipient.id,
+          "X-LeadReachAI-Campaign-Id": campaign.id,
+          "X-LeadReachAI-Recipient-Id": recipient.id,
         },
       });
 

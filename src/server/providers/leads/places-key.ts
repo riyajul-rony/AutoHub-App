@@ -12,10 +12,10 @@ import { cookies } from "next/headers";
 import { db, scoped } from "@/server/db";
 import { encrypt, decrypt, last4 } from "@/server/crypto";
 
-const COOKIE_NAME = "autohub_places_key";
+const COOKIE_NAME = "leadreach_places_key";
 const PROVIDER = "google_places";
 // Dev-only fallback so local development works without APP_ENCRYPTION_KEY configured.
-const DEV_KEY_B64 = Buffer.alloc(32, "autohub-dev-places-key").toString("base64");
+const DEV_KEY_B64 = Buffer.alloc(32, "leadreach-dev-places-key").toString("base64");
 
 function encKey(): string | undefined {
   if (process.env.APP_ENCRYPTION_KEY) return undefined; // use the configured key

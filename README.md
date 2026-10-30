@@ -1,4 +1,4 @@
-# AutoHub — Multi-Tenant SaaS Automation Platform
+# Lead Reach AI — Multi-Tenant SaaS Automation Platform
 
 Production-ready, multi-tenant B2B automation platform for **Social Media Auto Posting**, **Lead Generation**, **Deep Website Enrichment**, and **Cold Email Outreach with Threaded Follow-up Sequences**.
 
@@ -47,7 +47,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, PostgreSQL 16 via Pris
 
 ## Deployment on Hostinger VPS (KVM 1: 1 vCPU, 4 GB RAM, 50 GB NVMe)
 
-AutoHub is pre-configured for a **single-command deployment** via Docker Compose.
+Lead Reach AI is pre-configured for a **single-command deployment** via Docker Compose.
 
 ### Memory & CPU Budget (Optimized for 4 GB RAM / 1 vCPU)
 
@@ -118,7 +118,7 @@ chmod +x scripts/backup-db.sh
 
 To schedule daily backups at 03:00 UTC, add to crontab (`crontab -e`):
 ```bash
-0 3 * * * cd /opt/autohub && ./scripts/backup-db.sh >> /var/log/autohub-backup.log 2>&1
+0 3 * * * cd /opt/leadreach-ai && ./scripts/backup-db.sh >> /var/log/leadreach-backup.log 2>&1
 ```
 
 ---

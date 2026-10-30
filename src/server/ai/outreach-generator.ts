@@ -67,13 +67,13 @@ Tone: ${input.tone || "Friendly, respectful, low pressure"}
 
     return {
       subject: parsed.subject || `Quick question for ${input.recipientCompany || "you"}`,
-      body: parsed.body || `Hi ${input.recipientName || "there"},\n\nI came across ${input.recipientCompany || "your business"} and was really impressed. Would love to connect briefly.\n\nBest,\n${input.senderName || "AutoHub"}`,
+      body: parsed.body || `Hi ${input.recipientName || "there"},\n\nI came across ${input.recipientCompany || "your business"} and was really impressed. Would love to connect briefly.\n\nBest,\n${input.senderName || "Lead Reach AI"}`,
     };
   } catch (err) {
     logger.error({ err }, "Failed to generate AI outreach email, using fallback");
     return {
       subject: `Quick question regarding ${input.recipientCompany || "your business"}`,
-      body: `Hi ${input.recipientName || "there"},\n\nI was looking into ${input.recipientCompany || "your work"} and wanted to reach out regarding ${input.goalOrOffer || "potential collaboration"}.\n\nDo you have 5 minutes for a quick chat this week?\n\nBest regards,\n${input.senderName || "AutoHub"}`,
+      body: `Hi ${input.recipientName || "there"},\n\nI was looking into ${input.recipientCompany || "your work"} and wanted to reach out regarding ${input.goalOrOffer || "potential collaboration"}.\n\nDo you have 5 minutes for a quick chat this week?\n\nBest regards,\n${input.senderName || "Lead Reach AI"}`,
     };
   }
 }

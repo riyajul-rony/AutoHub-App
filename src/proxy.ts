@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionToken = request.cookies.get("autohub_session")?.value;
+  const sessionToken = request.cookies.get("leadreach_session")?.value || request.cookies.get("autohub_session")?.value;
 
   // Protected paths that require authentication
   const isAppPath = pathname.startsWith("/app");

@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { encrypt } from "@/server/crypto";
 import { getGoogleClientCredentials } from "@/server/integrations/google-sheets";
 
-const DEV_KEY_B64 = Buffer.alloc(32, "autohub-dev-master-config-key").toString("base64");
+const DEV_KEY_B64 = Buffer.alloc(32, "leadreach-dev-master-config-key").toString("base64");
 function encKey(): string | undefined {
   if (process.env.APP_ENCRYPTION_KEY) return undefined;
   return DEV_KEY_B64;

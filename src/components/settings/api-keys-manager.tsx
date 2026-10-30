@@ -174,7 +174,7 @@ export function ApiKeysManager({ initialKeys }: { initialKeys: SafeApiKey[] }) {
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-muted">
-                AutoHub will automatically verify your key connection.
+                Lead Reach AI will automatically verify your key connection.
               </span>
               <Button type="submit" size="sm" disabled={loading}>
                 <Plus size={14} className="mr-1.5" />{" "}

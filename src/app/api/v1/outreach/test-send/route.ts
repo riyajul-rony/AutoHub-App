@@ -66,13 +66,13 @@ export async function POST(req: NextRequest) {
   const renderedSubject = `[TEST PREVIEW] ` + renderPreviewText(subject, sampleData);
   const renderedBody =
     renderPreviewText(emailBody, sampleData) +
-    `\n\n---\n[Test Preview sent from AutoHub Outreach Wizard via ${creds.from_email}]`;
+    `\n\n---\n[Test Preview sent from Lead Reach AI Outreach Wizard via ${creds.from_email}]`;
 
   // Offline / Test environment fallback
   if (process.env.NODE_ENV === "test" || process.env.VITEST) {
     return NextResponse.json({
       ok: true,
-      messageId: `<mock-test-${Date.now()}@autohub.io>`,
+      messageId: `<mock-test-${Date.now()}@leadreachai.cerkitlabs.tech>`,
       message: `Test email simulated successfully to ${toEmail}.`,
     });
   }
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       subject: renderedSubject,
       text: renderedBody,
       headers: {
-        "X-AutoHub-Test-Send": "true",
+        "X-LeadReachAI-Test-Send": "true",
       },
     });
 

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Pagination } from "@/components/pagination";
 
 export const metadata = {
-  title: "Replies Inbox — AutoHub",
+  title: "Replies Inbox — Lead Reach AI",
   description: "Track responses from cold outreach leads with stop-on-reply detection.",
 };
 

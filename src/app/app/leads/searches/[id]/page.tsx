@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Search Results — AutoHub",
+  title: "Search Results — Lead Reach AI",
 };
 
 export default async function SearchRunDetailPage({

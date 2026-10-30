@@ -5,7 +5,7 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { resetPasswordAction } from "@/server/auth/actions";
 
 export const metadata = {
-  title: "Reset password — AutoHub",
+  title: "Reset password — Lead Reach AI",
   description: "Choose a new password.",
 };
 

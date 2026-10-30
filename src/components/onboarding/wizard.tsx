@@ -69,7 +69,7 @@ export function OnboardingWizard({
           <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
             A
           </span>
-          <span>AutoHub Workspace Setup</span>
+          <span>Lead Reach AI Workspace Setup</span>
         </div>
         <ThemeToggle />
       </div>

@@ -5,8 +5,8 @@ import { AuthForm } from "@/components/auth/auth-form";
 import { forgotPasswordAction } from "@/server/auth/actions";
 
 export const metadata = {
-  title: "Forgot password — AutoHub",
-  description: "Reset your AutoHub password.",
+  title: "Forgot password — Lead Reach AI",
+  description: "Reset your Lead Reach AI password.",
 };
 
 export default function ForgotPasswordPage() {

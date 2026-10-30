@@ -5,7 +5,7 @@ import { randomToken, sha256 } from "./token";
 
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern, cacheFindKeys } from "@/server/cache";
 
-export const SESSION_COOKIE = "autohub_session";
+export const SESSION_COOKIE = "leadreach_session";
 const SESSION_DAYS = 30;
 const DAY_MS = 86_400_000;
 const SESSION_CACHE_TTL = 60; // 60 seconds Redis session lookup cache

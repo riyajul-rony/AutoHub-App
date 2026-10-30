@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Integrations — AutoHub",
+  title: "Integrations — Lead Reach AI",
   description: "View connected social accounts and external API services.",
 };
 

@@ -85,7 +85,7 @@ const STEP_LABELS = [
   { step: 5, title: "Review & Launch", subtitle: "Summary & test", icon: CheckCircle2 },
 ];
 
-const DRAFT_STORAGE_KEY = "autohub_outreach_wizard_draft_v2";
+const DRAFT_STORAGE_KEY = "leadreach_outreach_wizard_draft_v2";
 
 export function OutreachWizard() {
   const router = useRouter();
@@ -819,7 +819,7 @@ export function OutreachWizard() {
                   </div>
                   <h3 className="font-bold text-sm text-fg mt-3">AI Personalized Message</h3>
                   <p className="text-xs text-muted mt-1 leading-relaxed">
-                    AutoHub AI reads each lead&apos;s website, industry, and company to generate unique high-converting opening lines.
+                    Lead Reach AI reads each lead&apos;s website, industry, and company to generate unique high-converting opening lines.
                   </p>
                 </button>
 
@@ -916,7 +916,7 @@ export function OutreachWizard() {
                       </label>
                       <InfoTooltip
                         title="Compliance Footer"
-                        content="Required by international email compliance laws (CAN-SPAM & GDPR). AutoHub automatically appends a subtle address and one-click unsubscribe link."
+                        content="Required by international email compliance laws (CAN-SPAM & GDPR). Lead Reach AI automatically appends a subtle address and one-click unsubscribe link."
                       />
                     </div>
                     <input
@@ -996,7 +996,7 @@ export function OutreachWizard() {
                     : "text-muted hover:text-fg"
                 }`}
               >
-                AutoHub Scraper Leads
+                Lead Reach AI Scraper Leads
               </button>
 
               <button
@@ -1410,9 +1410,9 @@ export function OutreachWizard() {
                     <span>Live Campaign Schedule Estimate</span>
                   </div>
                   <p className="text-fg leading-relaxed">
-                    এই সেটিংয়ে <strong>{recipients.length}</strong>টি lead পাঠাতে আনুমানিক{" "}
-                    <strong>{allocationSummary.estimatedDays} দিন</strong> লাগবে। আজ{" "}
-                    <strong>{allocationSummary.todaySends}টা</strong> যাবে।
+                    At this rate, sending to <strong>{recipients.length}</strong> leads will take approximately{" "}
+                    <strong>{allocationSummary.estimatedDays} {allocationSummary.estimatedDays === 1 ? "day" : "days"}</strong>. Today,{" "}
+                    <strong>{allocationSummary.todaySends}</strong> emails will be sent.
                   </p>
                 </div>
 
@@ -1731,7 +1731,7 @@ export function OutreachWizard() {
                 <div className="p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5">
                     <ShieldCheck size={14} className="text-emerald-500" />
-                    <span>AutoHub Safety Protections Active</span>
+                    <span>Lead Reach AI Safety Protections Active</span>
                   </div>
                   <p className="text-[11px] text-muted">
                     • 25/hr maximum account rate limit hard cap enforced.

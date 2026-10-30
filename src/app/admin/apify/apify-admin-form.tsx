@@ -101,11 +101,11 @@ export function ApifyAdminForm({
       if (res.ok && Array.isArray(data.data)) {
         setKeys(data.data);
       } else {
-        setKeysError(data?.error || "কী পুল লোড করতে সমস্যা হয়েছে।");
+        setKeysError(data?.error || "Failed to load Apify key pool.");
       }
     } catch (err: any) {
       console.warn("Could not fetch Apify keys", err);
-      setKeysError(err?.message || "সার্ভারে সংযোগ স্থাপন সম্ভব হয়নি।");
+      setKeysError(err?.message || "Could not connect to the server.");
     } finally {
       setKeysLoading(false);
     }
@@ -496,7 +496,7 @@ export function ApifyAdminForm({
                 <span>{keysError}</span>
               </div>
               <Button type="button" size="sm" variant="outline" onClick={fetchKeys} className="h-7 text-xs border-red-500/40 hover:bg-red-500/20">
-                পুনরায় চেষ্টা করুন
+                Retry
               </Button>
             </div>
           )}
@@ -622,9 +622,9 @@ export function ApifyAdminForm({
           ) : (
             <div className="p-6 rounded-xl border border-dashed border-border text-center space-y-2 bg-surface">
               <Server size={28} className="mx-auto text-muted" />
-              <h4 className="text-xs font-semibold text-fg">এখনো কোনো Apify key যোগ করা হয়নি</h4>
+              <h4 className="text-xs font-semibold text-fg">No Apify API keys added yet</h4>
               <p className="text-[11px] text-muted max-w-md mx-auto leading-relaxed">
-                উপরে &quot;Add Key to Pool&quot; বোতাম চেপে এক বা একাধিক Apify API টোকেন যোগ করুন। AutoHub স্বয়ংক্রিয়ভাবে সবচেয়ে কম ব্যস্ত কী-তে কাজ পাঠাবে এবং কোনো অ্যাকাউন্টের ক্রেডিট ফুরিয়ে গেলে বা লিমিট শেষ হলে তাৎক্ষণিকভাবে অন্য কী-তে স্যুইচ করবে।
+                Click &quot;Add Key to Pool&quot; above to add one or more Apify API tokens. Lead Reach AI automatically balances extraction tasks across available keys and fails over instantly if an account runs out of credits or hits rate limits.
               </p>
               <Button
                 type="button"
@@ -633,7 +633,7 @@ export function ApifyAdminForm({
                 onClick={() => setAddKeyOpen(true)}
                 className="mt-2 text-xs"
               >
-                <Plus size={13} className="mr-1.5" /> প্রথম কী যোগ করুন
+                <Plus size={13} className="mr-1.5" /> Add First Key
               </Button>
             </div>
           )}
@@ -711,7 +711,7 @@ export function ApifyAdminForm({
                       actors: { ...settings.actors, b2b_leads: e.target.value.trim() },
                     })
                   }
-                  helperText="Default: disarming_screw-owner/1-2-000-leads-apollo-scraper-replacement-b2b-b2c-leads (Apollo & ZoomInfo Replacement, $0.50/1k লিড — মোবাইল ও ইমেইল সহ)"
+                  helperText="Default: disarming_screw-owner/1-2-000-leads-apollo-scraper-replacement-b2b-b2c-leads (Apollo & ZoomInfo Alternative, $0.50/1k leads — includes mobile and email)"
                   className="font-mono text-xs"
                   required
                 />

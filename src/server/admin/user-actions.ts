@@ -292,8 +292,8 @@ export async function sendPasswordResetAction(targetUserId: string) {
 
   const mailResult = await sendSystemMail({
     to: target.email,
-    subject: "Reset your AutoHub password",
-    text: `An administrator has initiated a password reset for your AutoHub account.\n\nReset your password here:\n${resetUrl}\n\nThis link is valid for 1 hour. If you did not expect this, please contact support.`,
+    subject: "Reset your Lead Reach AI password",
+    text: `An administrator has initiated a password reset for your Lead Reach AI account.\n\nReset your password here:\n${resetUrl}\n\nThis link is valid for 1 hour. If you did not expect this, please contact support.`,
   });
 
   await recordAuditLog({

@@ -343,7 +343,7 @@ export async function searchMetaAdsApify(
         errMsg.includes("not rented") ||
         errMsg.includes("rent")
       ) {
-        const rentMsg = "এই account-এ igolaizola/facebook-ad-library-scraper rent করা নেই";
+        const rentMsg = "The actor igolaizola/facebook-ad-library-scraper is not rented on this account";
         logger.error({ actorId, keyId, error: err.message }, `[Meta Ads] ${rentMsg}`);
         const rentError = new Error(rentMsg);
         (rentError as any).statusCode = 403;
@@ -424,7 +424,7 @@ export async function searchMetaAdsApify(
         statusMsg.toLowerCase().includes("rent") ||
         statusMsg.toLowerCase().includes("rental")
       ) {
-        const rentMsg = "এই account-এ igolaizola/facebook-ad-library-scraper rent করা নেই";
+        const rentMsg = "The actor igolaizola/facebook-ad-library-scraper is not rented on this account";
         const rentError = new Error(rentMsg);
         (rentError as any).statusCode = 403;
         (rentError as any).isRentalError = true;
@@ -462,7 +462,7 @@ export async function searchMetaAdsApify(
 
     if (rawAds.length === 0) {
       options.onProgress?.(
-        `Meta Ad Library-তে "${options.keyword}" (${country})-এর জন্য কোনো বিজ্ঞাপন পাওয়া যায়নি।`,
+        `No active advertisements found in Meta Ad Library for "${options.keyword}" (${country}).`,
         0
       );
     }

@@ -3,8 +3,8 @@ import { OnboardingWizard } from "@/components/onboarding/wizard";
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Onboarding — AutoHub",
-  description: "Set up your AutoHub profile and workspace.",
+  title: "Onboarding — Lead Reach AI",
+  description: "Set up your Lead Reach AI profile and workspace.",
 };
 
 export default async function OnboardingPage() {

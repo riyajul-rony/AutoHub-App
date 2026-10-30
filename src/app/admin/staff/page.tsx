@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { StaffManager, StaffUser } from "./staff-manager";
 
 export const metadata = {
-  title: "Staff & Operator Management — AutoHub Admin",
+  title: "Staff & Operator Management — Lead Reach AI Admin",
   description: "Manage team privileges, staff roles, and operator security.",
 };
 

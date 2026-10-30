@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const sheetTitle = title || `AutoHub Leads (${new Date().toISOString().slice(0, 10)})`;
+  const sheetTitle = title || `Lead Reach AI Leads (${new Date().toISOString().slice(0, 10)})`;
   const defaultHeaders = STANDARD_EXPORT_HEADERS;
   const defaultRows = leads.map((l: any) => formatLeadRowForExport(l).map((val) => cleanFieldValue(val)));
 

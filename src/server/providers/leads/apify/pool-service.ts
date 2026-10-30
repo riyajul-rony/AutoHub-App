@@ -239,7 +239,7 @@ export async function releaseApifyKey(
     cooldownMinutes = 60; // 1 hour cooldown for rental issue
     reason = error?.message?.includes("rent")
       ? error.message
-      : "এই account-এ igolaizola/facebook-ad-library-scraper rent করা নেই";
+      : "The actor igolaizola/facebook-ad-library-scraper is not rented on this account";
   } else if (statusCode === 429 || errMsg.includes("rate limit") || errMsg.includes("too many requests") || errMsg.includes("memory limit")) {
     newStatus = "cooldown";
     cooldownMinutes = 10; // 10 min cooldown
@@ -283,9 +283,9 @@ export function isPoolFailoverError(err: any): boolean {
     status === 403 ||
     status === 429 ||
     msg.includes("actor-is-not-rented") ||
+    msg.includes("not rented on this account") ||
     msg.includes("rented") ||
     msg.includes("rental") ||
-    msg.includes("rent করা নেই") ||
     msg.includes("rate limit") ||
     msg.includes("memory limit") ||
     msg.includes("unauthorized") ||

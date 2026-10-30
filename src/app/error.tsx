@@ -14,7 +14,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log client error to console
-    console.error("[AutoHub Error Boundary]", error);
+    console.error("[Lead Reach AI Error Boundary]", error);
   }, [error]);
 
   return (

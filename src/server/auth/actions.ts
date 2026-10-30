@@ -33,8 +33,8 @@ async function sendVerificationEmail(email: string) {
   const url = `${await getAppUrl()}/verify-email?token=${token}`;
   return sendSystemMail({
     to: email,
-    subject: "Verify your AutoHub email",
-    text: `Welcome to AutoHub!\n\nConfirm your email address:\n${url}\n\nThis link expires in 24 hours.`,
+    subject: "Verify your Lead Reach AI email",
+    text: `Welcome to Lead Reach AI!\n\nConfirm your email address:\n${url}\n\nThis link expires in 24 hours.`,
   });
 }
 
@@ -169,7 +169,7 @@ export async function forgotPasswordAction(_: FormState, form: FormData): Promis
     const url = `${await getAppUrl()}/reset-password?token=${token}`;
     await sendSystemMail({
       to: user.email,
-      subject: "Reset your AutoHub password",
+      subject: "Reset your Lead Reach AI password",
       text: `Reset your password:\n${url}\n\nThe link works once and expires in 1 hour. If you didn't ask for this, ignore this email.`,
     });
   }

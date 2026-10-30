@@ -38,7 +38,7 @@ export function formatTsv(rows: ExportLeadRow[]): string {
 
 /**
  * Generates RFC4180 compliant CSV string with UTF-8 BOM (\uFEFF) so Excel on Windows
- * displays Bengali and international characters without corruption.
+ * displays international characters and symbols without corruption.
  */
 export function formatCsvWithBom(rows: ExportLeadRow[]): string {
   const headers = ["Company", "Email", "Email Type", "Phone", "Website", "Rating", "Reviews", "Address", "City"];

@@ -102,12 +102,12 @@ export async function POST(req: NextRequest) {
   }
 
   const businessCategory = campaign?.business_category || "Business Growth";
-  const businessName = campaign?.business_name || "AutoHub";
+  const businessName = campaign?.business_name || "Lead Reach AI";
   const prompt = campaign?.prompt || "Daily motivation, client success tip, and engagement question";
   const brandVoice = campaign?.brand_voice || "Professional";
 
   let generatedCaption = `🚀 Level up your ${businessCategory} today!\n\nConsistency and authentic value are the keys to long-term success. Stay focused on your goals.\n\n👉 Share your thoughts in the comments!`;
-  let generatedHashtags = ["#Automation", "#Growth", "#Success", "#AutoHub"];
+  let generatedHashtags = ["#Automation", "#Growth", "#Success", "#LeadReachAI"];
   let imagePrompt = `Modern architectural concept, photorealistic 8k`;
   let imageUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1080&q=80";
 

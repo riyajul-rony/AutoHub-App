@@ -62,11 +62,11 @@ export function AdminSetupForm({
   );
   const [maintenanceMessage, setMaintenanceMessage] = useState<string>(
     initialGlobal.maintenanceMessage ||
-      "AutoHub is currently undergoing scheduled platform upgrades. We will be back online shortly."
+      "Lead Reach AI is currently undergoing scheduled platform upgrades. We will be back online shortly."
   );
-  const [siteName, setSiteName] = useState<string>(initialGlobal.siteName || "AutoHub");
+  const [siteName, setSiteName] = useState<string>(initialGlobal.siteName || "Lead Reach AI");
   const [supportEmail, setSupportEmail] = useState<string>(
-    initialGlobal.supportEmail || "support@autohub.dev"
+    initialGlobal.supportEmail || "support@leadreachai.cerkitlabs.tech"
   );
   const [defaultPlan, setDefaultPlan] = useState<string>(initialGlobal.defaultPlan || "free");
   const [trialDays, setTrialDays] = useState<number>(initialGlobal.trialDays ?? 14);
@@ -375,7 +375,7 @@ export function AdminSetupForm({
                     type="text"
                     value={siteName}
                     onChange={(e) => setSiteName(e.target.value)}
-                    placeholder="AutoHub"
+                    placeholder="Lead Reach AI"
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     required
                   />
@@ -387,7 +387,7 @@ export function AdminSetupForm({
                     type="email"
                     value={supportEmail}
                     onChange={(e) => setSupportEmail(e.target.value)}
-                    placeholder="support@autohub.dev"
+                    placeholder="support@leadreachai.cerkitlabs.tech"
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                     required
                   />

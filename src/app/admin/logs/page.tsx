@@ -8,7 +8,7 @@ import { LogsTableView } from "./logs-table-view";
 import { PurgeLogsButton } from "./purge-button";
 
 export const metadata = {
-  title: "System Logs & Audit Trail — AutoHub Admin",
+  title: "System Logs & Audit Trail — Lead Reach AI Admin",
   description: "Comprehensive activity logs, administrative audit trails, and worker runtime errors.",
 };
 

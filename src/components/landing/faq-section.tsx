@@ -11,9 +11,9 @@ interface FAQItem {
 
 const FAQS: FAQItem[] = [
   {
-    question: "How does AutoHub protect cold emails from landing in spam?",
+    question: "How does Lead Reach AI protect cold emails from landing in spam?",
     answer:
-      "AutoHub employs a multi-tiered deliverability architecture: strict 25 email/hour sending caps per mailbox, randomized delay jitter between dispatches, automatic inbox rotation across multiple connected SMTP accounts, and custom unsubscribe headers to keep your sender reputation pristine.",
+      "Lead Reach AI employs a multi-tiered deliverability architecture: strict 25 email/hour sending caps per mailbox, randomized delay jitter between dispatches, automatic inbox rotation across multiple connected SMTP accounts, and custom unsubscribe headers to keep your sender reputation pristine.",
   },
   {
     question: "Are my third-party API keys and credentials safe?",
@@ -23,12 +23,12 @@ const FAQS: FAQItem[] = [
   {
     question: "How does the automated Stop-on-Reply mechanism work?",
     answer:
-      "AutoHub's background IMAP poller checks your connected inboxes for replies to outgoing campaign threads. When a prospect responds, the system immediately flags the lead as 'Replied' and halts all remaining drip sequence steps for that recipient, ensuring you never send an awkward follow-up.",
+      "Lead Reach AI's background IMAP poller checks your connected inboxes for replies to outgoing campaign threads. When a prospect responds, the system immediately flags the lead as 'Replied' and halts all remaining drip sequence steps for that recipient, ensuring you never send an awkward follow-up.",
   },
   {
     question: "Can I extract leads from Google Maps, LinkedIn, and Meta Ads?",
     answer:
-      "Yes. AutoHub connects with high-speed cloud scrapers and deep web enrichment algorithms to pull live businesses, websites, contact names, and verified email addresses across Google Maps, LinkedIn decision-makers, and Meta Ads Library with automatic deduplication.",
+      "Yes. Lead Reach AI connects with high-speed cloud scrapers and deep web enrichment algorithms to pull live businesses, websites, contact names, and verified email addresses across Google Maps, LinkedIn decision-makers, and Meta Ads Library with automatic deduplication.",
   },
   {
     question: "Can I export scraped leads to Google Sheets or CSV?",
@@ -38,7 +38,7 @@ const FAQS: FAQItem[] = [
   {
     question: "What social media platforms are supported for auto-posting?",
     answer:
-      "AutoHub currently supports direct multi-channel publishing to Facebook Pages, Instagram Professional Accounts, and LinkedIn Personal & Company pages, complete with media attachments, scheduling, and optional manual review workflows.",
+      "Lead Reach AI currently supports direct multi-channel publishing to Facebook Pages, Instagram Professional Accounts, and LinkedIn Personal & Company pages, complete with media attachments, scheduling, and optional manual review workflows.",
   },
 ];
 
@@ -60,7 +60,7 @@ export function FAQSection() {
             Frequently Asked Questions
           </h2>
           <p className="mt-3 text-sm sm:text-base text-muted">
-            Everything you need to know about AutoHub features, deliverability, and security.
+            Everything you need to know about Lead Reach AI features, deliverability, and security.
           </p>
         </div>
 

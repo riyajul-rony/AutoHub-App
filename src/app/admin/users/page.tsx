@@ -6,7 +6,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "Users Management — AutoHub Admin",
+  title: "Users Management — Lead Reach AI Admin",
   description: "Manage registered tenants, access privileges, subscription plans, and account security.",
 };
 

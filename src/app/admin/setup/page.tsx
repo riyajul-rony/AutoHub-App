@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AdminSetupForm } from "./admin-setup-form";
 
 export const metadata = {
-  title: "Global Settings & Host Keys — AutoHub Admin",
+  title: "Global Settings & Host Keys — Lead Reach AI Admin",
   description: "Platform registration mode, maintenance mode, plan defaults, and system credentials.",
 };
 

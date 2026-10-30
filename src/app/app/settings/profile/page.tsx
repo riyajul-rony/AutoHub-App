@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SettingsNav } from "@/components/settings/settings-nav";
 
 export const metadata = {
-  title: "Profile Settings — AutoHub",
+  title: "Profile Settings — Lead Reach AI",
   description: "Manage your business profile and sender information.",
 };
 

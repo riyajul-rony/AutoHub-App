@@ -1,12 +1,12 @@
-# AutoHub — Administrator & Operations Guide (`README_ADMIN.md`)
+# Lead Reach AI — Administrator & Operations Guide (`README_ADMIN.md`)
 
-Welcome to the **AutoHub Control Center & System Administration** reference documentation. This guide outlines platform security, role-based access control (RBAC), multi-tenant subscription tiers, background workers, and safe production deployment procedures.
+Welcome to the **Lead Reach AI Control Center & System Administration** reference documentation. This guide outlines platform security, role-based access control (RBAC), multi-tenant subscription tiers, background workers, and safe production deployment procedures.
 
 ---
 
 ## 1. System Architecture & Tech Stack
 
-AutoHub is built for high-performance marketing automation, cold outreach, and lead generation:
+Lead Reach AI is built for high-performance marketing automation, cold outreach, and lead generation:
 - **Framework**: Next.js (App Router), React 19, TypeScript
 - **Database & ORM**: PostgreSQL via Prisma ORM
 - **Cache & Key-Value Store**: Redis (ioredis) for quotas, settings caching, and rate limiting
@@ -46,7 +46,7 @@ All administrative routes, API endpoints, and Server Actions enforce server-side
 1. Navigate to `/admin/staff` (accessible strictly by `super_admin`).
 2. Click **Invite Staff Member**.
 3. Enter the user's email address and assign an initial role (`admin`, `support`, or `finance`).
-4. AutoHub creates a cryptographically signed staff invitation token. If the user already exists, their role is elevated immediately; otherwise, an invitation link is generated for account setup.
+4. Lead Reach AI creates a cryptographically signed staff invitation token. If the user already exists, their role is elevated immediately; otherwise, an invitation link is generated for account setup.
 
 ### Role Modification & Session Security
 - When a staff member's role is changed or revoked, **all active browser sessions for that user are instantly invalidated from Redis and PostgreSQL**.
@@ -57,7 +57,7 @@ All administrative routes, API endpoints, and Server Actions enforce server-side
 
 ## 4. Plans & Limits Management
 
-AutoHub features a centralized resource quota system protecting APIs from abuse.
+Lead Reach AI features a centralized resource quota system protecting APIs from abuse.
 
 ### Resource Limits Enforced
 Every plan configures monthly limits for:
@@ -80,13 +80,13 @@ If a customer requires custom capacity beyond standard plans:
 1. Navigate to `/admin/users/[id]`.
 2. Under **Plan & Limit Assignment**, click **Custom Limits Override**.
 3. Enter custom quota caps (e.g., 50,000 monthly leads) and save.
-4. AutoHub's `checkLimit(userId, resource)` utility automatically prioritizes active overrides before falling back to plan defaults.
+4. Lead Reach AI's `checkLimit(userId, resource)` utility automatically prioritizes active overrides before falling back to plan defaults.
 
 ---
 
 ## 5. Background Queues & Log Retention
 
-AutoHub operates 8 BullMQ queues backed by Redis:
+Lead Reach AI operates 8 BullMQ queues backed by Redis:
 - `planner`: Social post scheduling and publication trigger generator
 - `social-publish`: Graph API and social network webhook publishing
 - `lead-search`: Asynchronous Google Places scraping
@@ -150,15 +150,15 @@ npx prisma generate
 npm run build
 
 # 6. Restart PM2 or systemd services
-pm2 restart autohub-web
-pm2 restart autohub-worker
+pm2 restart leadreach-web
+pm2 restart leadreach-worker
 ```
 
 ### Environment Variables Checklist (`.env`)
 Ensure the following variables are configured in production:
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/autohub?schema=public"
+DATABASE_URL="postgresql://leadreach:password@localhost:5432/leadreach?schema=public"
 
 # Redis
 REDIS_URL="redis://localhost:6379"
@@ -168,8 +168,8 @@ APP_ENCRYPTION_KEY="<base64-encoded-32-byte-master-key>"
 SESSION_SECRET="<long-random-string-for-tokens>"
 
 # App URL & Admin
-APP_URL="https://app.autohub.com"
-ADMIN_EMAIL="admin@autohub.com"
+APP_URL="https://leadreachai.cerkitlabs.tech"
+ADMIN_EMAIL="admin@leadreachai.cerkitlabs.tech"
 ```
 
 ---

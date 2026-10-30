@@ -5,7 +5,7 @@ import { FollowupEditor, FollowupStep } from "./followup-editor";
 import { PageHeader } from "@/components/ui/page-header";
 
 export const metadata = {
-  title: "Followup Sequence Builder — AutoHub",
+  title: "Followup Sequence Builder — Lead Reach AI",
   description: "Automated multi-step followup email sequence with stop-on-reply.",
 };
 

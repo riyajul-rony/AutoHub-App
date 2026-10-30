@@ -27,7 +27,7 @@ export function ProductPreview() {
             <span className="h-3 w-3 rounded-full bg-borderStrong/40 inline-block" />
             <div className="ml-3 hidden sm:flex items-center gap-1.5 rounded-md border border-border bg-surface px-3 py-1 text-xs text-muted">
               <Search size={12} className="text-subtle" />
-              <span className="font-mono text-[11px]">app.autohub.io/app/dashboard</span>
+              <span className="font-mono text-[11px]">leadreachai.cerkitlabs.tech/app/dashboard</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
