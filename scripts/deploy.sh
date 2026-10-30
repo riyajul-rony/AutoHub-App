@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "=============================================="
-echo "        AutoHub SaaS VPS Deployment           "
+echo "        Lead Reach AI SaaS VPS Deployment           "
 echo "=============================================="
 
 # 1. Environment validation
@@ -34,7 +34,7 @@ if [ -x "scripts/setup-swap.sh" ]; then
 fi
 
 # 4. Pull and build containers
-echo "📦 Building and pulling latest AutoHub containers..."
+echo "📦 Building and pulling latest Lead Reach AI containers..."
 docker compose build --pull web
 
 # 5. Bring up core infrastructure (DB and Redis)
@@ -43,7 +43,7 @@ docker compose up -d db redis
 
 # Wait for database healthcheck
 echo "Waiting for PostgreSQL to be healthy..."
-until docker compose exec -T db pg_isready -U autohub >/dev/null 2>&1; do
+until docker compose exec -T db pg_isready -U "${POSTGRES_USER:-leadreach}" -d "${POSTGRES_DB:-leadreach}" >/dev/null 2>&1; do
   sleep 2
 done
 echo "✅ Database is ready."
@@ -62,6 +62,6 @@ sleep 5
 docker compose ps
 
 echo "=============================================="
-echo "🎉 AutoHub SaaS successfully deployed!"
+echo "🎉 Lead Reach AI SaaS successfully deployed!"
 echo "   Domain: https://${APP_DOMAIN:-localhost}"
 echo "=============================================="

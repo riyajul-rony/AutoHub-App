@@ -1168,7 +1168,7 @@ export const db = new Proxy(liveDb, {
               } catch (err: any) {
                 // If DB is unreachable (ECONNREFUSED or PrismaClientInitializationError) in development
                 if (process.env.NODE_ENV !== "production") {
-                  console.warn(`[AutoHub DB Notice] Real database not reachable at ${process.env.DATABASE_URL}. Using Dev fallback for ${String(prop)}.${String(subProp)}.`);
+                  console.warn(`[Lead Reach AI DB Notice] Real database not reachable at ${process.env.DATABASE_URL}. Using Dev fallback for ${String(prop)}.${String(subProp)}.`);
                   const mock = new LocalDevMockDb() as any;
                   if (mock[prop] && typeof mock[prop][subProp] === "function") {
                     return await mock[prop][subProp](...args);

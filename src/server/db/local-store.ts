@@ -1,8 +1,5 @@
-import fs from "fs";
-import path from "path";
+// In-memory test mock store. File-based dev_store.json has been removed in favor of real PostgreSQL.
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const STORE_PATH = path.resolve(DATA_DIR, "dev_store.json");
 
 const DEFAULT_ADMIN_USER = {
   id: "00000000-0000-0000-0000-000000000001",
@@ -84,74 +81,14 @@ function getInitialStore(): StoreSchema {
 let inMemoryStore: StoreSchema | null = null;
 
 function loadStore(): StoreSchema {
-  if (process.env.NODE_ENV === "test") {
-    if (!inMemoryStore) {
-      inMemoryStore = getInitialStore();
-    }
-    return inMemoryStore;
+  if (!inMemoryStore) {
+    inMemoryStore = getInitialStore();
   }
-
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (fs.existsSync(STORE_PATH)) {
-      const raw = fs.readFileSync(STORE_PATH, "utf8");
-      const parsed = JSON.parse(raw);
-      inMemoryStore = {
-        ...getInitialStore(),
-        ...parsed,
-        users: parsed.users?.length ? parsed.users : [{ ...DEFAULT_ADMIN_USER }],
-        sessions: parsed.sessions || [],
-        api_keys: parsed.api_keys || [],
-        social_accounts: parsed.social_accounts || [],
-        social_campaigns: parsed.social_campaigns || [],
-        post_runs: parsed.post_runs || [],
-        email_accounts: parsed.email_accounts || [],
-        outreach_campaigns: parsed.outreach_campaigns || [],
-        campaign_recipients: parsed.campaign_recipients || [],
-        email_messages: parsed.email_messages || [],
-        followup_sequences: parsed.followup_sequences || [],
-        suppressions: parsed.suppressions || [],
-        lead_searches: parsed.lead_searches || [],
-        leads: parsed.leads || [],
-        admin_audit_logs: parsed.admin_audit_logs || [],
-        activity_logs: parsed.activity_logs || [],
-        plans: parsed.plans || [],
-        user_limit_overrides: parsed.user_limit_overrides || [],
-        usage_counters: parsed.usage_counters || [],
-        subscriptions: parsed.subscriptions || [],
-        payments: parsed.payments || [],
-        processed_webhook_events: parsed.processed_webhook_events || [],
-        error_logs: parsed.error_logs || [],
-        system_settings: parsed.system_settings || [],
-        apify_usage_logs: parsed.apify_usage_logs || [],
-        apify_keys: parsed.apify_keys || [],
-      };
-      return inMemoryStore!;
-    }
-  } catch (err) {
-    console.warn("[LocalDevStore] Error loading local store, using default", err);
-  }
-  inMemoryStore = getInitialStore();
-  saveStore(inMemoryStore);
-  return inMemoryStore!;
+  return inMemoryStore;
 }
 
-function saveStore(storeToSave?: StoreSchema): void {
-  if (process.env.NODE_ENV === "test") {
-    return; // Don't write to shared disk file in test mode to avoid concurrency collisions
-  }
-
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    const data = storeToSave || inMemoryStore || getInitialStore();
-    fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), "utf8");
-  } catch (err) {
-    console.warn("[LocalDevStore] Failed to persist dev store to disk", err);
-  }
+function saveStore(_storeToSave?: StoreSchema): void {
+  // Pure in-memory mock for test isolation - zero disk persistence
 }
 
 export const localDevStore = {

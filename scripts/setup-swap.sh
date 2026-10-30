@@ -2,7 +2,7 @@
 set -e
 
 # Setup 2 GB swap space on Hostinger KVM 1 VPS (Ubuntu/Debian)
-echo "=== AutoHub Hostinger VPS 2 GB Swap Setup ==="
+echo "=== Lead Reach AI Hostinger VPS 2 GB Swap Setup ==="
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root or with sudo"

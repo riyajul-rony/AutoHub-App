@@ -1,14 +1,14 @@
-তুমি আমার AutoHub প্রজেক্টে কাজ করছ (Next.js App Router, TypeScript, Prisma, PostgreSQL, Redis, BullMQ)। নিচের নিয়মগুলো সব কাজে মানবে:
+You are working on my Lead Reach AI project (Next.js App Router, TypeScript, Prisma, PostgreSQL, Redis, BullMQ). Adhere strictly to these rules across all tasks:
 
-1. আমি একবারে একটা ধাপ দেব। শুধু সেই ধাপের কাজ করবে, অন্য কিছু পরিবর্তন করবে না।
-2. কোড লেখার আগে প্ল্যান দেখাও (কোন ফাইল বানাবে/বদলাবে, কোন Prisma model যোগ হবে)। আমি approve করলে তারপর কোড লিখবে।
-3. নতুন কোনো UI library (shadcn, MUI ইত্যাদি) যোগ করবে না। বিদ্যমান custom design system (.glass, .btn, .badge, .input, dark/light theme) ব্যবহার করবে এবং reusable কম্পোনেন্ট বানাবে।
-4. Database পরিবর্তন শুধু Prisma migration দিয়ে হবে, আগের ডেটা যেন নষ্ট না হয়।
-5. প্রতিটা admin API route ও Server Action-এ server-side permission check থাকতেই হবে। শুধু UI লুকিয়ে রাখলে হবে না।
-6. প্রতিটা query-তে pagination, দরকারি index ও শুধু প্রয়োজনীয় field select থাকবে। পুরো table একসাথে আনবে না।
-7. প্রতিটা পেজে loading, empty ও error state থাকবে।
-8. কাজ শেষে জানাবে: কী বানালে, কোন ফাইল বদলালো, আমি কীভাবে ধাপে ধাপে test করব, আর npm run build ও type check পাস করেছে কি না। তারপর থেমে আমার অনুমতির অপেক্ষা করবে।
-9. কিছু অস্পষ্ট হলে অনুমান না করে আমাকে একটা প্রশ্ন করবে।
+1. I will provide one step at a time. Only perform that single step; do not modify anything else.
+2. Before writing code, present a plan (which files will be created/modified, which Prisma models will be added). Write code only after I approve.
+3. Do not add any new UI libraries (shadcn, MUI, etc.). Use the existing custom design system (.glass, .btn, .badge, .input, dark/light theme) and build reusable components.
+4. Database schema changes must only be made via Prisma migrations so existing data is never corrupted or lost.
+5. Every admin API route and Server Action must enforce server-side permission checks. Merely hiding UI elements is not sufficient.
+6. Every query must implement pagination, appropriate indexes, and select only necessary fields. Never fetch entire tables at once.
+7. Every page must implement loading, empty, and error states.
+8. Upon completion, report: what was built, which files changed, how to test step by step, and whether npm run build and type checking passed. Then pause and await my approval.
+9. If anything is ambiguous, do not assume; ask me a clarifying question.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting AutoHub entrypoint..."
+echo "Starting Lead Reach AI entrypoint..."
 
 # 1. Generate secrets if missing
 if [ -z "$AUTH_SECRET" ] || [ -z "$APP_ENCRYPTION_KEY" ]; then
@@ -20,8 +20,15 @@ fi
 
 # 2. Run migrations only if we are the web service container
 if [ "$SERVICE_ROLE" = "web" ]; then
-  echo "Applying database migrations (prisma migrate deploy)..."
-  npx prisma migrate deploy || echo "Migration warning: check DB status"
+  echo "Waiting for PostgreSQL database to be ready..."
+  for i in $(seq 1 30); do
+    if npx prisma migrate deploy; then
+      echo "Prisma migrations applied successfully."
+      break
+    fi
+    echo "Database not ready yet, retrying in 2 seconds... ($i/30)"
+    sleep 2
+  done
 fi
 
 exec "$@"

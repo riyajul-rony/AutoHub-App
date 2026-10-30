@@ -20,7 +20,7 @@ export type ConfigKey =
   | "DEFAULT_PAYMENT_PROVIDER" | "ONLINE_PAYMENT_PUBLIC_KEY" | "ONLINE_PAYMENT_SECRET_KEY"
   | "ONLINE_PAYMENT_WEBHOOK_SECRET" | "MANUAL_PAYMENT_INSTRUCTIONS";
 
-const DEV_KEY_B64 = Buffer.alloc(32, "autohub-dev-master-config-key").toString("base64");
+const DEV_KEY_B64 = Buffer.alloc(32, "leadreach-dev-master-config-key").toString("base64");
 function encKey(): string | undefined {
   if (process.env.APP_ENCRYPTION_KEY) return undefined;
   return DEV_KEY_B64;
@@ -197,7 +197,7 @@ export async function getMaintenanceMode(): Promise<MaintenanceStatus> {
   const active = raw === "true" || raw === "1" || raw === "on";
   const message =
     (await getConfig("MAINTENANCE_MESSAGE")) ||
-    "AutoHub is currently undergoing scheduled platform upgrades. We will be back online shortly.";
+    "Lead Reach AI is currently undergoing scheduled platform upgrades. We will be back online shortly.";
 
   const result: MaintenanceStatus = { active, message };
   await cacheSet("config:maintenance_mode", result, 60);
@@ -228,8 +228,8 @@ export async function getGlobalPlatformSettings(): Promise<GlobalPlatformSetting
   ]);
 
   return {
-    siteName: siteName || "AutoHub",
-    supportEmail: supportEmail || "support@autohub.dev",
+    siteName: siteName || "Lead Reach AI",
+    supportEmail: supportEmail || "support@leadreachai.cerkitlabs.tech",
     defaultPlan: defaultPlan || "free",
     trialDays: trialDaysStr ? parseInt(trialDaysStr, 10) || 14 : 14,
     registrationMode: regMode,

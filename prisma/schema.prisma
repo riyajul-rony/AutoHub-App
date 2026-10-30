@@ -1,4 +1,4 @@
-// AutoHub database schema (spec section 9). Source of truth: PostgreSQL.
+// Lead Reach AI database schema (spec section 9). Source of truth: PostgreSQL.
 // Field names intentionally mirror column names from the spec (snake_case).
 // `*_enc` fields hold AES-256-GCM payloads (v1:iv:ciphertext:tag).
 
