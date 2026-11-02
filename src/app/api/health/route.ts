@@ -13,7 +13,8 @@ export async function GET() {
     await db.$queryRaw`SELECT 1`;
     dbOk = true;
     dbLatency = Date.now() - dbStart;
-  } catch {
+  } catch (err: any) {
+    console.error("[Healthcheck] PostgreSQL check failed:", err?.message || err);
     dbOk = false;
   }
 
@@ -22,7 +23,8 @@ export async function GET() {
     const redis = getRedisConnection();
     const pong = await redis.ping();
     redisOk = pong === "PONG";
-  } catch {
+  } catch (err: any) {
+    console.error("[Healthcheck] Redis check failed:", err?.message || err);
     redisOk = false;
   }
 
