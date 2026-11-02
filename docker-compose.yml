@@ -1,47 +1,33 @@
 services:
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    command: caddy reverse-proxy --from ${APP_DOMAIN:-:80} --to web:3000
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      APP_DOMAIN: ${APP_DOMAIN:-localhost}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 128M
-        reservations:
-          cpus: "0.1"
-          memory: 64M
-    depends_on:
-      - web
-
   web:
     image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/autohub-app:latest}
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-n8n-scad_cerkitlabs}"
+      - "traefik.http.routers.leadreach.rule=Host(`${APP_DOMAIN:?APP_DOMAIN is required}`)"
+      - "traefik.http.routers.leadreach.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.leadreach.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.leadreach.loadbalancer.server.port=3000"
     environment: &app_env
       NODE_ENV: production
       SERVICE_ROLE: web
-      APP_URL: https://${APP_DOMAIN:-localhost}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-leadreach}:${POSTGRES_PASSWORD:-leadreach_secure_pass_2026}@db:5432/${POSTGRES_DB:-leadreach}
+      APP_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-leadreach}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:-leadreach}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      AUTH_SECRET: ${AUTH_SECRET:-}
-      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?APP_ENCRYPTION_KEY is required}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       REGISTRATION_MODE: ${REGISTRATION_MODE:-invite}
       TZ: UTC
     volumes:
       - appdata:/data
+    networks:
+      - leadreach_internal
+      - traefik_network
     deploy:
       resources:
         limits:
@@ -60,7 +46,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 25s
+      start_period: 60s
 
   worker:
     image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/autohub-app:latest}
@@ -74,6 +60,8 @@ services:
       SERVICE_ROLE: worker
     volumes:
       - appdata:/data
+    networks:
+      - leadreach_internal
     deploy:
       resources:
         limits:
@@ -83,20 +71,24 @@ services:
           cpus: "0.2"
           memory: 256M
     depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
       web:
         condition: service_healthy
 
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-leadreach}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leadreach_secure_pass_2026}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-leadreach}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - leadreach_internal
     deploy:
       resources:
         limits:
@@ -115,10 +107,10 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
     volumes:
       - redisdata:/data
+    networks:
+      - leadreach_internal
     deploy:
       resources:
         limits:
@@ -133,8 +125,13 @@ services:
       retries: 10
 
 volumes:
-  caddy_data:
-  caddy_config:
   appdata:
   pgdata:
   redisdata:
+
+networks:
+  leadreach_internal:
+    driver: bridge
+  traefik_network:
+    name: ${TRAEFIK_NETWORK:-n8n-scad_cerkitlabs}
+    external: true

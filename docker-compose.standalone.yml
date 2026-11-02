@@ -1,0 +1,193 @@
+# Lead Reach AI — Standalone Docker Compose Setup (with embedded Caddy SSL reverse proxy)
+# Use this compose file on VPS/servers that do NOT have Traefik or another reverse proxy running.
+# All services, persistence, healthchecks, and Caddy reverse proxy are 100% self-contained.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - leadreach_network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    depends_on:
+      - web
+
+  web:
+    image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/autohub-app:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment: &app_env
+      NODE_ENV: production
+      SERVICE_ROLE: web
+      APP_URL: https://${APP_DOMAIN:?APP_DOMAIN is required}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-leadreach}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:-leadreach}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:?APP_ENCRYPTION_KEY is required}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      REGISTRATION_MODE: ${REGISTRATION_MODE:-invite}
+      TZ: UTC
+    volumes:
+      - appdata:/data
+    networks:
+      - leadreach_network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  worker:
+    image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/autohub-app:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["node_modules/.bin/tsx", "src/server/worker/runner.ts"]
+    environment:
+      <<: *app_env
+      SERVICE_ROLE: worker
+    volumes:
+      - appdata:/data
+    networks:
+      - leadreach_network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-leadreach}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-leadreach}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - leadreach_network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.2"
+          memory: 256M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-leadreach} -d ${POSTGRES_DB:-leadreach}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    networks:
+      - leadreach_network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 10
+
+configs:
+  caddyfile:
+    content: |
+      {
+          admin off
+          email {$ADMIN_EMAIL:admin@example.com}
+      }
+
+      {$APP_DOMAIN} {
+          encode zstd gzip
+
+          header {
+              Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "SAMEORIGIN"
+              Referrer-Policy "strict-origin-when-cross-origin"
+              Permissions-Policy "camera=(), microphone=(), geolocation=()"
+          }
+
+          @static {
+              path /_next/static/*
+              path /static/*
+          }
+          header @static Cache-Control "public, max-age=31536000, immutable"
+
+          reverse_proxy web:3000 {
+              header_up Host {host}
+              header_up X-Real-IP {remote_host}
+              header_up X-Forwarded-For {remote_host}
+              header_up X-Forwarded-Proto {scheme}
+          }
+      }
+
+volumes:
+  caddy_data:
+  caddy_config:
+  appdata:
+  pgdata:
+  redisdata:
+
+networks:
+  leadreach_network:
+    driver: bridge

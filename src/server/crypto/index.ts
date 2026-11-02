@@ -7,7 +7,16 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 const VERSION = "v1";
 
 function getKey(keyB64?: string): Buffer {
-  const raw = keyB64 ?? process.env.APP_ENCRYPTION_KEY ?? "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
+  const raw = keyB64 ?? process.env.APP_ENCRYPTION_KEY;
+  if (!raw || raw.trim() === "") {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "FATAL: APP_ENCRYPTION_KEY is required in production. Refusing to operate without a valid 32-byte base64 encryption key."
+      );
+    }
+    // Dev/Test fallback for local testing:
+    return Buffer.from("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", "base64");
+  }
   const key = Buffer.from(raw, "base64");
   if (key.length !== 32) throw new Error("APP_ENCRYPTION_KEY must be 32 bytes (base64)");
   return key;

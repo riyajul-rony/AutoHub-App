@@ -23,7 +23,7 @@ export type ConfigKey =
 const DEV_KEY_B64 = Buffer.alloc(32, "leadreach-dev-master-config-key").toString("base64");
 function encKey(): string | undefined {
   if (process.env.APP_ENCRYPTION_KEY) return undefined;
-  return DEV_KEY_B64;
+  return process.env.NODE_ENV !== "production" ? DEV_KEY_B64 : undefined;
 }
 
 // Memory Cache: fast L1 in-process cache (60s TTL)
