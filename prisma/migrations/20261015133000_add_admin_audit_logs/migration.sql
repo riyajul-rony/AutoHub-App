@@ -1,13 +1,8 @@
--- Phase 3: Admin Foundation Migration
--- 1. Alter UserRole enum to add super_admin, support, finance
-ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'super_admin';
-ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'support';
-ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'finance';
-
--- 2. Upgrade existing admin users to super_admin safely
+-- Phase 3: Admin Foundation Migration (Part 2 - Data & Audit Logs)
+-- 1. Upgrade existing admin users to super_admin safely
 UPDATE "users" SET "role" = 'super_admin' WHERE "role" = 'admin';
 
--- 3. Create admin_audit_logs table
+-- 2. Create admin_audit_logs table
 CREATE TABLE IF NOT EXISTS "admin_audit_logs" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "admin_id" UUID NOT NULL,
@@ -23,7 +18,7 @@ CREATE TABLE IF NOT EXISTS "admin_audit_logs" (
     CONSTRAINT "admin_audit_logs_pkey" PRIMARY KEY ("id")
 );
 
--- 4. Foreign key constraint
+-- 3. Foreign key constraint
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'admin_audit_logs_admin_id_fkey'
@@ -34,7 +29,8 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 5. Indexes
+-- 4. Indexes
 CREATE INDEX IF NOT EXISTS "admin_audit_logs_admin_id_idx" ON "admin_audit_logs"("admin_id");
 CREATE INDEX IF NOT EXISTS "admin_audit_logs_action_idx" ON "admin_audit_logs"("action");
 CREATE INDEX IF NOT EXISTS "admin_audit_logs_created_at_idx" ON "admin_audit_logs"("created_at" DESC);
+
