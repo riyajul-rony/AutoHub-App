@@ -11,6 +11,7 @@ RUN npm install -D prisma@7.10.0
 # 2. Next.js app builder
 FROM node:24-bookworm-slim AS builder
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY . .
