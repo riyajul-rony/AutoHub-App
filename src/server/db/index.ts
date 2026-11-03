@@ -1146,8 +1146,12 @@ function createClient() {
 const liveDb = globalForPrisma.prisma ?? createClient();
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = liveDb;
 
-// Safe wrapper that falls back to LocalDevMockDb if database connection fails in local dev
-export const db = new Proxy(liveDb, {
+// In production, export liveDb directly! No proxy, zero overhead, 100% native PrismaClient.
+// In development, wrap with Proxy to allow LocalDevMockDb fallback if local DB is not running.
+export const db: typeof liveDb =
+  process.env.NODE_ENV === "production"
+    ? liveDb
+    : new Proxy(liveDb, {
   get(target, prop, receiver) {
     const orig = Reflect.get(target, prop, receiver);
     if (orig === undefined && process.env.NODE_ENV !== "production") {

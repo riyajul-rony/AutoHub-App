@@ -36,12 +36,13 @@ Your VPS runs Traefik in `network_mode: host` listening on ports 80 and 443, wit
 ## 3. GitHub Container Registry (GHCR) Image Settings
 
 The Docker image is built automatically by GitHub Actions on push to `main` and pushed to:
-`ghcr.io/riyajul-rony/autohub-app:latest`
+`ghcr.io/riyajul-rony/lead-reach-ai:latest` (and dual-tagged as `ghcr.io/riyajul-rony/autohub-app:latest`)
 
 ### Choose One of Two Options for Hostinger Access:
 
 #### Option A: Set Package to Public (Recommended for Hostinger "Compose from URL")
-1. Open your GitHub browser: `https://github.com/users/riyajul-rony/packages/container/package/autohub-app`
+1. Open your GitHub browser: `https://github.com/users/riyajul-rony/packages/container/package/lead-reach-ai`
+   *(Also verify `https://github.com/users/riyajul-rony/packages/container/package/autohub-app` is Public)*
 2. Click **Package settings** (in the right sidebar).
 3. Scroll to the **Danger Zone** at the bottom.
 4. Click **Change visibility** > select **Public** > confirm.
@@ -70,11 +71,11 @@ Hostinger Docker will then have authenticated access to pull private images.
 - **Compose URL** (Choose the file that matches your server):
   - **For your VPS (With Traefik running)** — **DEFAULT**:
     ```
-    https://raw.githubusercontent.com/riyajul-rony/AutoHub-App/main/docker-compose.yml
+    https://raw.githubusercontent.com/riyajul-rony/Lead-Reach-AI/main/docker-compose.yml
     ```
   - *(For a server without Traefik / standalone with Caddy)*:
     ```
-    https://raw.githubusercontent.com/riyajul-rony/AutoHub-App/main/docker-compose.standalone.yml
+    https://raw.githubusercontent.com/riyajul-rony/Lead-Reach-AI/main/docker-compose.standalone.yml
     ```
 
 ### Step 3: Enter Required Environment Variables

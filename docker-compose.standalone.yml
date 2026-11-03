@@ -32,7 +32,7 @@ services:
       - web
 
   web:
-    image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/autohub-app:latest}
+    image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/lead-reach-ai:latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -70,10 +70,10 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 90s
 
   worker:
-    image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/autohub-app:latest}
+    image: ${DOCKER_IMAGE:-ghcr.io/riyajul-rony/lead-reach-ai:latest}
     build:
       context: .
       dockerfile: Dockerfile
