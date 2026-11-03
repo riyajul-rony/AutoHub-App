@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { getGoogleOutreachAuthUrl } from "@/server/email/google-oauth";
 import { assertLimit } from "@/server/billing/limits";
+import { getAppUrl } from "@/server/config";
 
 export async function GET(req: NextRequest) {
+  const appUrl = await getAppUrl();
   const session = await getSessionUser();
   if (!session) {
-    return NextResponse.redirect(new URL("/login?error=unauthorized", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/login?error=unauthorized", appUrl));
   }
 
   // Pre-check plan limits for email accounts
@@ -15,7 +17,7 @@ export async function GET(req: NextRequest) {
   } catch (limitErr: any) {
     const errorMsg = encodeURIComponent(limitErr.message || "Account limit reached");
     return NextResponse.redirect(
-      new URL(`/app/outreach/email-accounts?error=${errorMsg}`, req.nextUrl.origin)
+      new URL(`/app/outreach/email-accounts?error=${errorMsg}`, appUrl)
     );
   }
 
@@ -30,7 +32,7 @@ export async function GET(req: NextRequest) {
   if (result.error || !result.url) {
     const errorMsg = encodeURIComponent(result.error || "Google OAuth not configured");
     return NextResponse.redirect(
-      new URL(`/app/outreach/email-accounts?error=${errorMsg}`, req.nextUrl.origin)
+      new URL(`/app/outreach/email-accounts?error=${errorMsg}`, appUrl)
     );
   }
 

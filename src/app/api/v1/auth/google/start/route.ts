@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleAuthUrl } from "@/server/integrations/google-sheets";
+import { getAppUrl } from "@/server/config";
 
 export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get("mode") || "connect";
@@ -10,7 +11,8 @@ export async function GET(req: NextRequest) {
   const result = await getGoogleAuthUrl(state);
   if (result.error || !result.url) {
     if (mode === "login") {
-      return NextResponse.redirect(new URL("/login?error=google_not_configured", req.nextUrl.origin));
+      const appUrl = await getAppUrl();
+      return NextResponse.redirect(new URL("/login?error=google_not_configured", appUrl));
     }
     return NextResponse.json({ error: result.error || "Google OAuth not configured" }, { status: 400 });
   }

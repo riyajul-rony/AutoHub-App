@@ -5,8 +5,10 @@ import { db } from "@/server/db";
 import { encrypt } from "@/server/crypto";
 import { assertLimit } from "@/server/billing/limits";
 import { logger } from "@/server/logger";
+import { getAppUrl } from "@/server/config";
 
 export async function GET(req: NextRequest) {
+  const appUrl = await getAppUrl();
   const code = req.nextUrl.searchParams.get("code");
   const error = req.nextUrl.searchParams.get("error");
   const stateRaw = req.nextUrl.searchParams.get("state");
@@ -28,7 +30,7 @@ export async function GET(req: NextRequest) {
   const effectiveUserId = session?.user?.id || userId;
 
   if (!effectiveUserId) {
-    return NextResponse.redirect(new URL("/login?error=unauthorized", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/login?error=unauthorized", appUrl));
   }
 
   if (error || !code) {
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(
       new URL(
         `${returnTo}?error=${encodeURIComponent(error || "Google authorization was cancelled")}`,
-        req.nextUrl.origin
+        appUrl
       )
     );
   }
@@ -77,7 +79,7 @@ export async function GET(req: NextRequest) {
 
       logger.info({ email: emailLower, accountId: existing.id }, "Google Gmail account reconnected successfully");
       return NextResponse.redirect(
-        new URL(`${returnTo}?reconnected=true&email=${encodeURIComponent(emailLower)}`, req.nextUrl.origin)
+        new URL(`${returnTo}?reconnected=true&email=${encodeURIComponent(emailLower)}`, appUrl)
       );
     }
 
@@ -108,14 +110,14 @@ export async function GET(req: NextRequest) {
 
     logger.info({ email: emailLower, accountId: created.id }, "Google Gmail outreach account linked successfully");
     return NextResponse.redirect(
-      new URL(`${returnTo}?connected=true&email=${encodeURIComponent(emailLower)}`, req.nextUrl.origin)
+      new URL(`${returnTo}?connected=true&email=${encodeURIComponent(emailLower)}`, appUrl)
     );
   } catch (err: any) {
     logger.error({ err }, "Google outreach OAuth callback exchange error");
     return NextResponse.redirect(
       new URL(
         `${returnTo}?error=${encodeURIComponent(err.message || "Failed to link Google account")}`,
-        req.nextUrl.origin
+        appUrl
       )
     );
   }

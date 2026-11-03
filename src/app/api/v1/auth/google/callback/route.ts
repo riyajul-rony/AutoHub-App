@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, createSession } from "@/server/auth/session";
 import { exchangeGoogleCode, saveGoogleConnection } from "@/server/integrations/google-sheets";
 import { db } from "@/server/db";
-import { getConfig, getRegistrationMode } from "@/server/config";
+import { getConfig, getAppUrl, getRegistrationMode } from "@/server/config";
 import { logger } from "@/server/logger";
 
 export async function GET(req: NextRequest) {
+  const appUrl = await getAppUrl();
   const code = req.nextUrl.searchParams.get("code");
   const error = req.nextUrl.searchParams.get("error");
   const stateRaw = req.nextUrl.searchParams.get("state");
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
   if (error || !code) {
     logger.warn({ error }, "Google OAuth callback error or user cancelled");
     const dest = mode === "login" ? "/login" : returnTo;
-    return NextResponse.redirect(new URL(`${dest}?error=google_auth_failed`, req.nextUrl.origin));
+    return NextResponse.redirect(new URL(`${dest}?error=google_auth_failed`, appUrl));
   }
 
   try {
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
     if (mode === "login") {
       const email = tokens.email?.toLowerCase();
       if (!email) {
-        return NextResponse.redirect(new URL("/login?error=no_email_provided", req.nextUrl.origin));
+        return NextResponse.redirect(new URL("/login?error=no_email_provided", appUrl));
       }
 
       let user = await db.users.findUnique({ where: { email } });
@@ -54,11 +55,11 @@ export async function GET(req: NextRequest) {
 
         const regMode = await getRegistrationMode();
         if (!isAdmin && regMode === "closed") {
-          return NextResponse.redirect(new URL("/signup?error=registration_closed", req.nextUrl.origin));
+          return NextResponse.redirect(new URL("/signup?error=registration_closed", appUrl));
         }
 
         if (!isAdmin && regMode === "invite") {
-          return NextResponse.redirect(new URL("/login?error=invite_only", req.nextUrl.origin));
+          return NextResponse.redirect(new URL("/login?error=invite_only", appUrl));
         }
 
         const defaultPlan = (await getConfig("DEFAULT_PLAN")) || "free";
@@ -94,22 +95,22 @@ export async function GET(req: NextRequest) {
       await createSession(user.id);
 
       const targetPath = user.onboarded_at ? returnTo : "/onboarding";
-      return NextResponse.redirect(new URL(targetPath, req.nextUrl.origin));
+      return NextResponse.redirect(new URL(targetPath, appUrl));
     }
 
     // MODE 2: CONNECTING GOOGLE SHEETS FOR EXISTING USER SESSION
     const session = await getSessionUser();
     if (!session) {
-      return NextResponse.redirect(new URL("/login?error=unauthorized", req.nextUrl.origin));
+      return NextResponse.redirect(new URL("/login?error=unauthorized", appUrl));
     }
 
     await saveGoogleConnection(session.user.id, tokens);
-    return NextResponse.redirect(new URL(`${returnTo}?google_connected=true`, req.nextUrl.origin));
+    return NextResponse.redirect(new URL(`${returnTo}?google_connected=true`, appUrl));
   } catch (err: any) {
     logger.error({ err }, "Failed to complete Google OAuth exchange");
     const failDest = mode === "login" ? "/login" : returnTo;
     return NextResponse.redirect(
-      new URL(`${failDest}?error=${encodeURIComponent(err.message || "exchange_failed")}`, req.nextUrl.origin)
+      new URL(`${failDest}?error=${encodeURIComponent(err.message || "exchange_failed")}`, appUrl)
     );
   }
 }
