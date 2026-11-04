@@ -16,11 +16,16 @@ import {
 } from "lucide-react";
 import { getSessionUser } from "@/server/auth/session";
 import { isAdminRole } from "@/server/auth/permissions";
+import { getSiteBranding } from "@/server/branding";
 import { SidebarProvider, Sidebar, Topbar, NavSection } from "@/components/ui";
 import { UserMenu } from "@/components/layout/user-menu";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSessionUser();
+  const [session, branding] = await Promise.all([
+    getSessionUser(),
+    getSiteBranding(),
+  ]);
   const isAdmin = isAdminRole(session?.user?.role);
 
   const sections: NavSection[] = [
@@ -85,13 +90,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <div className="flex min-h-screen bg-bg text-text">
         {/* Clean 240px Collapsible Sidebar */}
-        <Sidebar sections={sections} />
+        <Sidebar
+          sections={sections}
+          header={
+            <Link href="/app" className="flex items-center gap-2 overflow-hidden py-1">
+              <BrandLogo
+                siteName={branding.site_name}
+                logoUrl={branding.logo_url}
+                logoDarkUrl={branding.logo_dark_url}
+                size="sm"
+              />
+            </Link>
+          }
+        />
 
         {/* Content Area */}
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar
             breadcrumbs={[
-              { label: "Lead Reach AI", href: "/app" },
+              { label: branding.site_name, href: "/app" },
               { label: "Workspace" },
             ]}
             userSlot={

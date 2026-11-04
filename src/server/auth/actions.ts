@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import { rateLimit } from "@/server/security/rate-limit";
 import { getAppUrl, getConfig, getRegistrationMode } from "@/server/config";
 import { sendSystemMail } from "@/server/email/system-mailer";
+import { getSiteBranding } from "@/server/branding";
 import { hashPassword, validatePasswordStrength, verifyPassword } from "./password";
 import { createSession, destroyAllSessions, destroySession, getSessionUser } from "./session";
 import { randomToken, sha256 } from "./token";
@@ -30,11 +31,37 @@ async function issueToken(identifier: string, purpose: string, ttlMs: number) {
 
 async function sendVerificationEmail(email: string) {
   const token = await issueToken(email, "verify_email", 24 * HOUR);
-  const url = `${await getAppUrl()}/api/v1/auth/verify?token=${token}`;
+  const [appUrl, branding] = await Promise.all([
+    getAppUrl(),
+    getSiteBranding(),
+  ]);
+  const url = `${appUrl}/api/v1/auth/verify?token=${token}`;
+  const logoHtml = branding.logo_url
+    ? `<img src="${branding.logo_url}" alt="${branding.site_name}" style="height:36px;margin-bottom:20px;border-radius:6px;" />`
+    : `<h2 style="color:#6366f1;margin-bottom:20px;">${branding.site_name}</h2>`;
+
   return sendSystemMail({
     to: email,
-    subject: "Verify your Lead Reach AI email",
-    text: `Welcome to Lead Reach AI!\n\nConfirm your email address:\n${url}\n\nThis link expires in 24 hours.`,
+    subject: `Verify your ${branding.site_name} email`,
+    text: `Welcome to ${branding.site_name}!\n\nConfirm your email address:\n${url}\n\nThis link expires in 24 hours.`,
+    html: `
+      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#1e293b;line-height:1.6;">
+        ${logoHtml}
+        <h3 style="font-size:20px;font-weight:700;margin-bottom:12px;color:#0f172a;">Welcome to ${branding.site_name}!</h3>
+        <p style="margin-bottom:24px;font-size:14px;color:#475569;">
+          Please confirm your email address by clicking the button below to get started with your automation workspace:
+        </p>
+        <div style="margin:28px 0;">
+          <a href="${url}" style="background-color:#4f46e5;color:#ffffff;padding:12px 28px;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;display:inline-block;">
+            Verify Email Address
+          </a>
+        </div>
+        <p style="font-size:12px;color:#94a3b8;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px;">
+          This link will expire in 24 hours. If you did not create an account, you can safely ignore this email.<br/>
+          ${branding.footer_copyright}
+        </p>
+      </div>
+    `,
   });
 }
 
@@ -219,11 +246,37 @@ export async function forgotPasswordAction(_: FormState, form: FormData): Promis
   const user = await db.users.findUnique({ where: { email: parsed.data.email } });
   if (user && user.status === "active") {
     const token = await issueToken(user.email, "reset_password", HOUR);
-    const url = `${await getAppUrl()}/reset-password?token=${token}`;
+    const [appUrl, branding] = await Promise.all([
+      getAppUrl(),
+      getSiteBranding(),
+    ]);
+    const url = `${appUrl}/reset-password?token=${token}`;
+    const logoHtml = branding.logo_url
+      ? `<img src="${branding.logo_url}" alt="${branding.site_name}" style="height:36px;margin-bottom:20px;border-radius:6px;" />`
+      : `<h2 style="color:#6366f1;margin-bottom:20px;">${branding.site_name}</h2>`;
+
     await sendSystemMail({
       to: user.email,
-      subject: "Reset your Lead Reach AI password",
+      subject: `Reset your ${branding.site_name} password`,
       text: `Reset your password:\n${url}\n\nThe link works once and expires in 1 hour. If you didn't ask for this, ignore this email.`,
+      html: `
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:540px;margin:0 auto;padding:32px 24px;color:#1e293b;line-height:1.6;">
+          ${logoHtml}
+          <h3 style="font-size:20px;font-weight:700;margin-bottom:12px;color:#0f172a;">Password Reset Request</h3>
+          <p style="margin-bottom:24px;font-size:14px;color:#475569;">
+            We received a request to reset the password for your ${branding.site_name} account. Click below to choose a new password:
+          </p>
+          <div style="margin:28px 0;">
+            <a href="${url}" style="background-color:#4f46e5;color:#ffffff;padding:12px 28px;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;display:inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p style="font-size:12px;color:#94a3b8;margin-top:32px;border-top:1px solid #e2e8f0;padding-top:16px;">
+            This link is valid for 1 hour. If you did not make this request, you can safely ignore this email.<br/>
+            ${branding.footer_copyright}
+          </p>
+        </div>
+      `,
     });
   }
   return { message: "If that email has an account, a reset link is on its way." };

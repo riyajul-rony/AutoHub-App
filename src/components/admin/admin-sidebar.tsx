@@ -24,6 +24,7 @@ import {
 import { StatusBadge } from "@/components/admin/status-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export interface AdminNavItem {
   href: string;
@@ -53,9 +54,14 @@ interface AdminSidebarProps {
     email: string;
     role: string;
   };
+  siteBranding?: {
+    site_name: string;
+    logo_url?: string | null;
+    logo_dark_url?: string | null;
+  };
 }
 
-export function AdminSidebar({ navItems, admin }: AdminSidebarProps) {
+export function AdminSidebar({ navItems, admin, siteBranding }: AdminSidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -129,12 +135,19 @@ export function AdminSidebar({ navItems, admin }: AdminSidebarProps) {
         {/* Brand / Logo */}
         <div className="mb-6 flex items-center justify-between px-1">
           <Link href="/admin" className="flex items-center gap-2.5 font-semibold text-sm">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand">
-              <Shield size={18} />
-            </div>
+            <BrandLogo
+              siteName="Control Center"
+              logoUrl={siteBranding?.logo_url}
+              logoDarkUrl={siteBranding?.logo_dark_url}
+              size="sm"
+              fallbackIcon={<Shield size={16} />}
+              showText={false}
+            />
             <div>
               <div className="font-bold text-sm text-fg leading-tight">Control Center</div>
-              <div className="text-[10px] text-muted font-normal">Lead Reach AI</div>
+              <div className="text-[10px] text-muted font-normal">
+                {siteBranding?.site_name || "Lead Reach AI"}
+              </div>
             </div>
           </Link>
           <div className="md:hidden">

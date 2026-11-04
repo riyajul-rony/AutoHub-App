@@ -15,6 +15,7 @@ import {
   Checkbox,
   ThemeToggle,
 } from "@/components/ui";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 const CATEGORIES = [
   "Real Estate",
@@ -41,9 +42,15 @@ const MODULE_OPTIONS = [
 export function OnboardingWizard({
   initialTimezone,
   userEmail: _userEmail,
+  siteBranding,
 }: {
   initialTimezone: string;
   userEmail: string;
+  siteBranding?: {
+    site_name: string;
+    logo_url?: string | null;
+    logo_dark_url?: string | null;
+  };
 }) {
   const [step, setStep] = useState(1);
   const [businessName, setBusinessName] = useState("");
@@ -65,12 +72,12 @@ export function OnboardingWizard({
     <div className="w-full max-w-xl mx-auto space-y-6">
       {/* Top Header with Brand & Theme Toggle */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 font-semibold text-text text-sm tracking-tight select-none">
-          <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
-            A
-          </span>
-          <span>Lead Reach AI Workspace Setup</span>
-        </div>
+        <BrandLogo
+          siteName={`${siteBranding?.site_name || "Lead Reach AI"} Workspace Setup`}
+          logoUrl={siteBranding?.logo_url}
+          logoDarkUrl={siteBranding?.logo_dark_url}
+          size="sm"
+        />
         <ThemeToggle />
       </div>
 

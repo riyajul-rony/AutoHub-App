@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Shield } from "lucide-react";
 import { requireAdmin } from "@/server/auth/guards";
 import { hasPermission, AdminPermission, ROLE_LABELS } from "@/server/auth/permissions";
+import { getSiteBranding } from "@/server/branding";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AdminSidebar, AdminNavItem } from "@/components/admin/admin-sidebar";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,10 @@ const adminNavConfig: NavConfigItem[] = [
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const admin = await requireAdmin();
+  const [admin, branding] = await Promise.all([
+    requireAdmin(),
+    getSiteBranding(),
+  ]);
 
   // Dynamic menu filtering based on role permissions
   const visibleNav: AdminNavItem[] = adminNavConfig
@@ -57,6 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           email: admin.email,
           role: admin.role,
         }}
+        siteBranding={branding}
       />
 
       {/* Main Content Area */}

@@ -20,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LandingHeader } from "@/components/landing/landing-header";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { ProductPreview } from "@/components/landing/product-preview";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { FAQSection } from "@/components/landing/faq-section";
@@ -39,7 +40,11 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-bg text-fg selection:bg-primary selection:text-primaryText">
       {/* Sticky Top Navigation */}
-      <LandingHeader siteName={branding.site_name} logoUrl={branding.logo_url} />
+      <LandingHeader
+        siteName={branding.site_name}
+        logoUrl={branding.logo_url}
+        logoDarkUrl={branding.logo_dark_url}
+      />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -448,21 +453,12 @@ export default async function HomePage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
             {/* Brand Col */}
             <div className="col-span-2 space-y-3">
-              <div className="flex items-center gap-2">
-                {branding.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={branding.logo_url}
-                    alt={branding.site_name}
-                    className="h-7 w-7 object-contain rounded-lg"
-                  />
-                ) : (
-                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primaryText font-bold shadow-sm">
-                    <Zap size={15} />
-                  </span>
-                )}
-                <span className="font-bold text-base text-fg">{branding.site_name}</span>
-              </div>
+              <BrandLogo
+                siteName={branding.site_name}
+                logoUrl={branding.logo_url}
+                logoDarkUrl={branding.logo_dark_url}
+                size="md"
+              />
               <p className="text-xs text-muted max-w-xs leading-relaxed">
                 {branding.tagline}
               </p>

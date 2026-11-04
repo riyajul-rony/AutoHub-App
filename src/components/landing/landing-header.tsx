@@ -5,13 +5,16 @@ import Link from "next/link";
 import { Zap, Menu, X, ArrowRight } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export function LandingHeader({
   siteName = "Lead Reach AI",
   logoUrl,
+  logoDarkUrl,
 }: {
   siteName?: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -20,18 +23,13 @@ export function LandingHeader({
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt={siteName}
-              className="h-8 w-8 object-contain rounded-lg"
-            />
-          ) : (
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primaryText font-bold shadow-sm group-hover:opacity-90 transition-opacity">
-              <Zap size={18} />
-            </span>
-          )}
+          <BrandLogo
+            siteName={siteName}
+            logoUrl={logoUrl}
+            logoDarkUrl={logoDarkUrl}
+            size="md"
+            showText={false}
+          />
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-lg tracking-tight text-fg">{siteName}</span>
             <span className="rounded border border-border bg-bgSubtle px-1.5 py-0.2 text-[10px] font-mono font-medium text-muted">

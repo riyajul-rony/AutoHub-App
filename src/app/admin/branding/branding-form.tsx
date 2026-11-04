@@ -5,13 +5,16 @@ import { SiteBranding, DEFAULT_BRANDING } from "@/types/branding";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, Sparkles, Globe, Layout, Shield, ArrowRight } from "lucide-react";
+import { CheckCircle2, AlertCircle, Sparkles, Globe, Layout, Shield, ArrowRight, Sun, Moon } from "lucide-react";
+import { BrandingImageUploader } from "@/components/admin/branding-image-uploader";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export function BrandingForm({ initialBranding }: { initialBranding: SiteBranding }) {
   const [branding, setBranding] = useState<SiteBranding>(initialBranding);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewTheme, setPreviewTheme] = useState<"light" | "dark">("dark");
 
   const handleChange = (field: keyof SiteBranding, value: string) => {
     setBranding((prev) => ({ ...prev, [field]: value }));
@@ -94,12 +97,35 @@ export function BrandingForm({ initialBranding }: { initialBranding: SiteBrandin
                 placeholder="Modern B2B Growth Engine"
               />
 
-              <Input
-                label="Logo Image URL (Optional)"
-                value={branding.logo_url || ""}
-                onChange={(e) => handleChange("logo_url", e.target.value)}
-                placeholder="https://... or /api/v1/uploads/..."
-                helperText="If omitted, the default SVG brand mark is rendered."
+              {/* Primary Logo (Light Theme) */}
+              <BrandingImageUploader
+                label="Primary Logo (Light Theme)"
+                description="Main application logo. Used on light backgrounds, auth pages, and emails. If no dark logo is provided, this logo will be used in both themes."
+                targetType="logo_light"
+                value={branding.logo_url}
+                onChange={(val) => handleChange("logo_url", val || "")}
+                maxSizeMb={2}
+              />
+
+              {/* Dark Mode Logo (Optional) */}
+              <BrandingImageUploader
+                label="Dark Mode Logo (Optional)"
+                description="Custom inverted/contrasting logo variant displayed when dark theme is active. If omitted, the primary logo is used automatically."
+                targetType="logo_dark"
+                value={branding.logo_dark_url}
+                onChange={(val) => handleChange("logo_dark_url", val || "")}
+                maxSizeMb={2}
+              />
+
+              {/* Browser Tab Favicon */}
+              <BrandingImageUploader
+                label="Browser Tab Favicon (Optional)"
+                description="Icon displayed in browser tab headers and bookmarks (PNG, ICO, or SVG, max 512KB)."
+                targetType="favicon"
+                value={branding.favicon_url}
+                onChange={(val) => handleChange("favicon_url", val || "")}
+                maxSizeMb={0.5}
+                previewHeight="h-10"
               />
             </CardContent>
           </Card>
@@ -220,6 +246,17 @@ export function BrandingForm({ initialBranding }: { initialBranding: SiteBrandin
                   placeholder="High-precision lead generation, multi-account cold email outreach..."
                 />
               </div>
+
+              {/* Social Share / OG Image */}
+              <BrandingImageUploader
+                label="Social Share / OG Image (1200x630)"
+                description="Preview image displayed when links to your site are shared on LinkedIn, Twitter, Facebook, or chat apps."
+                targetType="og_image"
+                value={branding.og_image}
+                onChange={(val) => handleChange("og_image", val || "")}
+                maxSizeMb={2}
+                previewHeight="h-20"
+              />
             </CardContent>
           </Card>
 
@@ -241,31 +278,72 @@ export function BrandingForm({ initialBranding }: { initialBranding: SiteBrandin
             <h3 className="text-xs font-semibold uppercase tracking-wider text-text-subtle">
               Live Preview
             </h3>
-            <span className="text-[11px] text-text-muted">Real-time simulator</span>
+            {/* Theme simulator toggle */}
+            <div className="flex items-center gap-1 rounded-md border border-border bg-bgSubtle p-0.5">
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("light")}
+                className={`p-1 rounded text-xs flex items-center gap-1 cursor-pointer transition ${
+                  previewTheme === "light"
+                    ? "bg-surface text-fg shadow-xs font-semibold"
+                    : "text-muted hover:text-fg"
+                }`}
+                title="Preview Light Theme"
+              >
+                <Sun size={12} /> <span className="text-[10px]">Light</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("dark")}
+                className={`p-1 rounded text-xs flex items-center gap-1 cursor-pointer transition ${
+                  previewTheme === "dark"
+                    ? "bg-surface text-fg shadow-xs font-semibold"
+                    : "text-muted hover:text-fg"
+                }`}
+                title="Preview Dark Theme"
+              >
+                <Moon size={12} /> <span className="text-[10px]">Dark</span>
+              </button>
+            </div>
           </div>
 
-          {/* Mini Header Preview */}
-          <div className="rounded-[8px] border border-border bg-surface p-4 shadow-sm space-y-4">
+          {/* Browser Tab Simulator */}
+          <div className="rounded-[8px] border border-border bg-surface p-2 shadow-xs">
+            <div className="flex items-center gap-2 px-2 py-1 rounded bg-bgSubtle border border-border/60 max-w-[200px]">
+              {branding.favicon_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={branding.favicon_url}
+                  alt="Favicon"
+                  className="h-3.5 w-3.5 object-contain rounded-xs shrink-0"
+                />
+              ) : (
+                <div className="h-3.5 w-3.5 rounded-xs bg-primary text-primary-text grid place-items-center text-[8px] font-bold">
+                  {branding.site_name.charAt(0)}
+                </div>
+              )}
+              <span className="text-[11px] text-fg truncate font-medium">
+                {branding.site_name}
+              </span>
+            </div>
+          </div>
+
+          {/* Mini Header & Hero Preview (with data-theme simulator) */}
+          <div
+            data-theme={previewTheme}
+            className={`rounded-[8px] border border-border p-4 shadow-sm space-y-4 transition-colors ${
+              previewTheme === "dark" ? "bg-neutral-950 text-neutral-100" : "bg-white text-neutral-900"
+            }`}
+          >
             <div className="flex items-center justify-between border-b border-border/50 pb-3">
-              <div className="flex items-center gap-2">
-                {branding.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={branding.logo_url}
-                    alt={branding.site_name}
-                    className="h-6 w-6 object-contain rounded"
-                  />
-                ) : (
-                  <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-bold font-mono">
-                    {branding.site_name.charAt(0)}
-                  </span>
-                )}
-                <span className="font-bold text-sm tracking-tight text-text">
-                  {branding.site_name || "Lead Reach AI"}
-                </span>
-              </div>
+              <BrandLogo
+                siteName={branding.site_name}
+                logoUrl={branding.logo_url}
+                logoDarkUrl={branding.logo_dark_url}
+                size="sm"
+              />
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-text-muted px-2 py-0.5 rounded border border-border">
+                <span className="text-[10px] text-muted px-2 py-0.5 rounded border border-border">
                   Sign In
                 </span>
                 <span className="text-[10px] bg-primary text-primary-text px-2 py-0.5 rounded font-medium">
@@ -276,18 +354,18 @@ export function BrandingForm({ initialBranding }: { initialBranding: SiteBrandin
 
             {/* Mini Hero Preview */}
             <div className="py-4 text-center space-y-2.5">
-              <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-0.5 text-[10px] font-medium text-text-muted">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-bgSubtle px-2.5 py-0.5 text-[10px] font-medium text-muted">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 <span>{branding.site_name}</span>
                 <span>•</span>
                 <span>{branding.tagline}</span>
               </div>
 
-              <h2 className="text-lg font-bold text-text leading-tight px-2">
+              <h2 className="text-lg font-bold leading-tight px-2">
                 {branding.hero_title}
               </h2>
 
-              <p className="text-xs text-text-muted leading-relaxed line-clamp-3 px-2">
+              <p className="text-xs text-muted leading-relaxed line-clamp-3 px-2">
                 {branding.hero_subtitle}
               </p>
 
@@ -299,15 +377,40 @@ export function BrandingForm({ initialBranding }: { initialBranding: SiteBrandin
             </div>
 
             {/* Mini Footer Preview */}
-            <div className="border-t border-border/50 pt-3 text-[11px] text-text-muted flex items-center justify-between">
+            <div className="border-t border-border/50 pt-3 text-[11px] text-muted flex items-center justify-between">
               <span>{branding.footer_copyright}</span>
               <span>{branding.support_email}</span>
             </div>
           </div>
 
+          {/* Social Share Preview Card (if OG image exists) */}
+          {branding.og_image && (
+            <div className="rounded-[8px] border border-border bg-surface p-3 space-y-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted">
+                Social Share Preview (Open Graph)
+              </div>
+              <div className="rounded border border-border overflow-hidden bg-bgSubtle">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={branding.og_image}
+                  alt="OG Preview"
+                  className="w-full h-32 object-cover"
+                />
+                <div className="p-2.5 space-y-1">
+                  <p className="text-xs font-bold text-fg truncate">
+                    {branding.seo_title || branding.site_name}
+                  </p>
+                  <p className="text-[11px] text-muted line-clamp-2 leading-snug">
+                    {branding.seo_description || branding.tagline}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-[8px] border border-border/50 bg-bg-subtle p-3 text-[11px] text-text-muted">
             <p className="font-semibold text-text mb-0.5">Instant Reflection</p>
-            Changes take effect immediately across all public routes, email footers, and layout headers without needing a server restart.
+            Changes take effect immediately across all public routes, sidebar, browser tab favicon, and layout headers without needing a server restart.
           </div>
         </div>
       </div>

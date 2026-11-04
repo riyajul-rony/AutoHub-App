@@ -1,8 +1,10 @@
 import React from "react";
 import Link from "next/link";
 import { ThemeToggle, Card, CardContent } from "@/components/ui";
+import { getSiteBranding } from "@/server/branding";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
-export function AuthShell({
+export async function AuthShell({
   title,
   subtitle,
   children,
@@ -13,15 +15,19 @@ export function AuthShell({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const branding = await getSiteBranding();
+
   return (
     <main className="min-h-screen flex flex-col justify-between p-4 sm:p-6 bg-bg text-text">
       {/* Top Bar with Brand & Theme Toggle */}
       <div className="w-full max-w-md mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-semibold text-text text-sm tracking-tight select-none">
-          <span className="w-6 h-6 rounded-[5px] bg-primary text-primary-text flex items-center justify-center text-xs font-mono font-bold">
-            A
-          </span>
-          <span>Lead Reach AI</span>
+          <BrandLogo
+            siteName={branding.site_name}
+            logoUrl={branding.logo_url}
+            logoDarkUrl={branding.logo_dark_url}
+            size="sm"
+          />
         </Link>
         <ThemeToggle />
       </div>
@@ -48,7 +54,7 @@ export function AuthShell({
 
       {/* Bottom Copyright */}
       <div className="w-full max-w-md mx-auto text-center text-[11px] text-text-subtle">
-        <span>© {new Date().getFullYear()} Cerkit Labs. All rights reserved.</span>
+        {branding.footer_copyright}
       </div>
     </main>
   );

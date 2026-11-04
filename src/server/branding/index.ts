@@ -53,10 +53,13 @@ export async function saveSiteBranding(data: Partial<SiteBranding>): Promise<Sit
     seo_title: data.seo_title?.trim() || current.seo_title,
     seo_description: data.seo_description?.trim() || current.seo_description,
     logo_url: data.logo_url !== undefined ? data.logo_url : current.logo_url,
+    logo_dark_url: data.logo_dark_url !== undefined ? data.logo_dark_url : current.logo_dark_url,
+    favicon_url: data.favicon_url !== undefined ? data.favicon_url : current.favicon_url,
     twitter_url: data.twitter_url !== undefined ? data.twitter_url : current.twitter_url,
     linkedin_url: data.linkedin_url !== undefined ? data.linkedin_url : current.linkedin_url,
     github_url: data.github_url !== undefined ? data.github_url : current.github_url,
     og_image: data.og_image !== undefined ? data.og_image : current.og_image,
+    updated_at: new Date().toISOString(),
   };
 
   const encrypted = encrypt(JSON.stringify(updated));
