@@ -181,9 +181,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         }
                       }}
                       title={collapsed ? item.label : undefined}
-                      className={`flex-1 flex items-center gap-2.5 px-2.5 py-1.5 rounded-[6px] text-xs font-medium transition-colors ${
+                      className={`flex-1 relative flex items-center gap-2.5 px-2.5 py-1.5 rounded-[6px] text-xs font-medium transition-colors ${
                         isActive
-                          ? "bg-surface-hover text-text font-semibold border border-border/80"
+                          ? "bg-surface-hover text-text font-semibold border border-border/80 before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-[var(--brand-emerald)]"
                           : "text-text-muted hover:text-text hover:bg-surface-hover/60 border border-transparent"
                       } ${collapsed ? "justify-center px-0" : ""}`}
                     >
@@ -242,9 +242,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <Link
                               key={sub.id}
                               href={sub.href}
-                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-[5px] text-xs font-medium transition-colors ${
+                              className={`flex items-center justify-between px-2.5 py-1.5 rounded-[5px] text-xs font-medium transition-colors relative ${
                                 isSubActive
-                                  ? "bg-surface-hover text-text font-semibold border border-border/80 shadow-xs"
+                                  ? "bg-surface-hover text-text font-semibold border border-border/80 shadow-xs before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-[var(--brand-emerald)]"
                                   : "text-text-muted hover:text-text hover:bg-surface-hover/60 border border-transparent"
                               }`}
                             >

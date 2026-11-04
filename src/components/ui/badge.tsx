@@ -22,19 +22,19 @@ export const Badge: React.FC<BadgeProps> = ({
   }[size];
 
   const variantClasses = {
-    neutral: "bg-bg-subtle text-text-muted border border-border",
-    accent: "bg-accent-subtle text-accent-text border border-accent/25",
-    success: "bg-success-bg text-success border border-success/25",
-    warning: "bg-warning-bg text-warning border border-warning/25",
-    danger: "bg-danger-bg text-danger border border-danger/25",
+    neutral: "bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)] border border-[var(--badge-neutral-border)]",
+    accent: "bg-[var(--badge-success-bg)] text-[var(--badge-success-text)] border border-[var(--badge-success-border)]",
+    success: "bg-[var(--badge-success-bg)] text-[var(--badge-success-text)] border border-[var(--badge-success-border)]",
+    warning: "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)] border border-[var(--badge-warning-border)]",
+    danger: "bg-[var(--badge-danger-bg)] text-[var(--badge-danger-text)] border border-[var(--badge-danger-border)]",
   }[variant];
 
   const dotClasses = {
-    neutral: "bg-text-muted",
-    accent: "bg-accent",
-    success: "bg-success",
-    warning: "bg-warning",
-    danger: "bg-danger",
+    neutral: "bg-[var(--badge-neutral-dot)]",
+    accent: "bg-[var(--badge-success-dot)]",
+    success: "bg-[var(--badge-success-dot)]",
+    warning: "bg-[var(--badge-warning-dot)]",
+    danger: "bg-[var(--badge-danger-dot)]",
   }[variant];
 
   return (

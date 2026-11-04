@@ -37,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // Minimal Linear/Notion variants with strict WCAG AA contrast in both themes
     const variantClasses = {
       primary:
-        "bg-primary text-primary-foreground border border-primary hover:opacity-90 active:translate-y-px",
+        "bg-[var(--brand-emerald)] text-[var(--brand-emerald-fg)] font-semibold border border-[var(--brand-emerald)] hover:bg-[var(--brand-emerald-hover)] hover:opacity-95 active:translate-y-px",
       secondary:
         "bg-surface text-text border border-border hover:bg-surface-hover hover:border-border-strong active:translate-y-px",
       outline:

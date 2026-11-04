@@ -20,3 +20,5 @@ export * from "./page-header";
 export * from "./theme-toggle";
 export * from "./sidebar";
 export * from "./topbar";
+export * from "./icon-chip";
+export * from "./stat-card";

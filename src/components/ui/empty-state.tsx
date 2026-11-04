@@ -29,7 +29,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     <div
       className={`flex flex-col items-center justify-center p-8 text-center rounded-[8px] border border-dashed border-border bg-surface/50 ${className}`}
     >
-      <div className="w-10 h-10 rounded-[6px] bg-bg-subtle border border-border flex items-center justify-center text-text-muted mb-3 shrink-0">
+      <div className="w-11 h-11 rounded-[10px] bg-[var(--brand-emerald-subtle)] border border-[var(--brand-emerald-border)] flex items-center justify-center text-[var(--badge-success-text)] mb-3 shrink-0 shadow-xs">
         {icon}
       </div>
       <h4 className="text-sm font-semibold text-text leading-tight">{title}</h4>

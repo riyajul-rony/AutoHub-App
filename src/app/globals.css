@@ -60,21 +60,50 @@ html[data-theme="dark"] {
   --muted-foreground: #A1A1AA;
   --text-muted: #A1A1AA;
   --text-subtle: #8F8F99;
-  --primary: #FAFAFA;
-  --primary-foreground: #09090B;
-  --primary-text: #09090B;
+
+  /* Restrained Emerald Brand Accent Tokens (Dark) */
+  --brand-emerald: #10B981;
+  --brand-emerald-fg: #041F16;
+  --brand-emerald-hover: #059669;
+  --brand-emerald-subtle: rgba(16, 185, 129, 0.12);
+  --brand-emerald-border: rgba(16, 185, 129, 0.25);
+
+  --primary: #10B981;
+  --primary-foreground: #041F16;
+  --primary-text: #041F16;
   --secondary: #27272A;
   --secondary-foreground: #FAFAFA;
-  --accent: #FAFAFA;
-  --accent-subtle: #1E1B4B;
-  --accent-text: #FAFAFA;
-  --success: #4ADE80;
-  --success-bg: #052E16;
+  --accent: #10B981;
+  --accent-subtle: rgba(16, 185, 129, 0.12);
+  --accent-text: #34D399;
+  --success: #34D399;
+  --success-bg: rgba(16, 185, 129, 0.12);
   --warning: #FBBF24;
-  --warning-bg: #451A03;
-  --danger: #EF4444;
-  --danger-bg: #450A0A;
-  --focus-ring: #FAFAFA;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --danger: #F87171;
+  --danger-bg: rgba(239, 68, 68, 0.12);
+  --focus-ring: #10B981;
+
+  /* Status Badges Tokens (Dark) */
+  --badge-success-bg: rgba(16, 185, 129, 0.12);
+  --badge-success-text: #34D399;
+  --badge-success-border: rgba(16, 185, 129, 0.25);
+  --badge-success-dot: #10B981;
+
+  --badge-warning-bg: rgba(245, 158, 11, 0.12);
+  --badge-warning-text: #FBBF24;
+  --badge-warning-border: rgba(245, 158, 11, 0.25);
+  --badge-warning-dot: #F59E0B;
+
+  --badge-danger-bg: rgba(239, 68, 68, 0.12);
+  --badge-danger-text: #F87171;
+  --badge-danger-border: rgba(239, 68, 68, 0.25);
+  --badge-danger-dot: #EF4444;
+
+  --badge-neutral-bg: rgba(161, 161, 170, 0.10);
+  --badge-neutral-text: #A1A1AA;
+  --badge-neutral-border: rgba(161, 161, 170, 0.20);
+  --badge-neutral-dot: #71717A;
 
   /* Continuity aliases */
   --color-bg: var(--bg);
@@ -101,21 +130,50 @@ html[data-theme="light"] {
   --muted-foreground: #52525B;
   --text-muted: #52525B;
   --text-subtle: #71717A;
-  --primary: #18181B;
+
+  /* Restrained Emerald Brand Accent Tokens (Light) */
+  --brand-emerald: #059669;
+  --brand-emerald-fg: #FFFFFF;
+  --brand-emerald-hover: #047857;
+  --brand-emerald-subtle: rgba(5, 150, 105, 0.10);
+  --brand-emerald-border: rgba(5, 150, 105, 0.20);
+
+  --primary: #059669;
   --primary-foreground: #FFFFFF;
   --primary-text: #FFFFFF;
   --secondary: #F4F4F5;
   --secondary-foreground: #18181B;
-  --accent: #18181B;
-  --accent-subtle: #F4F4F5;
-  --accent-text: #18181B;
-  --success: #15803D;
-  --success-bg: #F0FDF4;
+  --accent: #059669;
+  --accent-subtle: rgba(5, 150, 105, 0.10);
+  --accent-text: #047857;
+  --success: #047857;
+  --success-bg: rgba(5, 150, 105, 0.10);
   --warning: #B45309;
-  --warning-bg: #FFFBEB;
+  --warning-bg: rgba(180, 83, 9, 0.10);
   --danger: #B91C1C;
-  --danger-bg: #FEF2F2;
-  --focus-ring: #18181B;
+  --danger-bg: rgba(185, 28, 28, 0.10);
+  --focus-ring: #059669;
+
+  /* Status Badges Tokens (Light) */
+  --badge-success-bg: rgba(5, 150, 105, 0.10);
+  --badge-success-text: #047857;
+  --badge-success-border: rgba(5, 150, 105, 0.20);
+  --badge-success-dot: #059669;
+
+  --badge-warning-bg: rgba(180, 83, 9, 0.10);
+  --badge-warning-text: #B45309;
+  --badge-warning-border: rgba(180, 83, 9, 0.20);
+  --badge-warning-dot: #D97706;
+
+  --badge-danger-bg: rgba(185, 28, 28, 0.10);
+  --badge-danger-text: #B91C1C;
+  --badge-danger-border: rgba(185, 28, 28, 0.20);
+  --badge-danger-dot: #DC2626;
+
+  --badge-neutral-bg: rgba(82, 82, 91, 0.08);
+  --badge-neutral-text: #52525B;
+  --badge-neutral-border: rgba(82, 82, 91, 0.20);
+  --badge-neutral-dot: #71717A;
 
   /* Continuity aliases */
   --color-bg: var(--bg);
@@ -204,7 +262,7 @@ textarea {
 }
 
 /* ───────────── Clean Linear/Notion Foundation Components ───────────── */
-/* Clean Card (No shadow, 1px border, 8px radius) */
+/* Clean Card (No shadow, 1px border, 8px radius, 150ms subtle border hover) */
 .card,
 .glass,
 .hub-card {
@@ -214,6 +272,11 @@ textarea {
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.card:hover,
+.hub-card:hover {
+  border-color: var(--border-strong);
 }
 
 /* Clean Input */
@@ -261,6 +324,7 @@ textarea {
   cursor: pointer;
   border: 1px solid transparent;
   outline: none;
+  transition: background-color 150ms ease, border-color 150ms ease, opacity 150ms ease;
 }
 .btn:focus-visible {
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus-ring);
@@ -324,19 +388,34 @@ textarea {
   opacity: 0.9;
 }
 
-/* Clean Badge */
+/* Status Badges */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   height: 22px;
   padding: 0 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  background-color: var(--bg-subtle);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
+  background-color: var(--badge-neutral-bg);
+  color: var(--badge-neutral-text);
+  border: 1px solid var(--badge-neutral-border);
+}
+.badge-success {
+  background-color: var(--badge-success-bg);
+  color: var(--badge-success-text);
+  border-color: var(--badge-success-border);
+}
+.badge-warning {
+  background-color: var(--badge-warning-bg);
+  color: var(--badge-warning-text);
+  border-color: var(--badge-warning-border);
+}
+.badge-danger {
+  background-color: var(--badge-danger-bg);
+  color: var(--badge-danger-text);
+  border-color: var(--badge-danger-border);
 }
 
 /* Typography Helpers */
