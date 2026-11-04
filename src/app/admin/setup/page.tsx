@@ -31,6 +31,11 @@ export default async function AdminSetupPage() {
     rawMetaAppSecret,
     rawGoogleClientId,
     rawGoogleClientSecret,
+    rawSmtpHost,
+    rawSmtpPort,
+    rawSmtpUser,
+    rawSmtpPass,
+    rawSmtpFrom,
   ] = await Promise.all([
     getGlobalPlatformSettings(),
     db.plans
@@ -45,6 +50,11 @@ export default async function AdminSetupPage() {
     getConfig("META_APP_SECRET"),
     getConfig("GOOGLE_CLIENT_ID"),
     getConfig("GOOGLE_CLIENT_SECRET"),
+    getConfig("SYSTEM_SMTP_HOST"),
+    getConfig("SYSTEM_SMTP_PORT"),
+    getConfig("SYSTEM_SMTP_USER"),
+    getConfig("SYSTEM_SMTP_PASS"),
+    getConfig("SYSTEM_SMTP_FROM"),
   ]);
 
   const credentials = {
@@ -58,6 +68,13 @@ export default async function AdminSetupPage() {
     googleConfigured: Boolean(rawGoogleClientId && rawGoogleClientSecret),
     googleClientId: rawGoogleClientId || "",
     googleClientSecretMasked: maskSecret(rawGoogleClientSecret, 0),
+
+    smtpConfigured: Boolean(rawSmtpHost && rawSmtpFrom),
+    smtpHost: rawSmtpHost || "",
+    smtpPort: rawSmtpPort || "587",
+    smtpUser: rawSmtpUser || "",
+    smtpPassMasked: maskSecret(rawSmtpPass, 0),
+    smtpFrom: rawSmtpFrom || "",
   };
 
   return (

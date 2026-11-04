@@ -92,10 +92,20 @@ export async function signupAction(_: FormState, form: FormData): Promise<FormSt
     const mail = await sendVerificationEmail(email);
     if (!mail.ok) {
       await db.activity_logs.create({
-        data: { user_id: user.id, type: "email.verify_failed", message: "Verification email could not be sent (system SMTP)." },
+        data: {
+          user_id: user.id,
+          type: "email.verify_failed",
+          message: `Verification email delivery failed: ${mail.error || "System SMTP"}`,
+        },
       });
+      await createSession(user.id);
+      redirect(`/verify-email?delivery_error=${encodeURIComponent(mail.error || "Could not deliver email")}&email=${encodeURIComponent(email)}`);
     }
+
+    await createSession(user.id);
+    redirect(`/verify-email?sent=1&email=${encodeURIComponent(email)}`);
   }
+
   // Same response whether or not the email already existed (no account enumeration).
   redirect(`/verify-email?sent=1&email=${encodeURIComponent(email)}`);
 }
@@ -144,14 +154,27 @@ export async function logoutAllAction() {
   redirect("/login");
 }
 
-export async function resendVerificationAction(): Promise<FormState> {
+export async function resendVerificationAction(_?: FormState, form?: FormData): Promise<FormState> {
   const s = await getSessionUser();
-  if (!s) return { error: "Please log in first." };
-  if (s.user.email_verified_at) return { message: "Your email is already verified." };
-  const rl = await rateLimit(`resend:${s.user.id}`, 3, HOUR);
-  if (!rl.ok) return { error: "Please wait before requesting another email." };
-  const r = await sendVerificationEmail(s.user.email);
-  return r.ok ? { message: "Verification email sent." } : { error: r.error };
+  let targetEmail = s?.user?.email;
+
+  if (!targetEmail && form) {
+    const raw = form.get("email");
+    if (typeof raw === "string" && raw.includes("@")) {
+      targetEmail = raw.trim().toLowerCase();
+    }
+  }
+
+  if (!targetEmail) return { error: "Please log in first to request a verification email." };
+  if (s?.user?.email_verified_at) return { message: "Your email is already verified." };
+
+  const rl = await rateLimit(`resend:${targetEmail}`, 3, HOUR);
+  if (!rl.ok) return { error: "Please wait 15 minutes before requesting another verification email." };
+
+  const r = await sendVerificationEmail(targetEmail);
+  return r.ok
+    ? { message: "A new verification link has been sent to your email." }
+    : { error: `Verification email delivery failed: ${r.error || "System SMTP error"}` };
 }
 
 const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email() });

@@ -16,6 +16,7 @@ import {
   Radio,
   Lock,
   Zap,
+  Mail,
 } from "lucide-react";
 import { GlobalPlatformSettings, RegistrationMode } from "@/server/config";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,12 @@ interface CredentialsInfo {
   googleConfigured: boolean;
   googleClientId: string;
   googleClientSecretMasked: string;
+  smtpConfigured?: boolean;
+  smtpHost?: string;
+  smtpPort?: string;
+  smtpUser?: string;
+  smtpPassMasked?: string;
+  smtpFrom?: string;
 }
 
 interface PlanOption {
@@ -80,6 +87,14 @@ export function AdminSetupForm({
   const [googleClientSecret, setGoogleClientSecret] = useState<string>("");
   const [openaiApiKey, setOpenaiApiKey] = useState<string>("");
 
+  // SMTP Email State
+  const [smtpHost, setSmtpHost] = useState<string>(initialCredentials.smtpHost || "");
+  const [smtpPort, setSmtpPort] = useState<string>(initialCredentials.smtpPort || "587");
+  const [smtpUser, setSmtpUser] = useState<string>(initialCredentials.smtpUser || "");
+  const [smtpPass, setSmtpPass] = useState<string>("");
+  const [smtpFrom, setSmtpFrom] = useState<string>(initialCredentials.smtpFrom || "");
+  const [testEmailTarget, setTestEmailTarget] = useState<string>("");
+
   // Test Connection States
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<
@@ -91,7 +106,7 @@ export function AdminSetupForm({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleTestConnection = async (provider: "openai" | "google" | "meta") => {
+  const handleTestConnection = async (provider: "openai" | "google" | "meta" | "smtp") => {
     setTestingProvider(provider);
     setTestResults((prev) => {
       const next = { ...prev };
@@ -100,15 +115,26 @@ export function AdminSetupForm({
     });
 
     try {
-      const res = await fetch(`/api/admin/setup/test-connection?provider=${provider}`, {
+      const payload: any = { provider };
+      if (provider === "smtp") {
+        payload.host = smtpHost;
+        payload.port = smtpPort;
+        payload.user = smtpUser;
+        payload.pass = smtpPass;
+        payload.from = smtpFrom;
+        payload.testEmail = testEmailTarget;
+      }
+      const res = await fetch(`/api/v1/admin/setup/test?provider=${provider}`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       setTestResults((prev) => ({
         ...prev,
         [provider]: {
-          ok: data.success,
-          message: data.message || (data.success ? "Connection operational!" : "Connection failed."),
+          ok: Boolean(data.success),
+          message: data.message || (data.success ? "Connection operational!" : data.error || "Connection failed."),
         },
       }));
     } catch {
@@ -148,8 +174,13 @@ export function AdminSetupForm({
       if (googleClientId.trim()) payload.googleClientId = googleClientId.trim();
       if (googleClientSecret.trim()) payload.googleClientSecret = googleClientSecret.trim();
       if (openaiApiKey.trim()) payload.openaiApiKey = openaiApiKey.trim();
+      if (smtpHost.trim()) payload.smtpHost = smtpHost.trim();
+      if (smtpPort.trim()) payload.smtpPort = smtpPort.trim();
+      if (smtpUser.trim()) payload.smtpUser = smtpUser.trim();
+      if (smtpPass.trim()) payload.smtpPass = smtpPass.trim();
+      if (smtpFrom.trim()) payload.smtpFrom = smtpFrom.trim();
 
-      const res = await fetch("/api/admin/setup", {
+      const res = await fetch("/api/v1/admin/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -681,6 +712,119 @@ export function AdminSetupForm({
                     placeholder={
                       initialCredentials.googleClientSecretMasked
                         ? `Saved: ${initialCredentials.googleClientSecretMasked} (leave empty to keep)`
+                        : "••••••••••••••••••••••••"
+                    }
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* System SMTP Email Gateway */}
+            <div className="rounded-xl border border-border bg-surface p-5 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-semibold flex items-center gap-2 text-fg">
+                    <Mail className="text-brand" size={18} /> System SMTP Email Gateway
+                  </h3>
+                  <p className="text-xs text-muted mt-0.5">
+                    Powers verification emails, password reset links, and system notifications (Zoho Mail, Gmail, or custom SMTP).
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={initialCredentials.smtpConfigured || (smtpHost && smtpFrom) ? "success" : "neutral"}
+                    className="text-[10px]"
+                  >
+                    {initialCredentials.smtpConfigured || (smtpHost && smtpFrom) ? "Configured" : "Not Configured"}
+                  </Badge>
+
+                  <Button
+                    type="button"
+                    onClick={() => handleTestConnection("smtp")}
+                    disabled={testingProvider === "smtp"}
+                    variant="ghost"
+                    size="sm"
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    {testingProvider === "smtp" ? (
+                      <Loader2 size={12} className="animate-spin text-brand" />
+                    ) : (
+                      <Zap size={12} className="text-brand" />
+                    )}
+                    <span>Send Test Email</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Test result message */}
+              {testResults.smtp && (
+                <div
+                  className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
+                    testResults.smtp.ok
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-300"
+                      : "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300"
+                  }`}
+                >
+                  {testResults.smtp.ok ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                  <span>{testResults.smtp.message}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">SMTP Host</label>
+                  <input
+                    type="text"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    placeholder="smtp.zoho.com"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">SMTP Port</label>
+                  <input
+                    type="text"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                    placeholder="465 (SSL) or 587 (TLS)"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">From Sender Address</label>
+                  <input
+                    type="text"
+                    value={smtpFrom}
+                    onChange={(e) => setSmtpFrom(e.target.value)}
+                    placeholder="noreply@cerkitlabs.tech"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">SMTP Username / Email</label>
+                  <input
+                    type="text"
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
+                    placeholder="noreply@cerkitlabs.tech"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted block mb-1">SMTP Password / App Password</label>
+                  <input
+                    type="password"
+                    value={smtpPass}
+                    onChange={(e) => setSmtpPass(e.target.value)}
+                    placeholder={
+                      initialCredentials.smtpPassMasked
+                        ? `Saved: ${initialCredentials.smtpPassMasked} (leave empty to keep)`
                         : "••••••••••••••••••••••••"
                     }
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-fg focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"

@@ -43,6 +43,11 @@ export async function GET() {
     metaAppSecret,
     googleClientId,
     googleClientSecret,
+    smtpHost,
+    smtpPort,
+    smtpUser,
+    smtpPass,
+    smtpFrom,
   ] = await Promise.all([
     getGlobalPlatformSettings(),
     getConfig("OPENAI_API_KEY"),
@@ -50,6 +55,11 @@ export async function GET() {
     getConfig("META_APP_SECRET"),
     getConfig("GOOGLE_CLIENT_ID"),
     getConfig("GOOGLE_CLIENT_SECRET"),
+    getConfig("SYSTEM_SMTP_HOST"),
+    getConfig("SYSTEM_SMTP_PORT"),
+    getConfig("SYSTEM_SMTP_USER"),
+    getConfig("SYSTEM_SMTP_PASS"),
+    getConfig("SYSTEM_SMTP_FROM"),
   ]);
 
   return NextResponse.json({
@@ -66,6 +76,13 @@ export async function GET() {
         googleConfigured: Boolean(googleClientId && googleClientSecret),
         googleClientId: googleClientId || "",
         googleClientSecretMasked: maskSecret(googleClientSecret, 0),
+
+        smtpConfigured: Boolean(smtpHost && smtpFrom),
+        smtpHost: smtpHost || "",
+        smtpPort: smtpPort || "587",
+        smtpUser: smtpUser || "",
+        smtpPassMasked: maskSecret(smtpPass, 0),
+        smtpFrom: smtpFrom || "",
       },
     },
   });
@@ -238,6 +255,68 @@ export async function POST(req: NextRequest) {
           update: { value_enc: encrypt(trimmed) },
         });
         changes.openaiApiKeyUpdated = true;
+      }
+    }
+
+    // SMTP Configuration
+    const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom } = body || {};
+    if (smtpHost !== undefined && typeof smtpHost === "string") {
+      const trimmed = smtpHost.trim();
+      if (trimmed) {
+        await db.system_settings.upsert({
+          where: { key: "SYSTEM_SMTP_HOST" },
+          create: { key: "SYSTEM_SMTP_HOST", value_enc: encrypt(trimmed) },
+          update: { value_enc: encrypt(trimmed) },
+        });
+        changes.smtpHost = trimmed;
+      }
+    }
+
+    if (smtpPort !== undefined) {
+      const portStr = String(smtpPort).trim();
+      if (portStr) {
+        await db.system_settings.upsert({
+          where: { key: "SYSTEM_SMTP_PORT" },
+          create: { key: "SYSTEM_SMTP_PORT", value_enc: encrypt(portStr) },
+          update: { value_enc: encrypt(portStr) },
+        });
+        changes.smtpPort = portStr;
+      }
+    }
+
+    if (smtpUser !== undefined && typeof smtpUser === "string") {
+      const trimmed = smtpUser.trim();
+      if (trimmed) {
+        await db.system_settings.upsert({
+          where: { key: "SYSTEM_SMTP_USER" },
+          create: { key: "SYSTEM_SMTP_USER", value_enc: encrypt(trimmed) },
+          update: { value_enc: encrypt(trimmed) },
+        });
+        changes.smtpUser = trimmed;
+      }
+    }
+
+    if (smtpPass && typeof smtpPass === "string") {
+      const trimmed = smtpPass.trim();
+      if (trimmed && !trimmed.startsWith("••••")) {
+        await db.system_settings.upsert({
+          where: { key: "SYSTEM_SMTP_PASS" },
+          create: { key: "SYSTEM_SMTP_PASS", value_enc: encrypt(trimmed) },
+          update: { value_enc: encrypt(trimmed) },
+        });
+        changes.smtpPassUpdated = true;
+      }
+    }
+
+    if (smtpFrom !== undefined && typeof smtpFrom === "string") {
+      const trimmed = smtpFrom.trim();
+      if (trimmed) {
+        await db.system_settings.upsert({
+          where: { key: "SYSTEM_SMTP_FROM" },
+          create: { key: "SYSTEM_SMTP_FROM", value_enc: encrypt(trimmed) },
+          update: { value_enc: encrypt(trimmed) },
+        });
+        changes.smtpFrom = trimmed;
       }
     }
 

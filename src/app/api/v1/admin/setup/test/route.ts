@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { hasPermission } from "@/server/auth/permissions";
 import { getConfig } from "@/server/config";
+import { verifySystemSmtp, sendSystemMail } from "@/server/email/system-mailer";
 
 export async function POST(req: NextRequest) {
   let session = await getSessionUser();
@@ -21,8 +22,54 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { provider, openaiApiKey, googleClientId, googleClientSecret, metaAppId, metaAppSecret } = body;
+    const body = await req.json().catch(() => ({}));
+    const provider = req.nextUrl.searchParams.get("provider") || body.provider;
+    const { openaiApiKey, googleClientId, googleClientSecret, metaAppId, metaAppSecret } = body;
+
+    if (provider === "smtp") {
+      const { testEmail, host, port, user, pass, from } = body;
+      const targetEmail = testEmail || session.user.email;
+
+      const verifyRes = await verifySystemSmtp({
+        host,
+        port,
+        user,
+        pass,
+      });
+
+      if (!verifyRes.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: verifyRes.message,
+            error: verifyRes.error,
+          },
+          { status: 400 }
+        );
+      }
+
+      // If connection verified, send a real test email
+      const sendRes = await sendSystemMail({
+        to: targetEmail,
+        subject: "Lead Reach AI — SMTP Verification Test",
+        text: `Success!\n\nYour SMTP configuration is active and working properly.\n\nSent at: ${new Date().toISOString()}\nTarget: ${targetEmail}`,
+      });
+
+      if (!sendRes.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `SMTP handshake connected, but sending test email failed: ${sendRes.error}`,
+          },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `SMTP test passed! Verification email successfully delivered to ${targetEmail}.`,
+      });
+    }
 
     if (provider === "openai") {
       const key = openaiApiKey?.trim() || (await getConfig("OPENAI_API_KEY"));
