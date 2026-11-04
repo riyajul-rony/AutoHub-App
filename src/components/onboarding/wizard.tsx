@@ -225,10 +225,10 @@ export function OnboardingWizard({
                       <div
                         key={m.id}
                         onClick={() => toggleGoal(m.id)}
-                        className={`p-3.5 rounded-[6px] border cursor-pointer select-none transition-colors ${
+                        className={`p-3.5 rounded-[8px] border cursor-pointer select-none transition-colors duration-150 ${
                           isSelected
-                            ? "border-primary bg-bg-subtle text-text"
-                            : "border-border bg-surface hover:bg-surface-hover text-text-muted"
+                            ? "border-[var(--brand-emerald)] bg-[var(--brand-emerald-subtle)] text-text shadow-xs"
+                            : "border-border bg-surface hover:border-borderStrong hover:bg-surface-hover/40 text-text-muted"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -239,7 +239,7 @@ export function OnboardingWizard({
                           <div
                             className={`w-4 h-4 rounded-[4px] border shrink-0 flex items-center justify-center transition-colors ${
                               isSelected
-                                ? "bg-primary border-primary text-primary-text"
+                                ? "bg-[var(--brand-emerald)] border-[var(--brand-emerald)] text-[var(--brand-emerald-fg)]"
                                 : "border-border-input bg-surface"
                             }`}
                           >

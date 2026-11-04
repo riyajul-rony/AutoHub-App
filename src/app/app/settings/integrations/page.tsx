@@ -36,10 +36,10 @@ export default async function IntegrationsSettingsPage() {
 
       <div className="space-y-4">
         {/* Meta */}
-        <Card>
+        <Card className="hover:border-borderStrong transition-colors duration-150">
           <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand/10 text-brand shrink-0">
+              <div className="w-10 h-10 flex items-center justify-center rounded-[8px] bg-[#1877F2]/10 text-[#1877F2] border border-[#1877F2]/20 shrink-0">
                 <Share2 size={20} />
               </div>
               <div>
@@ -48,11 +48,11 @@ export default async function IntegrationsSettingsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-center">
-              <Badge variant={hasMeta ? "success" : "neutral"} size="sm">
+              <Badge variant={hasMeta ? "success" : "warning"} size="sm" dot>
                 {hasMeta ? "Connected" : "Not Connected"}
               </Badge>
-              <Link href="/app/social/history">
-                <Button variant="ghost" size="sm">
+              <Link href="/app/social">
+                <Button variant="secondary" size="sm">
                   Manage
                 </Button>
               </Link>
@@ -61,10 +61,10 @@ export default async function IntegrationsSettingsPage() {
         </Card>
 
         {/* LinkedIn */}
-        <Card>
+        <Card className="hover:border-borderStrong transition-colors duration-150">
           <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+              <div className="w-10 h-10 flex items-center justify-center rounded-[8px] bg-[#0A66C2]/10 text-[#0A66C2] border border-[#0A66C2]/20 shrink-0">
                 <Globe size={20} />
               </div>
               <div>
@@ -73,11 +73,11 @@ export default async function IntegrationsSettingsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-center">
-              <Badge variant={hasLinkedIn ? "success" : "neutral"} size="sm">
+              <Badge variant={hasLinkedIn ? "success" : "warning"} size="sm" dot>
                 {hasLinkedIn ? "Connected" : "Not Connected"}
               </Badge>
-              <Link href="/app/social/history">
-                <Button variant="ghost" size="sm">
+              <Link href="/app/social">
+                <Button variant="secondary" size="sm">
                   Manage
                 </Button>
               </Link>
@@ -86,10 +86,10 @@ export default async function IntegrationsSettingsPage() {
         </Card>
 
         {/* Sender Email Accounts */}
-        <Card>
+        <Card className="hover:border-borderStrong transition-colors duration-150">
           <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <div className="w-10 h-10 flex items-center justify-center rounded-[8px] bg-[var(--brand-emerald-subtle)] text-[var(--badge-success-text)] border border-[var(--brand-emerald-border)] shrink-0">
                 <Mail size={20} />
               </div>
               <div>
@@ -100,8 +100,8 @@ export default async function IntegrationsSettingsPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-center">
-              <Badge variant={emailAccounts.length > 0 ? "success" : "neutral"} size="sm">
-                {emailAccounts.length} Inboxes
+              <Badge variant={emailAccounts.length > 0 ? "success" : "warning"} size="sm" dot>
+                {emailAccounts.length > 0 ? `${emailAccounts.length} Active` : "Not Connected"}
               </Badge>
               <Link href="/app/outreach/email-accounts">
                 <Button variant="secondary" size="sm">

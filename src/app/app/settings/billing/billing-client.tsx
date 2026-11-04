@@ -152,10 +152,10 @@ export function BillingClient({
             return (
               <Card
                 key={p.id}
-                className={`flex flex-col justify-between transition-shadow ${
+                className={`flex flex-col justify-between transition-colors duration-150 ${
                   isCurrent
-                    ? "border-brand shadow-sm ring-1 ring-brand/30"
-                    : "hover:border-border-input"
+                    ? "border-[var(--brand-emerald)] shadow-sm ring-1 ring-[var(--brand-emerald)]/30"
+                    : "hover:border-borderStrong"
                 }`}
               >
                 <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
@@ -163,7 +163,7 @@ export function BillingClient({
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-base text-fg">{p.name}</h4>
                       {isCurrent && (
-                        <Badge variant="success" size="sm">Active</Badge>
+                        <Badge variant="success" size="sm" dot>Active</Badge>
                       )}
                     </div>
                     <div className="my-3 pb-3 border-b border-border">
@@ -175,19 +175,19 @@ export function BillingClient({
 
                     <ul className="text-xs space-y-2 text-muted my-3">
                       <li className="flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-brand shrink-0" />
+                        <CheckCircle2 size={13} className="text-[var(--badge-success-text)] shrink-0" />
                         <span>{Number(p.monthly_leads) >= 999999 ? "Unlimited" : Number(p.monthly_leads).toLocaleString()} monthly leads</span>
                       </li>
                       <li className="flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-brand shrink-0" />
+                        <CheckCircle2 size={13} className="text-[var(--badge-success-text)] shrink-0" />
                         <span>{Number(p.monthly_social_posts) >= 999999 ? "Unlimited" : Number(p.monthly_social_posts).toLocaleString()} social posts</span>
                       </li>
                       <li className="flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-brand shrink-0" />
+                        <CheckCircle2 size={13} className="text-[var(--badge-success-text)] shrink-0" />
                         <span>{Number(p.monthly_outreach_emails) >= 999999 ? "Unlimited" : Number(p.monthly_outreach_emails).toLocaleString()} outreach emails</span>
                       </li>
                       <li className="flex items-center gap-1.5">
-                        <CheckCircle2 size={13} className="text-brand shrink-0" />
+                        <CheckCircle2 size={13} className="text-[var(--badge-success-text)] shrink-0" />
                         <span>{p.max_campaigns} campaigns</span>
                       </li>
                     </ul>
@@ -195,11 +195,12 @@ export function BillingClient({
 
                   <div className="pt-3 border-t border-border">
                     {isCurrent ? (
-                      <span className="text-xs font-semibold text-accent-green block text-center py-1.5">
+                      <span className="text-xs font-semibold text-[var(--badge-success-text)] block text-center py-1.5">
                         Current Plan
                       </span>
                     ) : (
                       <Button
+                        variant="primary"
                         onClick={() => handleSelectPlan(p)}
                         disabled={isLoading}
                         size="sm"
