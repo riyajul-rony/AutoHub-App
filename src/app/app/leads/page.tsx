@@ -18,6 +18,7 @@ import { Pagination } from "@/components/pagination";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata = {
   title: "Lead Generation — Lead Reach AI",
@@ -30,18 +31,21 @@ const leadSources = [
     title: "Google Maps",
     desc: "Search local businesses by keyword & city with deep website email enrichment.",
     badge: "Active",
+    icon: <MapPin size={15} />,
   },
   {
     id: "meta_ads",
     title: "Meta Ads Library",
     desc: "Find active advertising brands running Facebook & Instagram sponsored campaigns.",
     badge: "Direct",
+    icon: <Globe size={15} />,
   },
   {
     id: "linkedin",
     title: "LinkedIn (B2B)",
     desc: "Export company decision makers, job titles, and B2B professionals.",
     badge: "B2B",
+    icon: <Building2 size={15} />,
   },
 ];
 
@@ -142,20 +146,25 @@ export default async function LeadsOverviewPage({
           <Link
             key={s.id}
             href={`/app/leads/${s.id}`}
-            className="rounded-xl border border-border bg-surface p-5 hover:border-borderStrong transition-all duration-150 flex flex-col justify-between group"
+            className="rounded-[8px] border border-border bg-surface p-5 hover:border-borderStrong transition-colors duration-150 flex flex-col justify-between group"
           >
-            <div>
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-base text-fg">{s.title}</span>
-                <Badge variant="neutral" size="sm">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-[7px] bg-bg-subtle border border-border flex items-center justify-center text-text-muted shrink-0 group-hover:border-borderStrong transition-colors">
+                    {s.icon}
+                  </div>
+                  <span className="font-semibold text-sm text-text">{s.title}</span>
+                </div>
+                <Badge variant={s.id === "google_maps" ? "success" : "neutral"} size="sm" dot={s.id === "google_maps"}>
                   {s.badge}
                 </Badge>
               </div>
-              <p className="mt-2 text-xs text-muted leading-relaxed">{s.desc}</p>
+              <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{s.desc}</p>
             </div>
-            <div className="mt-5 pt-3 border-t border-border flex items-center justify-between text-xs font-medium text-fg">
+            <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs font-medium text-text">
               <span>Launch Search Form</span>
-              <span className="text-muted group-hover:text-fg group-hover:translate-x-0.5 transition-all">
+              <span className="text-text-subtle group-hover:text-text group-hover:translate-x-0.5 transition-all">
                 →
               </span>
             </div>
@@ -165,41 +174,42 @@ export default async function LeadsOverviewPage({
 
       {/* Recent Search Runs History */}
       {searches && searches.length > 0 && (
-        <div className="rounded-xl border border-border bg-surface p-5 space-y-3">
+        <div className="rounded-[8px] border border-border bg-surface p-5 space-y-3 transition-colors duration-150 hover:border-borderStrong">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-fg flex items-center gap-2">
-                <Search size={15} className="text-muted" /> Recent Search Runs
+              <h2 className="text-sm font-semibold text-text flex items-center gap-2">
+                <Search size={15} className="text-text-muted" /> Recent Search Runs
               </h2>
-              <p className="text-xs text-muted">Past search runs automatically saved in your tenant database.</p>
+              <p className="text-xs text-text-muted mt-0.5">Past search runs automatically saved in your tenant database.</p>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {searches.map((s: any) => {
               const params = typeof s.params === "object" && s.params !== null ? s.params : {};
+              const isCompleted = s.status === "completed";
               return (
                 <Link
                   key={s.id}
                   href={`/app/leads/searches/${s.id}`}
-                  className="rounded-lg border border-border bg-bgSubtle p-3.5 hover:border-borderStrong transition-colors block"
+                  className="rounded-[8px] border border-border bg-bg-subtle p-3.5 hover:border-borderStrong transition-colors block"
                 >
                   <div className="flex items-start justify-between">
-                    <span className="font-medium text-xs text-fg truncate max-w-[180px]">
+                    <span className="font-medium text-xs text-text truncate max-w-[180px]">
                       {params.keyword || "Search Run"}
                     </span>
-                    <Badge variant={s.status === "completed" ? "success" : "neutral"} size="sm">
+                    <Badge variant={isCompleted ? "success" : "warning"} size="sm" dot>
                       {s.status || "completed"}
                     </Badge>
                   </div>
-                  <div className="mt-1.5 text-[11px] text-muted flex items-center gap-1">
-                    <MapPin size={11} className="text-subtle" /> {params.location || "Anywhere"}
+                  <div className="mt-1.5 text-[11px] text-text-muted flex items-center gap-1">
+                    <MapPin size={11} className="text-text-subtle" /> {params.location || "Anywhere"}
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted border-t border-border pt-2">
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-text-muted border-t border-border pt-2">
                     <span>
-                      Found: <strong className="text-fg">{s.found_count ?? 0}</strong>
+                      Found: <strong className="text-text">{s.found_count ?? 0}</strong>
                     </span>
-                    <span className="font-medium text-fg flex items-center gap-1 hover:underline">
+                    <span className="font-medium text-text flex items-center gap-1 hover:underline">
                       View Leads <ExternalLink size={10} />
                     </span>
                   </div>
@@ -211,20 +221,20 @@ export default async function LeadsOverviewPage({
       )}
 
       {/* Leads Table Container */}
-      <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
+      <div className="rounded-[8px] border border-border bg-surface p-5 space-y-4 transition-colors duration-150 hover:border-borderStrong">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-fg">
+            <h2 className="text-sm font-semibold text-text">
               Gathered Leads ({totalLeadsCount.toLocaleString()})
             </h2>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-text-muted mt-0.5">
               Enriched with verified business emails, phone numbers, and websites.
             </p>
           </div>
           {leads.length > 0 && (
             <Link href="/app/outreach/new">
-              <Button variant="secondary" size="sm" icon={<Send size={13} />}>
-                Send Outreach
+              <Button variant="primary" size="sm" icon={<Send size={13} />}>
+                Launch Outreach
               </Button>
             </Link>
           )}
@@ -232,24 +242,18 @@ export default async function LeadsOverviewPage({
 
         {/* Table or Empty State */}
         {leads.length === 0 ? (
-          <div className="py-12 text-center border border-dashed border-border rounded-lg space-y-2">
-            <Building2 size={24} className="mx-auto text-muted" />
-            <div className="text-sm font-medium text-fg">No leads collected yet</div>
-            <p className="text-xs text-muted max-w-sm mx-auto">
-              Run your first Google Maps or Meta Ads search above to discover and enrich business contacts.
-            </p>
-            <div className="pt-2">
-              <Link href="/app/leads/google_maps">
-                <Button variant="primary" size="sm" icon={<Plus size={14} />} disabled={!configured}>
-                  Start First Search
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <EmptyState
+            icon={<Building2 size={20} />}
+            title="No leads collected yet"
+            description="Run your first Google Maps or Meta Ads search above to discover and enrich business contacts."
+            actionLabel="Start First Search"
+            actionHref="/app/leads/google_maps"
+            actionIcon={<Plus size={14} />}
+          />
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto rounded-[8px] border border-border">
             <table className="w-full text-left text-xs">
-              <thead className="bg-bgSubtle border-b border-border text-muted font-medium">
+              <thead className="bg-bg-subtle border-b border-border text-text-muted font-medium">
                 <tr>
                   <th className="py-2.5 px-3">Company</th>
                   <th className="py-2.5 px-3">Email</th>
@@ -261,42 +265,42 @@ export default async function LeadsOverviewPage({
               </thead>
               <tbody className="divide-y divide-border">
                 {leads.map((l: any, i: number) => (
-                  <tr key={l.id || i} className="hover:bg-surfaceHover transition-colors">
-                    <td className="py-2.5 px-3 font-medium text-fg">{l.company_name}</td>
+                  <tr key={l.id || i} className="hover:bg-surface-hover transition-colors">
+                    <td className="py-2.5 px-3 font-medium text-text">{l.company_name}</td>
                     <td className="py-2.5 px-3">
                       {l.email ? (
-                        <span className="font-mono text-fg">{l.email}</span>
+                        <span className="font-mono text-text">{l.email}</span>
                       ) : (
-                        <span className="text-subtle italic">Not found</span>
+                        <span className="text-text-subtle italic">Not found</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-muted">{l.phone || l.phone_raw || "—"}</td>
+                    <td className="py-2.5 px-3 text-text-muted">{l.phone || l.phone_raw || "—"}</td>
                     <td className="py-2.5 px-3">
                       {l.website ? (
                         <a
                           href={l.website.startsWith("http") ? l.website : `https://${l.website}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-fg hover:underline flex items-center gap-1 max-w-[150px] truncate"
+                          className="text-text hover:underline flex items-center gap-1 max-w-[150px] truncate"
                         >
-                          <Globe size={11} className="text-subtle shrink-0" />{" "}
+                          <Globe size={11} className="text-text-subtle shrink-0" />{" "}
                           {l.website.replace(/^https?:\/\//, "")}
                         </a>
                       ) : (
-                        <span className="text-subtle">—</span>
+                        <span className="text-text-subtle">—</span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 font-medium text-fg">
+                    <td className="py-2.5 px-3 font-medium text-text">
                       {l.rating ? (
                         <span className="inline-flex items-center gap-1">
-                          <Star size={11} className="text-warning fill-warning" />
+                          <Star size={11} className="text-amber-500 fill-amber-500" />
                           {Number(l.rating).toFixed(1)}
                         </span>
                       ) : (
                         "—"
                       )}
                     </td>
-                    <td className="py-2.5 px-3 text-muted">{l.city || l.address || "—"}</td>
+                    <td className="py-2.5 px-3 text-text-muted">{l.city || l.address || "—"}</td>
                   </tr>
                 ))}
               </tbody>
