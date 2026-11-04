@@ -44,7 +44,7 @@ export default function DashboardLoading() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="rounded-[6px] border border-border bg-bg-subtle p-3.5 space-y-3">
+              <div key={i} className="rounded-[8px] border border-border bg-bg-subtle p-3.5 space-y-3">
                 <div className="flex justify-between">
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-4 w-16" />

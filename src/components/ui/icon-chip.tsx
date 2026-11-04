@@ -45,3 +45,4 @@ export const IconChip: React.FC<IconChipProps> = ({
 };
 
 IconChip.displayName = "IconChip";
+
