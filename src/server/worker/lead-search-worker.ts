@@ -79,7 +79,7 @@ export async function executeLeadSearch(searchId: string): Promise<void> {
       data: {
         status: "running",
         progress_pct: 10,
-        current_step: "Verifying Apify integration configuration...",
+        current_step: "Verifying lead search engine...",
         started_at: new Date(),
       },
     });
@@ -87,7 +87,7 @@ export async function executeLeadSearch(searchId: string): Promise<void> {
     const configured = await isApifyConfigured();
     if (!configured) {
       throw new Error(
-        "Apify integration is not configured. Please contact an administrator to configure the Apify API token."
+        "Lead search provider temporarily unavailable, please try again in a moment."
       );
     }
 
@@ -446,17 +446,36 @@ export async function executeLeadSearch(searchId: string): Promise<void> {
     logger.info({ searchId, savedCount: savedLeads.length }, "Lead search completed successfully");
   } catch (err: any) {
     logger.error({ err, searchId }, "Lead search job failed");
+    const userSafeError = sanitizeUserFacingLeadError(err?.message);
     await db.lead_searches.update({
       where: { id: searchId },
       data: {
         status: "failed",
         progress_pct: 100,
-        current_step: err.message || "Search execution failed",
-        error: err.message || "Scraping failed",
+        current_step: userSafeError,
+        error: userSafeError,
         finished_at: new Date(),
       },
     });
   }
+}
+
+function sanitizeUserFacingLeadError(rawError?: string | null): string {
+  if (!rawError) return "Lead search provider temporarily unavailable, please try again in a moment.";
+  const lower = rawError.toLowerCase();
+  if (
+    lower.includes("apify") ||
+    lower.includes("token") ||
+    lower.includes("unauthorized") ||
+    lower.includes("401") ||
+    lower.includes("403") ||
+    lower.includes("429") ||
+    lower.includes("actor") ||
+    lower.includes("scraper execution failed")
+  ) {
+    return "Lead search provider temporarily unavailable, please try again in a moment.";
+  }
+  return rawError;
 }
 
 /**

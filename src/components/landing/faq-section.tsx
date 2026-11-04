@@ -18,7 +18,7 @@ const FAQS: FAQItem[] = [
   {
     question: "Are my third-party API keys and credentials safe?",
     answer:
-      "Yes. All sensitive credentials—including OpenAI keys, Apify credentials, and SMTP/IMAP passwords—are encrypted at rest using AES-256-GCM. We never expose decrypted keys in API payloads or browser responses, and your data is cryptographically isolated within your tenant.",
+      "Yes. All sensitive credentials—including OpenAI keys, integration credentials, and SMTP/IMAP passwords—are encrypted at rest using AES-256-GCM. We never expose decrypted keys in API payloads or browser responses, and your data is cryptographically isolated within your tenant.",
   },
   {
     question: "How does the automated Stop-on-Reply mechanism work?",

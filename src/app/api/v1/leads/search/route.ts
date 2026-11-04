@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Lead generation service is not configured. Please contact an administrator to configure Apify.",
+          "Lead search provider temporarily unavailable, please try again in a moment.",
       },
       { status: 503 }
     );

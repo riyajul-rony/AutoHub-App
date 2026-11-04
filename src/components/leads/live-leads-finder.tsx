@@ -914,7 +914,7 @@ export function LiveLeadsFinder({
     abortControllerRef.current = controller;
     setLoading(true);
     setProgressPct(5);
-    setCurrentStep("Connecting to Apify and starting scraper...");
+    setCurrentStep("Connecting to lead search engine and starting extraction...");
     setStatusMessage(`Initializing search for "${cleanKw || (selectedTitles[0] || 'B2B Leads')}" in "${effectiveLoc}"...`);
 
     try {
@@ -1165,9 +1165,9 @@ export function LiveLeadsFinder({
               <AlertTriangle size={20} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-fg">Service not configured, contact admin</h3>
+              <h3 className="text-sm font-bold text-fg">Service temporarily unavailable</h3>
               <p className="text-xs text-muted mt-0.5">
-                The lead generation engine has not been configured with an active provider token. Scraping is currently disabled until an administrator configures Apify.
+                The lead generation engine is temporarily unavailable. Lead extraction is currently paused until system configuration completes. Please contact an administrator or support.
               </p>
             </div>
           </div>
@@ -1710,7 +1710,7 @@ export function LiveLeadsFinder({
               )}
               {isLinkedIn && parseInt(maxResultsStr || "0", 10) > 100 && (
                 <p className="text-amber-500 text-[11px] mt-1 font-medium">
-                  Note: The Free Apify plan limits extraction to 100 leads per run; volumes above 100 require a paid Apify plan.
+                  Note: Standard extraction is limited to 100 leads per run; higher volumes require an upgraded tier.
                 </p>
               )}
             </div>
@@ -3776,7 +3776,7 @@ export function LiveLeadsFinder({
                   onClick={() => setShowRawJson(!showRawJson)}
                   className="w-full px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-muted hover:text-fg hover:bg-surface-2/60 transition-colors cursor-pointer"
                 >
-                  <span>Raw Apify &amp; Meta Ad Data (JSON)</span>
+                  <span>Raw Ad Intelligence Data (JSON)</span>
                   <ChevronDown size={14} className={`transition-transform duration-200 ${showRawJson ? "rotate-180" : ""}`} />
                 </button>
                 {showRawJson && (
@@ -4008,7 +4008,7 @@ export function LiveLeadsFinder({
                   onClick={() => setShowRawJson(!showRawJson)}
                   className="w-full px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-muted hover:text-fg hover:bg-surface-2/60 transition-colors cursor-pointer"
                 >
-                  <span>Raw Apify B2B Lead Record (JSON)</span>
+                  <span>Raw B2B Intelligence Record (JSON)</span>
                   <ChevronDown size={14} className={`transition-transform duration-200 ${showRawJson ? "rotate-180" : ""}`} />
                 </button>
                 {showRawJson && (
