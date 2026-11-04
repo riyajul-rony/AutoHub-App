@@ -3,7 +3,9 @@ import Link from "next/link";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { AuthForm } from "@/components/auth/auth-form";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
-import { loginAction } from "@/server/auth/actions";
+import { loginAction, resendVerificationAction } from "@/server/auth/actions";
+import { CheckCircle2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui";
 
 export const metadata = {
   title: "Log in — Lead Reach AI",
@@ -13,7 +15,7 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reset?: string; error?: string }>;
+  searchParams: Promise<{ reset?: string; error?: string; verified?: string; email?: string; next?: string }>;
 }) {
   const sp = await searchParams;
 
@@ -28,12 +30,16 @@ export default async function LoginPage({
     bannerError = "Registration is currently invite-only.";
   }
 
+  const prefilledEmail = sp.email ? decodeURIComponent(sp.email) : "";
+
   return (
     <AuthShell
       title="Welcome back"
       subtitle={
         sp.reset
           ? "Password updated. Log in with your new password."
+          : sp.verified === "1"
+          ? "Your email is verified. Please log in to continue."
           : "Enter your credentials to access your automation workspace."
       }
       footer={
@@ -45,6 +51,37 @@ export default async function LoginPage({
         </span>
       }
     >
+      {sp.verified === "1" && (
+        <div className="mb-4 flex items-center gap-2.5 p-3 rounded-[6px] border border-success/30 bg-success-bg text-success text-xs font-medium">
+          <CheckCircle2 className="w-4 h-4 shrink-0" strokeWidth={1.5} />
+          <span>Your email is verified! Please log in to continue.</span>
+        </div>
+      )}
+
+      {sp.error === "unverified" && (
+        <div className="mb-4 rounded-[6px] border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400 font-medium space-y-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" strokeWidth={1.5} />
+            <span>Please verify your email address before logging in.</span>
+          </div>
+          <p className="text-[11px] opacity-90">
+            We sent a verification link to {prefilledEmail || "your email"}.
+          </p>
+          <form
+            action={async (formData) => {
+              "use server";
+              await resendVerificationAction(undefined, formData);
+            }}
+            className="pt-1"
+          >
+            <input type="hidden" name="email" value={prefilledEmail} />
+            <Button type="submit" variant="secondary" size="sm" className="w-full text-xs">
+              Resend Verification Link
+            </Button>
+          </form>
+        </div>
+      )}
+
       {bannerError ? (
         <div className="mb-4 rounded-[6px] border border-danger/30 bg-danger-bg p-2.5 text-xs text-danger font-medium">
           {bannerError}
@@ -63,6 +100,7 @@ export default async function LoginPage({
         id="login"
         action={loginAction}
         submitLabel="Log in"
+        hidden={{ next: sp.next || "" }}
         fields={[
           {
             name: "email",
@@ -70,6 +108,7 @@ export default async function LoginPage({
             type: "email",
             autoComplete: "email",
             placeholder: "you@company.com",
+            defaultValue: prefilledEmail,
           },
           {
             name: "password",

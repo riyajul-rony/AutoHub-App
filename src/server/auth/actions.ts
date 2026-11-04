@@ -30,7 +30,7 @@ async function issueToken(identifier: string, purpose: string, ttlMs: number) {
 
 async function sendVerificationEmail(email: string) {
   const token = await issueToken(email, "verify_email", 24 * HOUR);
-  const url = `${await getAppUrl()}/verify-email?token=${token}`;
+  const url = `${await getAppUrl()}/api/v1/auth/verify?token=${token}`;
   return sendSystemMail({
     to: email,
     subject: "Verify your Lead Reach AI email",
@@ -138,9 +138,33 @@ export async function loginAction(_: FormState, form: FormData): Promise<FormSta
   if (!user || !ok) return { error: "Incorrect email or password." };
   if (user.status !== "active") return { error: "This account is not active." };
 
+  const rawNext = form.get("next");
+  const safeNext =
+    typeof rawNext === "string" &&
+    rawNext.startsWith("/") &&
+    !rawNext.startsWith("//") &&
+    !rawNext.startsWith("/\\")
+      ? rawNext
+      : "";
+
+  if (!user.email_verified_at) {
+    redirect(
+      `/login?error=unverified&email=${encodeURIComponent(user.email)}${
+        safeNext ? `&next=${encodeURIComponent(safeNext)}` : ""
+      }`
+    );
+  }
+
   await createSession(user.id);
   await db.users.update({ where: { id: user.id }, data: { last_login_at: new Date() } });
-  redirect(user.email_verified_at ? "/app" : "/verify-email");
+
+  if (safeNext) {
+    redirect(safeNext);
+  } else if (!user.onboarded_at) {
+    redirect("/onboarding");
+  } else {
+    redirect("/app");
+  }
 }
 
 export async function logoutAction() {
@@ -165,10 +189,16 @@ export async function resendVerificationAction(_?: FormState, form?: FormData): 
     }
   }
 
-  if (!targetEmail) return { error: "Please log in first to request a verification email." };
+  if (!targetEmail) return { error: "Please provide your email address to receive a verification link." };
   if (s?.user?.email_verified_at) return { message: "Your email is already verified." };
 
-  const rl = await rateLimit(`resend:${targetEmail}`, 3, HOUR);
+  // 60-second cooldown between resends
+  const cooldown = await rateLimit(`resend_cd:${targetEmail}`, 1, 60_000);
+  if (!cooldown.ok) {
+    return { error: "Please wait 60 seconds before requesting another verification email." };
+  }
+
+  const rl = await rateLimit(`resend:${targetEmail}`, 5, HOUR);
   if (!rl.ok) return { error: "Please wait 15 minutes before requesting another verification email." };
 
   const r = await sendVerificationEmail(targetEmail);

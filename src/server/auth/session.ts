@@ -10,7 +10,7 @@ const SESSION_DAYS = 30;
 const DAY_MS = 86_400_000;
 const SESSION_CACHE_TTL = 60; // 60 seconds Redis session lookup cache
 
-function cookieOptions(expires: Date) {
+export function cookieOptions(expires: Date) {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

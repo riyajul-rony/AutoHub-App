@@ -41,6 +41,7 @@ interface StoreSchema {
   processed_webhook_events: any[];
   error_logs: any[];
   system_settings: any[];
+  verification_tokens: any[];
   apify_usage_logs: any[];
   apify_keys: any[];
 }
@@ -49,6 +50,7 @@ function getInitialStore(): StoreSchema {
   return {
     users: [{ ...DEFAULT_ADMIN_USER }],
     sessions: [],
+    verification_tokens: [],
     api_keys: [],
     social_accounts: [],
     social_campaigns: [],
@@ -118,18 +120,18 @@ export const localDevStore = {
       role: item.role || "user",
       status: "active",
       plan: "free",
-      email_verified_at: new Date().toISOString(),
-      onboarded_at: new Date().toISOString(),
+      email_verified_at: item.email_verified_at !== undefined ? item.email_verified_at : null,
+      onboarded_at: item.onboarded_at !== undefined ? item.onboarded_at : null,
       ...item,
     };
     store.users.unshift(user);
     saveStore();
     return user;
   },
-  updateUser: (id: string, data: any) => {
+  updateUser: (idOrEmail: string, data: any) => {
     const store = loadStore();
     if (!store.users) store.users = [{ ...DEFAULT_ADMIN_USER }];
-    const idx = store.users.findIndex((u) => u.id === id);
+    const idx = store.users.findIndex((u) => u.id === idOrEmail || (u.email && u.email.toLowerCase() === idOrEmail?.toLowerCase()));
     if (idx >= 0) {
       store.users[idx] = { ...store.users[idx], ...data };
       saveStore();
@@ -188,6 +190,60 @@ export const localDevStore = {
     if (!store.sessions) store.sessions = [];
     store.sessions = store.sessions.filter((s) => !filter(s));
     saveStore();
+  },
+
+  // --- Verification Tokens ---
+  getVerificationTokens: (filter?: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.verification_tokens) store.verification_tokens = [];
+    return filter ? store.verification_tokens.filter(filter) : store.verification_tokens;
+  },
+  findVerificationToken: (filter: (item: any) => boolean) => {
+    const store = loadStore();
+    if (!store.verification_tokens) store.verification_tokens = [];
+    return store.verification_tokens.find(filter) || null;
+  },
+  saveVerificationToken: (item: any) => {
+    const store = loadStore();
+    if (!store.verification_tokens) store.verification_tokens = [];
+    const idx = store.verification_tokens.findIndex((t) => t.id === item.id || (t.token_hash && t.token_hash === item.token_hash));
+    if (idx >= 0) {
+      store.verification_tokens[idx] = { ...store.verification_tokens[idx], ...item };
+      saveStore();
+      return store.verification_tokens[idx];
+    }
+    const token = {
+      id: item.id || `vt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      created_at: new Date(),
+      ...item,
+    };
+    store.verification_tokens.push(token);
+    saveStore();
+    return token;
+  },
+  updateVerificationToken: (idOrHash: string, data: any) => {
+    const store = loadStore();
+    if (!store.verification_tokens) store.verification_tokens = [];
+    const idx = store.verification_tokens.findIndex((t) => t.id === idOrHash || t.token_hash === idOrHash);
+    if (idx >= 0) {
+      store.verification_tokens[idx] = { ...store.verification_tokens[idx], ...data };
+      saveStore();
+      return store.verification_tokens[idx];
+    }
+    return null;
+  },
+  updateManyVerificationTokens: (filter: (t: any) => boolean, data: any) => {
+    const store = loadStore();
+    if (!store.verification_tokens) store.verification_tokens = [];
+    let count = 0;
+    for (let i = 0; i < store.verification_tokens.length; i++) {
+      if (filter(store.verification_tokens[i])) {
+        store.verification_tokens[i] = { ...store.verification_tokens[i], ...data };
+        count++;
+      }
+    }
+    saveStore();
+    return count;
   },
 
   // --- Social Accounts ---

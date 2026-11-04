@@ -61,7 +61,7 @@ class LocalDevMockDb {
       return localDevStore.findUser((u) => (where?.id && u.id === where.id) || (where?.email && u.email?.toLowerCase() === where.email?.toLowerCase()));
     },
     create: async ({ data }: any) => localDevStore.saveUser(data),
-    update: async ({ where, data }: any) => localDevStore.updateUser(where.id, data),
+    update: async ({ where, data }: any) => localDevStore.updateUser(where?.id || where?.email, data),
     count: async ({ where }: any = {}) => {
       return localDevStore.getUsers((u) => {
         if (where?.role) {
@@ -100,6 +100,15 @@ class LocalDevMockDb {
       }
       return sess;
     },
+    findFirst: async ({ where, include, select }: any = {}) => {
+      const sess = localDevStore.findSession((s) => (!where?.user_id || s.user_id === where.user_id) && (!where?.token_hash || s.token_hash === where.token_hash));
+      if (!sess) return null;
+      if (include?.user || select?.user) {
+        const user = localDevStore.findUser((u) => u.id === sess.user_id) || localDevStore.getUsers()[0];
+        return { ...sess, user };
+      }
+      return sess;
+    },
     create: async ({ data }: any) => {
       const sess = {
         id: data.id || `sess_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -118,9 +127,36 @@ class LocalDevMockDb {
   };
 
   verification_tokens = {
-    findUnique: async () => null,
-    create: async () => ({ id: "mock-token" }),
-    update: async () => ({}),
+    findUnique: async ({ where }: any = {}) => {
+      return localDevStore.findVerificationToken(
+        (t) =>
+          (where?.token_hash && t.token_hash === where.token_hash) ||
+          (where?.id && t.id === where.id)
+      );
+    },
+    findFirst: async ({ where }: any = {}) => {
+      return localDevStore.findVerificationToken(
+        (t) =>
+          (!where?.token_hash || t.token_hash === where.token_hash) &&
+          (!where?.purpose || t.purpose === where.purpose) &&
+          (!where?.identifier || t.identifier === where.identifier)
+      );
+    },
+    create: async ({ data }: any) => localDevStore.saveVerificationToken(data),
+    update: async ({ where, data }: any) => {
+      const id = where?.id || where?.token_hash;
+      return localDevStore.updateVerificationToken(id, data);
+    },
+    updateMany: async ({ where, data }: any) => {
+      const count = localDevStore.updateManyVerificationTokens((t) => {
+        if (where?.id && t.id !== where.id) return false;
+        if (where?.token_hash && t.token_hash !== where.token_hash) return false;
+        if (where?.used_at === null && (t.used_at !== null && t.used_at !== undefined)) return false;
+        return true;
+      }, data);
+      return { count };
+    },
+    deleteMany: async () => ({ count: 0 }),
   };
 
   system_settings = {
