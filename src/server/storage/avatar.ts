@@ -101,3 +101,4 @@ export async function removeAvatar(avatarUrl?: string | null): Promise<void> {
     // Ignore deletion errors
   }
 }
+

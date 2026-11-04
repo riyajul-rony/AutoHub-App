@@ -166,3 +166,4 @@ export function UserMenu({ user, isAdmin }: UserMenuProps) {
     </div>
   );
 }
+

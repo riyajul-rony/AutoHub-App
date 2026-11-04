@@ -6,20 +6,51 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
  */
 const VERSION = "v1";
 
-function getKey(keyB64?: string): Buffer {
-  const raw = keyB64 ?? process.env.APP_ENCRYPTION_KEY;
-  if (!raw || raw.trim() === "") {
+export function parseEncryptionKeyBuffer(rawKey?: string): Buffer {
+  let clean = (rawKey ?? process.env.APP_ENCRYPTION_KEY ?? "").trim();
+  // Strip quotes if user wrapped in "" or ''
+  if (
+    (clean.startsWith('"') && clean.endsWith('"')) ||
+    (clean.startsWith("'") && clean.endsWith("'"))
+  ) {
+    clean = clean.slice(1, -1).trim();
+  }
+
+  if (!clean) {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "FATAL: APP_ENCRYPTION_KEY is required in production. Refusing to operate without a valid 32-byte base64 encryption key."
+        "FATAL: APP_ENCRYPTION_KEY is required in production. Refusing to operate without a valid 32-byte encryption key."
       );
     }
     // Dev/Test fallback for local testing:
     return Buffer.from("MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=", "base64");
   }
-  const key = Buffer.from(raw, "base64");
-  if (key.length !== 32) throw new Error("APP_ENCRYPTION_KEY must be 32 bytes (base64)");
-  return key;
+
+  // 1. 64-char Hex format (32 bytes)
+  if (/^[0-9a-fA-F]{64}$/.test(clean)) {
+    return Buffer.from(clean, "hex");
+  }
+
+  // 2. Base64 format (32 bytes)
+  try {
+    const b64Buf = Buffer.from(clean, "base64");
+    if (b64Buf.length === 32) return b64Buf;
+  } catch {}
+
+  // 3. UTF-8 format (32 bytes)
+  if (Buffer.byteLength(clean, "utf8") === 32) {
+    return Buffer.from(clean, "utf8");
+  }
+
+  throw new Error(
+    `APP_ENCRYPTION_KEY is invalid. It must decode to exactly 32 bytes (either 44 characters Base64 or 64 characters Hex). Current decoded Base64 length is ${
+      Buffer.from(clean, "base64").length
+    } bytes.`
+  );
+}
+
+function getKey(keyB64?: string): Buffer {
+  return parseEncryptionKeyBuffer(keyB64);
 }
 
 export function generateEncryptionKey(): string {

@@ -36,13 +36,14 @@ export async function POST(
         where: { id },
         data: {
           status: "disabled",
-          last_error_reason: "Decryption failed: master key mismatch",
+          last_error: "Decryption failed: master key mismatch",
+          last_tested_at: new Date(),
         },
       });
       return NextResponse.json({
         data: {
           ok: false,
-          error: "Decryption failed: APP_ENCRYPTION_KEY could not decrypt this token.",
+          error: `Decryption failed: ${err?.message || "APP_ENCRYPTION_KEY could not decrypt this token."}`,
         },
       });
     }
@@ -53,18 +54,27 @@ export async function POST(
       await db.apify_keys.update({
         where: { id },
         data: {
-          account_email: testRes.username || key.account_email,
-          plan_name: testRes.plan || key.plan_name,
           status: "active",
           cooldown_until: null,
-          last_error_reason: null,
+          last_error: null,
+          last_tested_at: new Date(),
+          last_test_result: {
+            username: testRes.username || null,
+            plan: testRes.plan || null,
+            ok: true,
+          },
         },
       });
     } else {
       await db.apify_keys.update({
         where: { id },
         data: {
-          last_error_reason: testRes.error || "Connection test failed",
+          last_error: testRes.error || "Connection test failed",
+          last_tested_at: new Date(),
+          last_test_result: {
+            ok: false,
+            error: testRes.error,
+          },
         },
       });
     }
@@ -74,6 +84,6 @@ export async function POST(
     });
   } catch (err: any) {
     logger.error({ id, err: err?.message }, "[Apify Key Pool API] Error testing key");
-    return NextResponse.json({ error: "Failed to test key connection." }, { status: 500 });
+    return NextResponse.json({ error: `Failed to test key connection: ${err?.message || "Internal error"}` }, { status: 500 });
   }
 }

@@ -26,7 +26,8 @@ export default async function AdminApifyPage() {
   ]);
 
   const hasEncryptionKey = Boolean(
-    process.env.APP_ENCRYPTION_KEY && process.env.APP_ENCRYPTION_KEY.trim().length > 0
+    (process.env.APP_ENCRYPTION_KEY && process.env.APP_ENCRYPTION_KEY.trim().length > 0) ||
+    process.env.NODE_ENV !== "production"
   );
 
   return (

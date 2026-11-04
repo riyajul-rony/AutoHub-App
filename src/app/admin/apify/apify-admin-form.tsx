@@ -436,6 +436,21 @@ export function ApifyAdminForm({
                 </div>
               </div>
 
+              {keyActionMsg && (
+                <div
+                  className={`rounded-lg px-3.5 py-2.5 text-xs flex items-center justify-between border ${
+                    keyActionMsg.type === "success"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                      : "bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {keyActionMsg.type === "success" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                    <span>{keyActionMsg.text}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-1">
                 <p className="text-[11px] text-muted">
                   Token is verified against Apify <span className="font-mono">GET /v2/users/me</span> and encrypted with AES-256-GCM.

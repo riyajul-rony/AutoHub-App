@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { logger } from "@/server/logger";
+import { parseEncryptionKeyBuffer } from "@/server/crypto";
 
 /**
  * Server startup environment validation.
@@ -16,12 +17,12 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
   APP_ENCRYPTION_KEY: z.string().refine((val) => {
     try {
-      const buf = Buffer.from(val, "base64");
+      const buf = parseEncryptionKeyBuffer(val);
       return buf.length === 32;
     } catch {
       return false;
     }
-  }, "APP_ENCRYPTION_KEY must be a valid 32-byte Base64-encoded key"),
+  }, "APP_ENCRYPTION_KEY must be a valid 32-byte key (Base64 or Hex)"),
   ADMIN_EMAIL: z.string().email().optional().or(z.literal("")),
   REGISTRATION_MODE: z.enum(["open", "invite", "closed"]).default("invite"),
   SYSTEM_SMTP_HOST: z.string().optional(),

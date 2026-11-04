@@ -57,7 +57,7 @@ export async function PUT(
     if (parsed.data.clearCooldown) {
       updateData.status = "active";
       updateData.cooldown_until = null;
-      updateData.last_error_reason = null;
+      updateData.last_error = null;
     }
 
     const updated = await db.apify_keys.update({
@@ -73,26 +73,28 @@ export async function PUT(
       afterState: updateData,
     }).catch(() => {});
 
+    const testResult = (updated.last_test_result as any) || {};
+
     return NextResponse.json({
       data: {
         id: updated.id,
         label: updated.label,
-        token_last4: updated.token_last4,
-        masked_token: `••••${updated.token_last4}`,
-        account_email: updated.account_email,
-        plan_name: updated.plan_name,
+        token_last4: updated.masked_token ? updated.masked_token.slice(-4) : "••••",
+        masked_token: updated.masked_token,
+        account_email: testResult.username || null,
+        plan_name: testResult.plan || null,
         status: updated.status,
         max_concurrent_jobs: updated.max_concurrent_jobs,
         cooldown_until: updated.cooldown_until ? new Date(updated.cooldown_until).toISOString() : null,
-        last_error_reason: updated.last_error_reason,
-        total_runs: updated.total_runs,
-        total_cost_usd: Number(updated.total_cost_usd) || 0,
+        last_error_reason: updated.last_error,
+        total_runs: updated.total_runs_all_time || 0,
+        total_cost_usd: 0,
       },
       message: `Key "${updated.label}" updated successfully.`,
     });
   } catch (err: any) {
     logger.error({ id, err: err?.message }, "[Apify Key Pool API] Error updating key");
-    return NextResponse.json({ error: "Failed to update key." }, { status: 500 });
+    return NextResponse.json({ error: `Failed to update key: ${err?.message || "Internal error"}` }, { status: 500 });
   }
 }
 
@@ -125,7 +127,7 @@ export async function DELETE(
       action: "apify_key.delete",
       targetType: "apify_key",
       targetId: id,
-      afterState: { label: existing.label, token_last4: existing.token_last4 },
+      afterState: { label: existing.label, masked_token: existing.masked_token },
     }).catch(() => {});
 
     return NextResponse.json({
@@ -134,6 +136,6 @@ export async function DELETE(
     });
   } catch (err: any) {
     logger.error({ id, err: err?.message }, "[Apify Key Pool API] Error deleting key");
-    return NextResponse.json({ error: "Failed to delete key." }, { status: 500 });
+    return NextResponse.json({ error: `Failed to delete key: ${err?.message || "Internal error"}` }, { status: 500 });
   }
 }
