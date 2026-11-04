@@ -151,7 +151,8 @@ export async function isConfigured(...keys: ConfigKey[]): Promise<boolean> {
 }
 
 export async function getAppUrl(): Promise<string> {
-  return (await getConfig("APP_URL")) ?? "http://localhost:3000";
+  const val = (await getConfig("APP_URL")) || process.env.APP_URL || "http://localhost:3000";
+  return val.trim().replace(/\/+$/, "");
 }
 
 export type RegistrationMode = "open" | "invite" | "closed";
