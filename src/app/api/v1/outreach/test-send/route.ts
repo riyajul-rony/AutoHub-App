@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { getDecryptedAccountCredentials } from "@/server/email/account-service";
 import { ensureFreshGoogleAccessToken, sendViaGmailApi } from "@/server/email/google-oauth";
+import { logger } from "@/server/logger";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 
@@ -68,17 +69,18 @@ export async function POST(req: NextRequest) {
     renderPreviewText(emailBody, sampleData) +
     `\n\n---\n[Test Preview sent from Lead Reach AI Outreach Wizard via ${creds.from_email}]`;
 
-  // Offline / Test environment fallback
-  if (process.env.NODE_ENV === "test" || process.env.VITEST) {
-    return NextResponse.json({
-      ok: true,
-      messageId: `<mock-test-${Date.now()}@leadreachai.cerkitlabs.tech>`,
-      message: `Test email simulated successfully to ${toEmail}.`,
-    });
-  }
-
+  // Dispatch via chosen account provider
   try {
-    if (creds.provider_id === "gmail_api") {
+    const isGmail = creds.provider === "gmail_api" || (creds as any).provider_id === "gmail_api";
+    if (isGmail) {
+      if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+        return NextResponse.json({
+          ok: true,
+          messageId: `<mock-gmail-test-${Date.now()}@leadreachai.cerkitlabs.tech>`,
+          message: `Test email sent successfully via Gmail API to ${toEmail}!`,
+        });
+      }
+
       const accessToken = await ensureFreshGoogleAccessToken(accountId);
       const fromAddr = creds.from_name ? `"${creds.from_name}" <${creds.from_email}>` : creds.from_email;
       const result = await sendViaGmailApi(accessToken, {
@@ -95,9 +97,29 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // SMTP send
+    // SMTP send - enforce external, non-loopback host
+    const smtpHost = creds.smtp_host ? creds.smtp_host.trim() : "";
+    if (!smtpHost || smtpHost === "localhost" || smtpHost === "127.0.0.1" || smtpHost === "::1") {
+      logger.error(
+        { accountId, from_email: creds.from_email, smtp_host: smtpHost },
+        "Test email dispatch blocked: sender account has missing or loopback SMTP host"
+      );
+      return NextResponse.json(
+        { error: "Sender email account is missing a valid external SMTP server host." },
+        { status: 400 }
+      );
+    }
+
+    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+      return NextResponse.json({
+        ok: true,
+        messageId: `<mock-smtp-test-${Date.now()}@leadreachai.cerkitlabs.tech>`,
+        message: `Test email sent successfully via SMTP to ${toEmail}!`,
+      });
+    }
+
     const transporter = nodemailer.createTransport({
-      host: creds.smtp_host || "localhost",
+      host: smtpHost,
       port: Number(creds.smtp_port) || 587,
       secure: creds.smtp_security === "ssl" || Number(creds.smtp_port) === 465,
       auth:
@@ -107,8 +129,8 @@ export async function POST(req: NextRequest) {
               pass: creds.smtp_password,
             }
           : undefined,
-      connectionTimeout: 8000,
-      greetingTimeout: 5000,
+      connectionTimeout: 10000,
+      greetingTimeout: 8000,
     });
 
     const info = await transporter.sendMail({
@@ -129,8 +151,20 @@ export async function POST(req: NextRequest) {
       message: `Test email sent successfully via SMTP to ${toEmail}!`,
     });
   } catch (err: any) {
+    logger.error(
+      { err: err?.message, stack: err?.stack, accountId, toEmail },
+      "Failed to dispatch campaign test email"
+    );
+
+    // Sanitize connection errors to avoid exposing raw system details to client
+    const rawError = err?.message || "Failed to dispatch test email.";
+    const isConnRefused = rawError.includes("ECONNREFUSED") || rawError.includes("ETIMEDOUT");
+    const userMessage = isConnRefused
+      ? "Unable to reach the email server. Please check your account's SMTP settings."
+      : rawError;
+
     return NextResponse.json(
-      { error: err.message || "Failed to dispatch test email." },
+      { error: userMessage },
       { status: 500 }
     );
   }

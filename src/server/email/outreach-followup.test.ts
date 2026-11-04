@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { db } from "@/server/db";
-import { decrypt } from "@/server/crypto";
+import { encrypt, decrypt } from "@/server/crypto";
 import {
   createEmailAccount,
   listEmailAccounts,
@@ -28,6 +28,7 @@ import * as CampaignsRoute from "@/app/api/v1/outreach/campaigns/route";
 import * as SingleCampaignRoute from "@/app/api/v1/outreach/campaigns/[id]/route";
 import * as SequenceRoute from "@/app/api/v1/outreach/campaigns/[id]/sequence/route";
 import * as UnsubscribeRoute from "@/app/api/v1/unsubscribe/[token]/route";
+import * as TestSendRoute from "@/app/api/v1/outreach/test-send/route";
 
 // Track sent mail arguments in mock
 export const sentMailMock = vi.fn();
@@ -153,6 +154,68 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
       const listRes = await AccountsRoute.GET();
       const listBody = await listRes.json();
       expect(listBody.data.find((a: any) => a.id === acc1.id)).toBeUndefined();
+    });
+
+    it("sends test email via Gmail API when provider is gmail_api and rejects localhost SMTP", async () => {
+      mockSession.mockResolvedValue(tenant1);
+
+      // Create a Gmail account
+      const gmailAccount = await db.email_accounts.create({
+        data: {
+          user_id: tenant1.user.id,
+          provider: "gmail_api",
+          label: "Test Gmail",
+          from_name: "Gmail User",
+          from_email: "test_gmail@domain.com",
+          oauth_access_token_enc: encrypt("mock_google_access_token"),
+          status: "active",
+        },
+      });
+
+      // 1. Test sending via Gmail account -> must route to Gmail API
+      const gmailReq = new NextRequest("http://localhost:3000/api/v1/outreach/test-send", {
+        method: "POST",
+        body: JSON.stringify({
+          accountId: gmailAccount.id,
+          toEmail: "target@leadreach.io",
+          subject: "Test Subject",
+          body: "Hello {{first_name}}",
+        }),
+      });
+
+      const gmailRes = await TestSendRoute.POST(gmailReq);
+      const gmailJson = await gmailRes.json();
+      expect(gmailRes.status).toBe(200);
+      expect(gmailJson.ok).toBe(true);
+      expect(gmailJson.message).toContain("Gmail API");
+
+      // 2. Create an SMTP account with missing / localhost host
+      const badSmtpAccount = await db.email_accounts.create({
+        data: {
+          user_id: tenant1.user.id,
+          provider: "smtp",
+          label: "Broken SMTP",
+          from_name: "Bad Sender",
+          from_email: "bad_sender@domain.com",
+          smtp_host: "localhost",
+          status: "active",
+        },
+      });
+
+      const badSmtpReq = new NextRequest("http://localhost:3000/api/v1/outreach/test-send", {
+        method: "POST",
+        body: JSON.stringify({
+          accountId: badSmtpAccount.id,
+          toEmail: "target@leadreach.io",
+          subject: "Test Subject",
+          body: "Hello {{first_name}}",
+        }),
+      });
+
+      const badSmtpRes = await TestSendRoute.POST(badSmtpReq);
+      const badSmtpJson = await badSmtpRes.json();
+      expect(badSmtpRes.status).toBe(400);
+      expect(badSmtpJson.error).toContain("missing a valid external SMTP server host");
     });
   });
 
