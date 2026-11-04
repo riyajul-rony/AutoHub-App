@@ -89,23 +89,23 @@ export default async function RepliesInboxPage({
         <div className="space-y-4">
           <div className="text-xs text-muted flex items-center justify-between">
             <span>Showing recent responses ({replies.length})</span>
-            <span className="flex items-center gap-1.5 text-accent-green font-medium">
+            <span className="flex items-center gap-1.5 text-[var(--badge-success-text)] font-medium">
               <ShieldCheck size={14} /> Stop-On-Reply Active
             </span>
           </div>
 
-          <Card className="divide-y divide-border overflow-hidden">
+          <Card className="divide-y divide-border overflow-hidden transition-colors duration-150 hover:border-borderStrong">
             {replies.map((reply: any) => (
               <div
                 key={reply.id}
-                className="p-5 hover:bg-surfaceHover transition flex flex-col sm:flex-row items-start justify-between gap-4"
+                className="p-5 hover:bg-surface-hover transition-colors duration-150 flex flex-col sm:flex-row items-start justify-between gap-4"
               >
                 <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm text-fg truncate">
                       {reply.subject || "Reply to outreach"}
                     </span>
-                    <Badge variant="success" size="sm">
+                    <Badge variant="success" size="sm" dot>
                       Replied
                     </Badge>
                   </div>

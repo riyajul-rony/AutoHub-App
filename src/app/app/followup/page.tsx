@@ -6,6 +6,7 @@ import { Pagination } from "@/components/pagination";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata = {
   title: "Followup Sequences — Lead Reach AI",
@@ -75,24 +76,18 @@ export default async function FollowupOverviewPage({
       />
 
       {userCampaigns.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface p-12 text-center space-y-3 max-w-md mx-auto">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-bgSubtle border border-border text-fg mx-auto">
-            <Mail size={22} />
-          </div>
-          <h2 className="text-sm font-semibold text-fg">No Campaigns Configured</h2>
-          <p className="text-xs text-muted leading-relaxed">
-            Followup sequences attach directly to outreach campaigns. Create an outreach campaign first to start automating thread followups.
-          </p>
-          <div className="pt-2">
-            <Link href="/app/outreach/new">
-              <Button variant="primary" size="sm" icon={<Plus size={14} />}>
-                Create Outreach Campaign
-              </Button>
-            </Link>
-          </div>
+        <div className="max-w-lg mx-auto">
+          <EmptyState
+            icon={<Mail size={20} />}
+            title="No Campaigns Configured"
+            description="Followup sequences attach directly to outreach campaigns. Create an outreach campaign first to start automating thread followups."
+            actionLabel="Create Outreach Campaign"
+            actionHref="/app/outreach/new"
+            actionIcon={<Plus size={14} />}
+          />
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-surface p-5 space-y-4">
+        <div className="rounded-[8px] border border-border bg-surface p-5 space-y-4 transition-colors duration-150 hover:border-borderStrong">
           <div className="divide-y divide-border">
             {userCampaigns.map((c: any) => {
               const seq = sequenceMap.get(c.id);
@@ -112,6 +107,7 @@ export default async function FollowupOverviewPage({
                       <Badge
                         variant={seqStatus === "active" ? "success" : "neutral"}
                         size="sm"
+                        dot
                       >
                         {seqStatus}
                       </Badge>
