@@ -46,47 +46,6 @@
 
 /* ───────────── Theme Variables ───────────── */
 :root,
-html[data-theme="light"] {
-  color-scheme: light;
-  --bg: #FFFFFF;
-  --bg-subtle: #FAFAFA;
-  --surface: #FFFFFF;
-  --surface-hover: #F4F4F5;
-  --border: #E4E4E7;
-  --border-input: #A1A1AA;
-  --border-strong: #A1A1AA;
-  --text: #09090B;
-  --muted: #F4F4F5;
-  --muted-foreground: #52525B;
-  --text-muted: #52525B;
-  --text-subtle: #71717A;
-  --primary: #18181B;
-  --primary-foreground: #FFFFFF;
-  --primary-text: #FFFFFF;
-  --secondary: #F4F4F5;
-  --secondary-foreground: #18181B;
-  --accent: #18181B;
-  --accent-subtle: #F4F4F5;
-  --accent-text: #18181B;
-  --success: #15803D;
-  --success-bg: #F0FDF4;
-  --warning: #B45309;
-  --warning-bg: #FFFBEB;
-  --danger: #B91C1C;
-  --danger-bg: #FEF2F2;
-  --focus-ring: #18181B;
-
-  /* Continuity aliases */
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--bg-subtle);
-  --color-border: var(--border);
-  --color-fg: var(--text);
-  --color-muted: var(--muted-foreground);
-  --color-brand: var(--primary);
-  --color-brand-2: var(--accent);
-}
-
 html[data-theme="dark"] {
   color-scheme: dark;
   --bg: #09090B;
@@ -116,6 +75,47 @@ html[data-theme="dark"] {
   --danger: #EF4444;
   --danger-bg: #450A0A;
   --focus-ring: #FAFAFA;
+
+  /* Continuity aliases */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--bg-subtle);
+  --color-border: var(--border);
+  --color-fg: var(--text);
+  --color-muted: var(--muted-foreground);
+  --color-brand: var(--primary);
+  --color-brand-2: var(--accent);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --bg-subtle: #FAFAFA;
+  --surface: #FFFFFF;
+  --surface-hover: #F4F4F5;
+  --border: #E4E4E7;
+  --border-input: #A1A1AA;
+  --border-strong: #A1A1AA;
+  --text: #09090B;
+  --muted: #F4F4F5;
+  --muted-foreground: #52525B;
+  --text-muted: #52525B;
+  --text-subtle: #71717A;
+  --primary: #18181B;
+  --primary-foreground: #FFFFFF;
+  --primary-text: #FFFFFF;
+  --secondary: #F4F4F5;
+  --secondary-foreground: #18181B;
+  --accent: #18181B;
+  --accent-subtle: #F4F4F5;
+  --accent-text: #18181B;
+  --success: #15803D;
+  --success-bg: #F0FDF4;
+  --warning: #B45309;
+  --warning-bg: #FFFBEB;
+  --danger: #B91C1C;
+  --danger-bg: #FEF2F2;
+  --focus-ring: #18181B;
 
   /* Continuity aliases */
   --color-bg: var(--bg);
