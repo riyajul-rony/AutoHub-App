@@ -17,6 +17,7 @@ import {
 import { getSessionUser } from "@/server/auth/session";
 import { isAdminRole } from "@/server/auth/permissions";
 import { SidebarProvider, Sidebar, Topbar, NavSection } from "@/components/ui";
+import { UserMenu } from "@/components/layout/user-menu";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSessionUser();
@@ -94,13 +95,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               { label: "Workspace" },
             ]}
             userSlot={
-              <Link
-                href="/app/settings/profile"
-                className="w-8 h-8 rounded-[6px] border border-border bg-surface text-text hover:bg-surface-hover flex items-center justify-center text-xs font-semibold font-mono transition-colors"
-                title={`Signed in as ${session?.user?.email || "User"}`}
-              >
-                {userInitial}
-              </Link>
+              session?.user ? (
+                <UserMenu user={session.user} isAdmin={isAdmin} />
+              ) : null
             }
           />
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1200px] w-full mx-auto">

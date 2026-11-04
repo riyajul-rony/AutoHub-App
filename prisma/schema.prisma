@@ -292,6 +292,7 @@ model users {
   timezone              String       @default("UTC")
   sender_legal_name     String?
   sender_address        String?
+  avatar_url            String?
   goals                 String[]
   onboarded_at          DateTime?    @db.Timestamptz
   last_login_at         DateTime?    @db.Timestamptz

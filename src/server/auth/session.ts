@@ -95,6 +95,7 @@ export const getSessionUser = cache(async () => {
       email_verified_at: string | Date | null;
       onboarded_at: string | Date | null;
       business_name: string | null;
+      avatar_url?: string | null;
     };
   }>(cacheKey);
 
@@ -128,6 +129,7 @@ export const getSessionUser = cache(async () => {
           email_verified_at: true,
           onboarded_at: true,
           business_name: true,
+          avatar_url: true,
         },
       },
     },
