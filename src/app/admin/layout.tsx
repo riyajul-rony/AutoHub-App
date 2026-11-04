@@ -28,6 +28,7 @@ const adminNavConfig: NavConfigItem[] = [
   { href: "/admin/logs", label: "System Logs", icon: "ScrollText", permission: "logs.read" },
   { href: "/admin/staff", label: "Staff & Permissions", icon: "Users", permission: "staff.manage" },
   { href: "/admin/apify", label: "Apify Integration", icon: "Cloud", permission: "settings.manage" },
+  { href: "/admin/branding", label: "Branding & CMS", icon: "Palette", permission: "settings.manage" },
   { href: "/admin/setup", label: "System Setup & Keys", icon: "Settings", permission: "settings.manage" },
   { href: "/admin/health", label: "Health & Services", icon: "Activity" },
 ];

@@ -23,18 +23,23 @@ import { LandingHeader } from "@/components/landing/landing-header";
 import { ProductPreview } from "@/components/landing/product-preview";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { FAQSection } from "@/components/landing/faq-section";
+import { getSiteBranding } from "@/server/branding";
 
-export const metadata = {
-  title: "Lead Reach AI — Modern B2B Growth & Multi-Tenant Automation Platform",
-  description:
-    "Unified Lead Extraction, Cold Email Outreach with 25/hr rate-limiting, Stop-on-Reply IMAP sequences, and Multi-Channel Social Scheduling.",
-};
+export async function generateMetadata() {
+  const branding = await getSiteBranding();
+  return {
+    title: branding.seo_title || `${branding.site_name} — ${branding.tagline}`,
+    description: branding.seo_description,
+  };
+}
 
-export default function HomePage() {
+export default async function HomePage() {
+  const branding = await getSiteBranding();
+
   return (
     <div className="min-h-screen flex flex-col bg-bg text-fg selection:bg-primary selection:text-primaryText">
       {/* Sticky Top Navigation */}
-      <LandingHeader />
+      <LandingHeader siteName={branding.site_name} logoUrl={branding.logo_url} />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -43,22 +48,20 @@ export default function HomePage() {
             {/* Pill Announcement */}
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1 text-xs font-medium text-muted hover:text-fg transition-colors mb-6 shadow-sm">
               <span className="flex h-2 w-2 rounded-full bg-success" />
-              <span className="text-fg font-semibold">Lead Reach AI</span>
+              <span className="text-fg font-semibold">{branding.site_name}</span>
               <span className="text-subtle">•</span>
-              <span>Intelligent B2B Growth Engine</span>
+              <span>{branding.tagline}</span>
               <ArrowRight size={12} className="text-muted" />
             </div>
 
             {/* Main Headline */}
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-fg leading-[1.1]">
-              Automate your growth pipeline{" "}
-              <span className="text-muted font-normal">without the chaos.</span>
+              {branding.hero_title}
             </h1>
 
             {/* Subheading */}
             <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-muted leading-relaxed">
-              Lead Reach AI unifies live lead scraping, AI-personalized cold outreach, multi-channel social
-              publishing, and automated follow-up sequences in a single, tenant-isolated cloud engine.
+              {branding.hero_subtitle}
             </p>
 
             {/* Dual CTAs */}
@@ -446,19 +449,38 @@ export default function HomePage() {
             {/* Brand Col */}
             <div className="col-span-2 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primaryText font-bold shadow-sm">
-                  <Zap size={15} />
-                </span>
-                <span className="font-bold text-base text-fg">Lead Reach AI</span>
+                {branding.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={branding.logo_url}
+                    alt={branding.site_name}
+                    className="h-7 w-7 object-contain rounded-lg"
+                  />
+                ) : (
+                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primaryText font-bold shadow-sm">
+                    <Zap size={15} />
+                  </span>
+                )}
+                <span className="font-bold text-base text-fg">{branding.site_name}</span>
               </div>
               <p className="text-xs text-muted max-w-xs leading-relaxed">
-                The modern revenue automation platform uniting live lead discovery, safe cold email
-                sequences, and multi-channel social posting.
+                {branding.tagline}
               </p>
               <div className="flex items-center gap-2 pt-2">
                 <span className="flex h-2 w-2 rounded-full bg-success" />
                 <span className="text-[11px] font-medium text-fg">All systems operational</span>
               </div>
+              {branding.support_email && (
+                <div className="pt-1 text-xs text-muted">
+                  Support:{" "}
+                  <a
+                    href={`mailto:${branding.support_email}`}
+                    className="text-fg hover:underline font-mono"
+                  >
+                    {branding.support_email}
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Col 1: Product */}
@@ -496,9 +518,38 @@ export default function HomePage() {
           </div>
 
           <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>© {new Date().getFullYear()} Cerkit Labs. All rights reserved.</div>
-            <div className="text-subtle">
-              Engineered with Next.js App Router, TypeScript, Prisma & Redis.
+            <div>{branding.footer_copyright}</div>
+            <div className="flex items-center gap-4 text-muted">
+              {branding.twitter_url && (
+                <a
+                  href={branding.twitter_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-fg transition-colors"
+                >
+                  Twitter
+                </a>
+              )}
+              {branding.linkedin_url && (
+                <a
+                  href={branding.linkedin_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-fg transition-colors"
+                >
+                  LinkedIn
+                </a>
+              )}
+              {branding.github_url && (
+                <a
+                  href={branding.github_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-fg transition-colors"
+                >
+                  GitHub
+                </a>
+              )}
             </div>
           </div>
         </div>

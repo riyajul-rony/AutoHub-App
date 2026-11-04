@@ -19,6 +19,7 @@ import {
   X,
   Database,
   Cloud,
+  Palette,
 } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -43,6 +44,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: 
   Activity,
   Database,
   Cloud,
+  Palette,
 };
 
 interface AdminSidebarProps {
