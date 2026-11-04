@@ -167,6 +167,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
         currentPlan={user.plan || "free"}
         isEmailVerified={Boolean(user.email_verified_at)}
         isCurrentAdmin={isCurrentAdmin}
+        isSuperAdmin={currentAdmin.role === "super_admin"}
         availablePlans={availablePlans.map((p: any) => ({ id: p.id, slug: p.slug, name: p.name }))}
         initialOverrides={userOverrides}
       />

@@ -26,6 +26,7 @@ import {
   sendPasswordResetAction,
   revokeAllSessionsAction,
   softDeleteUserAction,
+  hardDeleteUserAction,
 } from "@/server/admin/user-actions";
 import { updateUserLimitOverridesAction } from "@/server/admin/plan-actions";
 
@@ -52,6 +53,7 @@ interface UserDetailActionsProps {
   currentPlan: string;
   isEmailVerified: boolean;
   isCurrentAdmin: boolean;
+  isSuperAdmin?: boolean;
   availablePlans?: PlanOption[];
   initialOverrides?: UserOverridesData | null;
 }
@@ -64,6 +66,7 @@ export function UserDetailActions({
   currentPlan,
   isEmailVerified,
   isCurrentAdmin,
+  isSuperAdmin = false,
   availablePlans = [],
   initialOverrides,
 }: UserDetailActionsProps) {
@@ -77,6 +80,9 @@ export function UserDetailActions({
   const [showActivateDialog, setShowActivateDialog] = useState(false);
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showHardDeleteDialog, setShowHardDeleteDialog] = useState(false);
+  const [hardDeleteEmailInput, setHardDeleteEmailInput] = useState("");
+  const [hardDeleteError, setHardDeleteError] = useState<string | null>(null);
   const [showOverridesModal, setShowOverridesModal] = useState(false);
 
   // Quick inputs
@@ -278,6 +284,25 @@ export function UserDetailActions({
                 title={isCurrentAdmin ? "You cannot delete yourself" : "Mark user as pending deletion"}
               >
                 <Trash2 size={14} className="mr-1.5" /> Soft Delete
+              </Button>
+            )}
+
+            {/* Hard Delete (Super Admin only, regular users only, cannot delete self) */}
+            {isSuperAdmin && !isCurrentAdmin && currentRole === "user" && (
+              <Button
+                variant="danger"
+                size="sm"
+                id="user-hard-delete-btn"
+                disabled={loadingAction === "hardDelete"}
+                onClick={() => {
+                  setHardDeleteEmailInput("");
+                  setHardDeleteError(null);
+                  setShowHardDeleteDialog(true);
+                }}
+                className="bg-red-950/70 hover:bg-red-900 text-red-300 border border-red-800/80 shadow-xs"
+                title="Permanently erase user and all records (Super Admin only)"
+              >
+                <Trash2 size={14} className="mr-1.5 text-red-400" /> Delete Permanently
               </Button>
             )}
           </div>
@@ -542,6 +567,117 @@ export function UserDetailActions({
           await executeAction("softDelete", () => softDeleteUserAction(userId));
         }}
       />
+
+      {/* Permanent Hard Delete Confirmation Modal */}
+      {showHardDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            className="bg-surface rounded-xl border border-red-500/30 w-full max-w-lg p-6 shadow-2xl relative space-y-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-lg border border-red-500/30 bg-red-500/10 text-red-500">
+                  <Trash2 size={20} />
+                </span>
+                <div>
+                  <h3 className="text-base font-semibold text-fg">Permanently Delete Account</h3>
+                  <p className="text-xs text-red-400 font-medium mt-0.5">IRREVERSIBLE ACTION — ALL DATA WILL BE WIPED</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHardDeleteDialog(false)}
+                disabled={loadingAction === "hardDelete"}
+                className="text-muted hover:text-fg p-1 rounded-md transition"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-3.5 space-y-2 text-xs text-muted leading-relaxed">
+              <p className="font-semibold text-red-400">
+                Warning: This action will completely erase this user account and cannot be undone.
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-fg/80">
+                <li>All profile details, credentials, and active sessions will be terminated</li>
+                <li>Connected Gmail & SMTP sender accounts will be disconnected (OAuth tokens revoked)</li>
+                <li>All cold outreach & social campaigns, steps, and scheduled messages will be deleted</li>
+                <li>All contact leads, search history, and export jobs will be removed</li>
+                <li>Uploaded avatar and media assets will be wiped from disk storage</li>
+                <li>Queued background tasks will be cancelled from Redis</li>
+              </ul>
+              <p className="pt-1 text-[11px] text-muted">
+                Once deleted, this exact email address will be free to sign up again as a brand-new user.
+              </p>
+            </div>
+
+            {hardDeleteError && (
+              <div className="rounded-md bg-red-500/10 border border-red-500/30 p-2.5 text-xs text-red-400 flex items-center gap-2">
+                <X size={14} className="shrink-0" />
+                <span>{hardDeleteError}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-xs font-medium text-fg">
+                To confirm, type <span className="font-mono font-bold text-red-400 select-all">{userEmail}</span> below:
+              </label>
+              <input
+                id="hard-delete-confirm-input"
+                type="text"
+                autoFocus
+                value={hardDeleteEmailInput}
+                onChange={(e) => {
+                  setHardDeleteEmailInput(e.target.value);
+                  setHardDeleteError(null);
+                }}
+                placeholder={userEmail}
+                className="w-full h-9 rounded-md border border-border-input bg-surface px-3 text-xs text-fg focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 font-mono"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={loadingAction === "hardDelete"}
+                onClick={() => setShowHardDeleteDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                id="confirm-hard-delete-btn"
+                disabled={
+                  hardDeleteEmailInput.trim().toLowerCase() !== userEmail.toLowerCase() ||
+                  loadingAction === "hardDelete"
+                }
+                className="bg-red-700 hover:bg-red-800 text-white border-red-800 disabled:opacity-50"
+                onClick={async () => {
+                  setLoadingAction("hardDelete");
+                  setHardDeleteError(null);
+                  try {
+                    const res = await hardDeleteUserAction(userId, hardDeleteEmailInput);
+                    if (!res.ok) throw new Error(res.message || "Failed to delete user account.");
+                    setShowHardDeleteDialog(false);
+                    setFeedback({ type: "success", text: res.message });
+                    router.push("/admin/users");
+                  } catch (err: any) {
+                    setHardDeleteError(err?.message || "Failed to permanently delete user.");
+                  } finally {
+                    setLoadingAction(null);
+                  }
+                }}
+              >
+                {loadingAction === "hardDelete" ? "Deleting Permanently..." : "Permanently Delete Everything"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

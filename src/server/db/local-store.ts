@@ -139,6 +139,36 @@ export const localDevStore = {
     }
     return null;
   },
+  deleteUser: (idOrEmail: string) => {
+    const store = loadStore();
+    if (!store.users) store.users = [{ ...DEFAULT_ADMIN_USER }];
+    const idx = store.users.findIndex((u) => u.id === idOrEmail || (u.email && u.email.toLowerCase() === idOrEmail?.toLowerCase()));
+    if (idx >= 0) {
+      const deleted = store.users.splice(idx, 1)[0];
+      const uid = deleted.id;
+      const uemail = deleted.email?.toLowerCase();
+
+      // Cascade in-memory cleanup across tables
+      if (store.sessions) store.sessions = store.sessions.filter((s) => s.user_id !== uid);
+      if (store.verification_tokens && uemail) store.verification_tokens = store.verification_tokens.filter((t) => t.identifier?.toLowerCase() !== uemail);
+      if (store.api_keys) store.api_keys = store.api_keys.filter((k) => k.user_id !== uid);
+      if (store.social_accounts) store.social_accounts = store.social_accounts.filter((a) => a.user_id !== uid);
+      if (store.social_campaigns) store.social_campaigns = store.social_campaigns.filter((c) => c.user_id !== uid);
+      if (store.post_runs) store.post_runs = store.post_runs.filter((p) => p.user_id !== uid);
+      if (store.email_accounts) store.email_accounts = store.email_accounts.filter((e) => e.user_id !== uid);
+      if (store.outreach_campaigns) store.outreach_campaigns = store.outreach_campaigns.filter((c) => c.user_id !== uid);
+      if (store.campaign_recipients) store.campaign_recipients = store.campaign_recipients.filter((r) => r.user_id !== uid);
+      if (store.email_messages) store.email_messages = store.email_messages.filter((m) => m.user_id !== uid);
+      if (store.followup_sequences) store.followup_sequences = store.followup_sequences.filter((s) => s.user_id !== uid);
+      if ((store as any).leads) (store as any).leads = (store as any).leads.filter((l: any) => l.user_id !== uid);
+      if ((store as any).lead_searches) (store as any).lead_searches = (store as any).lead_searches.filter((ls: any) => ls.user_id !== uid);
+      if ((store as any).assets) (store as any).assets = (store as any).assets.filter((a: any) => a.user_id !== uid);
+
+      saveStore();
+      return deleted;
+    }
+    return null;
+  },
 
   // --- Sessions ---
   getSessions: (filter?: (item: any) => boolean) => {
@@ -244,6 +274,14 @@ export const localDevStore = {
     }
     saveStore();
     return count;
+  },
+  deleteManyVerificationTokens: (filter: (t: any) => boolean) => {
+    const store = loadStore();
+    if (!store.verification_tokens) store.verification_tokens = [];
+    const initialLen = store.verification_tokens.length;
+    store.verification_tokens = store.verification_tokens.filter((t) => !filter(t));
+    saveStore();
+    return initialLen - store.verification_tokens.length;
   },
 
   // --- Social Accounts ---

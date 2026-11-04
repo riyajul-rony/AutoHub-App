@@ -62,6 +62,15 @@ class LocalDevMockDb {
     },
     create: async ({ data }: any) => localDevStore.saveUser(data),
     update: async ({ where, data }: any) => localDevStore.updateUser(where?.id || where?.email, data),
+    delete: async ({ where }: any) => localDevStore.deleteUser(where?.id || where?.email),
+    deleteMany: async ({ where }: any = {}) => {
+      const idOrEmail = where?.id || where?.email;
+      if (idOrEmail) {
+        const res = localDevStore.deleteUser(idOrEmail);
+        return { count: res ? 1 : 0 };
+      }
+      return { count: 0 };
+    },
     count: async ({ where }: any = {}) => {
       return localDevStore.getUsers((u) => {
         if (where?.role) {
@@ -156,7 +165,14 @@ class LocalDevMockDb {
       }, data);
       return { count };
     },
-    deleteMany: async () => ({ count: 0 }),
+    deleteMany: async ({ where }: any = {}) => {
+      const count = localDevStore.deleteManyVerificationTokens((t) => {
+        if (where?.identifier && t.identifier?.toLowerCase() !== where.identifier?.toLowerCase()) return false;
+        if (where?.token_hash && t.token_hash !== where.token_hash) return false;
+        return true;
+      });
+      return { count };
+    },
   };
 
   system_settings = {
@@ -1157,7 +1173,12 @@ class LocalDevMockDb {
   };
 
   $queryRaw = async () => [{ 1: 1 }];
-  $transaction = async (actions: any[]) => Promise.all(actions);
+  $transaction = async (arg: any) => {
+    if (typeof arg === "function") {
+      return arg(this);
+    }
+    return Promise.all(arg);
+  };
 }
 
 function createClient() {

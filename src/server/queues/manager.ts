@@ -237,3 +237,33 @@ export async function resumeQueue(queueName: string): Promise<boolean> {
   await q.resume();
   return true;
 }
+
+/**
+ * Attempt to remove any active, waiting, or delayed BullMQ jobs associated with a user.
+ * Fails safely if Redis is offline or jobs are already completed.
+ */
+export async function cancelUserJobs(userId: string): Promise<void> {
+  const online = await isRedisOnline(600);
+  if (!online) return;
+
+  const names = Object.values(QUEUE_NAMES);
+  for (const name of names) {
+    try {
+      const q = getQueue(name);
+      const jobs: Job[] = await Promise.race([
+        q.getJobs(["waiting", "delayed", "active"], 0, 100),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 1000)),
+      ]);
+
+      for (const j of jobs) {
+        if (!j) continue;
+        const jobData = j.data || {};
+        if (jobData.userId === userId || jobData.user_id === userId) {
+          await j.remove().catch(() => null);
+        }
+      }
+    } catch (err: any) {
+      logger.warn({ queue: name, userId, err: err?.message }, "Failed to cancel user jobs in BullMQ queue");
+    }
+  }
+}
