@@ -1,5 +1,8 @@
+import { validateEnv } from "@/server/env";
 import { startAllWorkers } from "./index";
 import { logger } from "@/server/logger";
+
+validateEnv();
 
 logger.info("Lead Reach AI Worker Supervisor starting...");
 const workers = startAllWorkers();

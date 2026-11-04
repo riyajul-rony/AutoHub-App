@@ -11,7 +11,10 @@ export function proxy(request: NextRequest) {
   const isAdminPath = pathname.startsWith("/admin");
 
   if ((isAppPath || isOnboarding || isAdminPath) && !sessionToken) {
-    const loginUrl = new URL("/login", request.url);
+    const proto = request.headers.get("x-forwarded-proto") || (request.url.startsWith("https") ? "https" : "http");
+    const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || request.nextUrl.host;
+    const baseUrl = process.env.APP_URL || `${proto}://${host}`;
+    const loginUrl = new URL("/login", baseUrl);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }

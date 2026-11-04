@@ -2,6 +2,7 @@ import pg from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../generated/prisma/client";
 import { localDevStore } from "./local-store";
+import { validateEnv } from "@/server/env";
 
 const globalForPrisma = globalThis as unknown as { prisma?: any; pgPool?: pg.Pool };
 
@@ -1124,6 +1125,7 @@ class LocalDevMockDb {
 }
 
 function createClient() {
+  validateEnv();
   const connString = process.env.DATABASE_URL;
   // If we're in production or live DB is available, use standard client
   try {
