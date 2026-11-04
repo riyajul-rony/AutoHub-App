@@ -10,12 +10,18 @@ import { logger } from "@/server/logger";
  * or local `<project>/data/uploads/avatars` on Windows / local dev.
  */
 export function getAvatarDir(): string {
-  const base =
-    process.env.STORAGE_PATH ||
-    (process.platform === "win32"
-      ? path.join(process.cwd(), "data", "uploads")
-      : "/data/uploads");
-  return path.join(base, "avatars");
+  if (process.env.STORAGE_PATH) {
+    return path.join(process.env.STORAGE_PATH, "avatars");
+  }
+  // In CI runners (e.g. GitHub Actions Linux), test runs, or local Windows dev:
+  if (process.env.NODE_ENV === "test" || process.env.CI || process.platform === "win32") {
+    return path.join(process.cwd(), "data", "uploads", "avatars");
+  }
+  // In Docker production container with /data volume mounted:
+  if (fs.existsSync("/data")) {
+    return "/data/uploads/avatars";
+  }
+  return path.join(process.cwd(), "data", "uploads", "avatars");
 }
 
 const ALLOWED_MIME_TYPES = new Set([

@@ -12,12 +12,18 @@ export type BrandingImageType = "logo_light" | "logo_dark" | "favicon" | "og_ima
  * or local `<project>/data/uploads/branding` on Windows / local dev.
  */
 export function getBrandingDir(): string {
-  const base =
-    process.env.STORAGE_PATH ||
-    (process.platform === "win32"
-      ? path.join(process.cwd(), "data", "uploads")
-      : "/data/uploads");
-  return path.join(base, "branding");
+  if (process.env.STORAGE_PATH) {
+    return path.join(process.env.STORAGE_PATH, "branding");
+  }
+  // In CI runners (e.g. GitHub Actions Linux), test runs, or local Windows dev:
+  if (process.env.NODE_ENV === "test" || process.env.CI || process.platform === "win32") {
+    return path.join(process.cwd(), "data", "uploads", "branding");
+  }
+  // In Docker production container with /data volume mounted:
+  if (fs.existsSync("/data")) {
+    return "/data/uploads/branding";
+  }
+  return path.join(process.cwd(), "data", "uploads", "branding");
 }
 
 export const MAX_BRANDING_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
@@ -251,3 +257,4 @@ export async function removeBrandingFile(fileUrl?: string | null): Promise<void>
     await fs.promises.unlink(fullPath).catch(() => null);
   } catch {}
 }
+
