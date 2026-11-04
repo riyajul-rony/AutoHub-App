@@ -232,6 +232,51 @@ describe("Phase 6: Cold Email Outreach & Followup Sequence Automation", () => {
       expect(assignedIds).toContain(accA.id);
       expect(assignedIds).toContain(accB.id);
     });
+
+    it("creates outreach campaign with pasted leads (recipientSource: 'paste')", async () => {
+      const pasteTenant = {
+        sessionId: "sess-pasteTenant",
+        user: {
+          id: "55555555-5555-5555-5555-555555555555",
+          email: "pasteTenant@leadreach.io",
+          role: "user",
+        },
+      };
+      mockSession.mockResolvedValue(pasteTenant);
+
+      const acc = await createEmailAccount(pasteTenant.user.id, {
+        label: "Paste Sender",
+        from_name: "Sender",
+        from_email: "sender_paste@domain.com",
+        smtp_host: "smtp.domain.com",
+        smtp_port: 587,
+        smtp_username: "sender_paste@domain.com",
+        smtp_password: "pass",
+        imap_host: "imap.domain.com",
+        imap_port: 993,
+      });
+
+      const result = await createOutreachCampaign(pasteTenant.user.id, {
+        name: "Pasted Leads Outreach Campaign",
+        mode: "custom",
+        senderAccountIds: [acc.id],
+        recipientSource: "paste",
+        subjectTemplate: "Hello {{name}}",
+        bodyTemplate: "Hi {{first_name}}, reaching out to {{company_name}}.",
+        timezone: "UTC",
+        recipients: [
+          { email: "pasted_lead_1@target.com", name: "Pasted User", company: "Pasted Co" },
+        ],
+      });
+
+      expect(result.campaign.recipient_source).toBe("paste");
+      expect(result.recipientsCount).toBe(1);
+
+      const savedCampaign = await db.outreach_campaigns.findUnique({
+        where: { id: result.campaign.id },
+      });
+      expect(savedCampaign?.recipient_source).toBe("paste");
+    });
   });
 
   describe("3. Sending Engine & 25/hr Rate Limit Hard Cap", () => {

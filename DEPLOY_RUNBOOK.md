@@ -284,3 +284,4 @@ Run through this checklist after deploying updates to `https://leadreachai.cerki
 - [ ] **Lead Search White-Label**: Run search in `/app/leads` — verifies clean status without exposing Apify internal error strings.
 - [ ] **Google OAuth**: Test Gmail mailbox connection in `/app/outreach/email-accounts` — verifies callback success.
 - [ ] **Background Workers**: Run `docker logs lead-reach-ai-worker-1` — verifies all 7 workers are active.
+

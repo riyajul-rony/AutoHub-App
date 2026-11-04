@@ -666,7 +666,16 @@ export function OutreachWizard() {
 
       router.push(`/app/outreach/${data.data.campaign.id}`);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "An error occurred");
+      const raw = err instanceof Error ? err.message : "An error occurred";
+      const sanitized =
+        raw.includes("prisma") ||
+        raw.includes("invocation") ||
+        raw.includes("SQL") ||
+        raw.includes("argument") ||
+        raw.includes("Expected RecipientSource")
+          ? "We couldn't launch your campaign. Please try again."
+          : raw;
+      setErrorMsg(sanitized);
       setSubmitting(false);
     }
   };

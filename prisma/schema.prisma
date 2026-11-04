@@ -198,6 +198,8 @@ enum RecipientSource {
   leads
   sheet
   csv
+  paste
+  manual
 }
 
 enum TrackingEventType {

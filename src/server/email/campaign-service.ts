@@ -34,7 +34,7 @@ export interface CreateCampaignInput {
   name: string;
   mode: "ai" | "custom";
   senderAccountIds: string[];
-  recipientSource: "leads" | "sheet" | "csv" | "manual";
+  recipientSource: "leads" | "sheet" | "csv" | "paste" | "manual";
   sourceRef?: any;
   recipients: RecipientInput[];
   subjectTemplate?: string;
