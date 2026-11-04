@@ -17,13 +17,13 @@ export const metadata = {
 function OutreachSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      <div className="h-10 w-64 bg-bgSubtle rounded-lg" />
+      <div className="h-10 w-64 bg-bgSubtle rounded-[8px]" />
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-24 bg-bgSubtle rounded-xl" />
+          <div key={i} className="h-24 bg-bgSubtle rounded-[8px]" />
         ))}
       </div>
-      <div className="h-96 bg-bgSubtle rounded-xl" />
+      <div className="h-96 bg-bgSubtle rounded-[8px]" />
     </div>
   );
 }

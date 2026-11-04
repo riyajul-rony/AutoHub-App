@@ -720,7 +720,7 @@ export function OutreachWizard() {
           </div>
           <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
             <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
+              className="h-full bg-[var(--brand-emerald)] rounded-full transition-all duration-300"
               style={{ width: `${(currentStep / 5) * 100}%` }}
             />
           </div>
@@ -742,23 +742,29 @@ export function OutreachWizard() {
                     setCurrentStep(s.step);
                   }
                 }}
-                className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-medium transition text-left cursor-pointer ${
+                className={`flex items-center gap-2.5 p-3 rounded-[8px] border text-xs font-medium transition-colors text-left cursor-pointer ${
                   isActive
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                    ? "bg-[var(--brand-emerald)] text-[var(--brand-emerald-fg)] border-[var(--brand-emerald)] font-semibold shadow-xs"
                     : isDone
-                    ? "bg-bgSubtle border-border text-fg hover:bg-surface"
-                    : "bg-surface border-border text-muted hover:text-fg hover:bg-bgSubtle"
+                    ? "bg-bgSubtle border-border text-fg hover:border-borderStrong hover:bg-surface"
+                    : "bg-surface border-border text-muted hover:text-fg hover:border-borderStrong hover:bg-bgSubtle"
                 }`}
               >
                 <Icon size={16} className="shrink-0" />
                 <div className="truncate">
-                  <span
-                    className={`block text-[10px] uppercase font-mono ${
-                      isActive ? "text-primary-foreground/75" : "text-muted"
-                    }`}
-                  >
-                    Step {s.step}
-                  </span>
+                  {isDone ? (
+                    <span className="block text-[10px] uppercase font-mono font-semibold text-[var(--badge-success-text)]">
+                      ✓ Step {s.step}
+                    </span>
+                  ) : (
+                    <span
+                      className={`block text-[10px] uppercase font-mono ${
+                        isActive ? "text-[var(--brand-emerald-fg)]/80 font-semibold" : "text-muted"
+                      }`}
+                    >
+                      Step {s.step}
+                    </span>
+                  )}
                   <span className="font-semibold">{s.title}</span>
                 </div>
               </button>

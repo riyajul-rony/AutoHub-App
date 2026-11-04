@@ -420,9 +420,9 @@ export function OutreachDashboard({
                 </div>
               ) : (
                 /* 3-Step Guided Empty State */
-                <div className="rounded-xl border border-dashed border-border bg-bgSubtle/40 p-8 sm:p-12 text-center space-y-6">
-                  <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                    <Mail size={26} />
+                <div className="rounded-[8px] border border-dashed border-border bg-bgSubtle/40 p-8 sm:p-12 text-center space-y-6">
+                  <div className="w-12 h-12 mx-auto rounded-[10px] bg-[var(--brand-emerald-subtle)] border border-[var(--brand-emerald-border)] flex items-center justify-center text-[var(--badge-success-text)] shadow-xs">
+                    <Mail size={22} />
                   </div>
                   <div className="max-w-md mx-auto space-y-1.5">
                     <h3 className="text-base sm:text-lg font-bold text-fg">
@@ -435,8 +435,8 @@ export function OutreachDashboard({
 
                   {/* 3 Steps Flow */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto text-left">
-                    <div className="p-3.5 rounded-lg border border-border bg-surface space-y-1">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    <div className="p-3.5 rounded-[8px] border border-border bg-surface space-y-1 hover:border-borderStrong transition-colors">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--badge-success-text)]">
                         Step 1
                       </div>
                       <div className="text-xs font-semibold text-fg">Connect Email</div>
@@ -444,8 +444,8 @@ export function OutreachDashboard({
                         Connect your Gmail, Outlook, or business SMTP sender inbox
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-lg border border-border bg-surface space-y-1">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    <div className="p-3.5 rounded-[8px] border border-border bg-surface space-y-1 hover:border-borderStrong transition-colors">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--badge-success-text)]">
                         Step 2
                       </div>
                       <div className="text-xs font-semibold text-fg">Import Leads</div>
@@ -453,8 +453,8 @@ export function OutreachDashboard({
                         Import from Lead Gen search results or paste custom lead list
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-lg border border-border bg-surface space-y-1">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    <div className="p-3.5 rounded-[8px] border border-border bg-surface space-y-1 hover:border-borderStrong transition-colors">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--badge-success-text)]">
                         Step 3
                       </div>
                       <div className="text-xs font-semibold text-fg">Review &amp; Launch</div>
@@ -488,7 +488,7 @@ export function OutreachDashboard({
                   return (
                     <div
                       key={c.id}
-                      className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-bgSubtle/40 -mx-2 px-3 rounded-lg transition-colors"
+                      className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-bgSubtle/40 -mx-2 px-3 rounded-[8px] transition-colors"
                     >
                       {/* Left Column: Title & Meta */}
                       <div className="space-y-2 flex-1 min-w-0">
@@ -505,25 +505,19 @@ export function OutreachDashboard({
                           
                           {/* Color-Coded Status Badge */}
                           {isRunning ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
+                            <Badge variant="success" size="sm" dot>
                               RUNNING
-                            </span>
+                            </Badge>
                           ) : isPaused ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                            <Badge variant="warning" size="sm" dot>
                               PAUSED
-                            </span>
+                            </Badge>
                           ) : isCompleted ? (
-                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono bg-primary/10 text-primary border border-primary/20">
-                              <CheckCircle2 size={11} />
-                              DONE
-                            </span>
+                            <Badge variant="success" size="sm" dot>
+                              COMPLETED
+                            </Badge>
                           ) : (
-                            <Badge variant="neutral" size="sm" className="text-[10px] uppercase font-mono">
+                            <Badge variant="neutral" size="sm" dot className="text-[10px] uppercase font-mono">
                               {c.status}
                             </Badge>
                           )}
@@ -540,9 +534,7 @@ export function OutreachDashboard({
                           </div>
                           <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
                             <div
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                isCompleted ? "bg-emerald-500" : "bg-primary"
-                              }`}
+                              className="h-full bg-[var(--brand-emerald)] rounded-full transition-all duration-300"
                               style={{ width: `${progressPct}%` }}
                             />
                           </div>
