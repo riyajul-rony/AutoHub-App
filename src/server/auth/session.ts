@@ -164,14 +164,52 @@ export async function invalidateUserSessions(userId: string) {
   const userSessionKeys = await cacheFindKeys(`user_session:${userId}:*`);
   const sessionKeysToDelete: string[] = [];
   for (const k of userSessionKeys) {
-    const sessionKey = await cacheGet<string>(k);
-    if (sessionKey) sessionKeysToDelete.push(sessionKey);
+    const tokenHash = k.substring(k.lastIndexOf(":") + 1);
+    if (tokenHash) sessionKeysToDelete.push(`session:${tokenHash}`);
   }
   if (sessionKeysToDelete.length > 0) {
     await cacheDel(...sessionKeysToDelete);
   }
   if (userSessionKeys.length > 0) {
     await cacheDel(...userSessionKeys);
+  }
+}
+
+/**
+ * Invalidate Redis session cache for a user or current session so DB updates (e.g. onboarded_at, role, profile)
+ * take effect immediately on next request without deleting active DB sessions or logging the user out.
+ */
+export async function refreshSessionCache(userId?: string): Promise<void> {
+  try {
+    const jar = await cookies();
+    const token = jar.get(SESSION_COOKIE)?.value;
+    if (token) {
+      const tokenHash = sha256(token);
+      await cacheDel(`session:${tokenHash}`);
+    }
+  } catch {
+    // cookies() unavailable in non-request contexts
+  }
+
+  if (userId) {
+    try {
+      const userSessionKeys = await cacheFindKeys(`user_session:${userId}:*`);
+      const sessionKeysToDelete: string[] = [];
+      for (const k of userSessionKeys) {
+        const tokenHash = k.substring(k.lastIndexOf(":") + 1);
+        if (tokenHash) {
+          sessionKeysToDelete.push(`session:${tokenHash}`);
+        }
+      }
+      if (sessionKeysToDelete.length > 0) {
+        await cacheDel(...sessionKeysToDelete);
+      }
+      if (userSessionKeys.length > 0) {
+        await cacheDel(...userSessionKeys);
+      }
+    } catch {
+      // cache errors non-fatal
+    }
   }
 }
 

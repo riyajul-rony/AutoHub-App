@@ -74,6 +74,15 @@ export function OnboardingWizard({
         <ThemeToggle />
       </div>
 
+      {state?.error ? (
+        <div
+          role="alert"
+          className="rounded-[6px] border border-danger/30 bg-danger-bg p-3 text-xs text-danger font-medium"
+        >
+          {state.error}
+        </div>
+      ) : null}
+
       {/* Steps Indicator */}
       <div className="flex items-center justify-center gap-2 pt-2 pb-1">
         {[
